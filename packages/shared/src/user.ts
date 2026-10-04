@@ -15,6 +15,7 @@ export const userSchema = z.object({
   dateOfBirth: z.coerce.date().nullable(),
   weightUnit: WeightUnit.default("kg"),
   timezone: z.string().min(1).max(64),
+  onboardedAt: z.coerce.date().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
   deletedAt: z.coerce.date().nullable(),
