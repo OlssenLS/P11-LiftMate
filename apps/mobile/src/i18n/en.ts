@@ -58,12 +58,19 @@ export const en = {
     timezone: 'Timezone',
     goalTitle: 'Your main goal',
     goalSubtitle: 'Pick one to focus on',
+    primaryGoal: 'Primary goal',
     secondaryGoal: 'Secondary goal (optional)',
     goals: {
       lose_fat: 'Lose fat',
       build_muscle: 'Build muscle',
       gain_strength: 'Gain strength',
       general_fitness: 'General fitness',
+    },
+    goalDescriptions: {
+      lose_fat: 'Train and eat in a deficit to drop body fat.',
+      build_muscle: 'Add lean size with progressive hypertrophy work.',
+      gain_strength: 'Get stronger on the big lifts with lower reps.',
+      general_fitness: 'Stay healthy, mobile, and consistent.',
     },
     trainingTitle: 'Training profile',
     trainingSubtitle: 'So we size your program right',
@@ -72,6 +79,11 @@ export const en = {
       beginner: 'Beginner',
       intermediate: 'Intermediate',
       advanced: 'Advanced',
+    },
+    experienceDescriptions: {
+      beginner: 'New to lifting or returning after a long break.',
+      intermediate: 'Training consistently for 6+ months.',
+      advanced: 'Years of structured training under your belt.',
     },
     weeklyFrequency: 'Days per week',
     equipmentTitle: 'Your equipment',
@@ -105,6 +117,26 @@ export const en = {
     // Accessibility labels (never shown visually, still must be translatable).
     progressRing: 'Progress',
     requiredField: 'Required',
+  },
+  datePicker: {
+    title: 'Select date',
+    month: 'Month',
+    day: 'Day',
+    year: 'Year',
+    months: {
+      jan: 'Jan',
+      feb: 'Feb',
+      mar: 'Mar',
+      apr: 'Apr',
+      may: 'May',
+      jun: 'Jun',
+      jul: 'Jul',
+      aug: 'Aug',
+      sep: 'Sep',
+      oct: 'Oct',
+      nov: 'Nov',
+      dec: 'Dec',
+    },
   },
 } as const;
 

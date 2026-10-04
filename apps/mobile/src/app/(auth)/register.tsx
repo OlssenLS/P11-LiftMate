@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Input, ScreenHeader } from '@/components/ui';
 import { useTokens } from '@/hooks/use-tokens';
 import { t } from '@/i18n';
+import { notifyError, notifySuccess } from '@/lib/haptics';
 import { useAuthStore } from '@/stores/auth-store';
 
 export default function RegisterScreen() {
@@ -30,7 +31,9 @@ export default function RegisterScreen() {
     setFormError(null);
     try {
       await registerUser(values);
+      notifySuccess();
     } catch (err) {
+      notifyError();
       if (isAxiosError(err) && err.response?.status === 409) {
         setFormError(t('auth.emailTaken'));
       } else {
@@ -44,7 +47,7 @@ export default function RegisterScreen() {
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
           style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <ScrollView
             contentContainerStyle={[styles.content, { padding: spacing.xl, gap: spacing.lg }]}

@@ -13,12 +13,14 @@ import {
 import { useState } from 'react';
 import { Controller, useForm, type Path } from 'react-hook-form';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Chip, Input, ScreenHeader } from '@/components/ui';
+import { Button, Chip, DatePicker, Input, ScreenHeader, SelectCard } from '@/components/ui';
 import { useCompleteOnboarding } from '@/features/onboarding/use-complete-onboarding';
 import { useTokens } from '@/hooks/use-tokens';
 import { t } from '@/i18n';
+import { notifyError, notifySuccess, pressLight } from '@/lib/haptics';
 
 type FormValues = {
   displayName: string;
@@ -118,8 +120,10 @@ export default function OnboardingScreen() {
     setFormError(null);
     await trigger(STEP_FIELDS[step]);
     if (!validateStep(step)) {
+      notifyError();
       return;
     }
+    pressLight();
     setStep((s) => Math.min(TOTAL_STEPS - 1, s + 1));
   };
 
@@ -128,18 +132,22 @@ export default function OnboardingScreen() {
     const payload = toPayload(getValues());
     const result = onboardingSchema.safeParse(payload);
     if (!result.success) {
+      notifyError();
       setFormError(t('common.somethingWentWrong'));
       return;
     }
     try {
       await complete.mutateAsync(result.data);
+      notifySuccess();
     } catch {
+      notifyError();
       setFormError(t('common.somethingWentWrong'));
     }
   };
 
   const back = () => {
     setFormError(null);
+    pressLight();
     setStep((s) => Math.max(0, s - 1));
   };
 
@@ -178,7 +186,7 @@ export default function OnboardingScreen() {
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
           style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <ScrollView
             contentContainerStyle={[styles.content, { padding: spacing.xl, gap: spacing.lg }]}
@@ -189,156 +197,122 @@ export default function OnboardingScreen() {
             </Text>
             <ScreenHeader title={titles[step].title} subtitle={titles[step].subtitle} />
 
-            {step === 0 ? (
-              <View style={{ gap: spacing.lg }}>
-                <Controller
-                  control={control}
-                  name="displayName"
-                  render={({ field, fieldState }) => (
-                    <Input
-                      label={t('auth.displayName')}
-                      value={field.value}
-                      onChangeText={field.onChange}
-                      onBlur={field.onBlur}
-                      error={fieldState.error ? t('onboarding.errors.required') : undefined}
-                    />
-                  )}
-                />
-                <Controller
-                  control={control}
-                  name="dateOfBirth"
-                  render={({ field, fieldState }) => (
-                    <Input
-                      label={t('onboarding.dateOfBirth')}
-                      placeholder={t('onboarding.dateOfBirthPlaceholder')}
-                      autoCapitalize="none"
-                      value={field.value}
-                      onChangeText={field.onChange}
-                      onBlur={field.onBlur}
-                      error={fieldState.error ? t('onboarding.errors.dateInvalid') : undefined}
-                    />
-                  )}
-                />
-                <View style={{ gap: spacing.sm }}>
-                  <Text style={labelStyle}>{t('onboarding.weightUnit')}</Text>
-                  <View style={styles.chipRow}>
-                    {(['kg', 'lb'] as const).map((unit) => (
+            <Animated.View
+              key={step}
+              entering={FadeIn.duration(220)}
+              exiting={FadeOut.duration(120)}
+              style={{ gap: spacing.lg }}
+            >
+              {step === 0 ? (
+                <View style={{ gap: spacing.lg }}>
+                  <Controller
+                    control={control}
+                    name="displayName"
+                    render={({ field, fieldState }) => (
+                      <Input
+                        label={t('auth.displayName')}
+                        value={field.value}
+                        onChangeText={field.onChange}
+                        onBlur={field.onBlur}
+                        error={fieldState.error ? t('onboarding.errors.required') : undefined}
+                      />
+                    )}
+                  />
+                  <Controller
+                    control={control}
+                    name="dateOfBirth"
+                    render={({ field, fieldState }) => (
+                      <DatePicker
+                        label={t('onboarding.dateOfBirth')}
+                        placeholder={t('onboarding.dateOfBirthPlaceholder')}
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={fieldState.error ? t('onboarding.errors.dateInvalid') : undefined}
+                      />
+                    )}
+                  />
+                  <View style={{ gap: spacing.sm }}>
+                    <Text style={labelStyle}>{t('onboarding.weightUnit')}</Text>
+                    <View style={styles.chipRow}>
+                      {(['kg', 'lb'] as const).map((unit) => (
+                        <Chip
+                          key={unit}
+                          label={unit.toUpperCase()}
+                          selected={weightUnit === unit}
+                          onPress={() => setValue('weightUnit', unit, { shouldValidate: true })}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                  <Controller
+                    control={control}
+                    name="timezone"
+                    render={({ field, fieldState }) => (
+                      <Input
+                        label={t('onboarding.timezone')}
+                        autoCapitalize="none"
+                        value={field.value}
+                        onChangeText={field.onChange}
+                        onBlur={field.onBlur}
+                        error={fieldState.error ? t('onboarding.errors.required') : undefined}
+                      />
+                    )}
+                  />
+                </View>
+              ) : null}
+
+              {step === 1 ? (
+                <View style={{ gap: spacing.lg }}>
+                  <Text style={labelStyle}>{t('onboarding.primaryGoal')}</Text>
+                  <View style={{ gap: spacing.md }}>
+                    {FitnessGoal.options.map((goal) => (
+                      <SelectCard
+                        key={goal}
+                        title={t(`onboarding.goals.${goal}`)}
+                        description={t(`onboarding.goalDescriptions.${goal}`)}
+                        selected={primaryGoal === goal}
+                        onPress={() => setValue('primaryGoal', goal, { shouldValidate: true })}
+                      />
+                    ))}
+                  </View>
+                  <Text style={labelStyle}>{t('onboarding.secondaryGoal')}</Text>
+                  <View style={styles.chipWrap}>
+                    {FitnessGoal.options.map((goal) => (
                       <Chip
-                        key={unit}
-                        label={unit.toUpperCase()}
-                        selected={weightUnit === unit}
-                        onPress={() => setValue('weightUnit', unit, { shouldValidate: true })}
+                        key={`sec-${goal}`}
+                        label={t(`onboarding.goals.${goal}`)}
+                        selected={secondaryGoal === goal}
+                        onPress={() =>
+                          setValue('secondaryGoal', secondaryGoal === goal ? '' : goal, {
+                            shouldValidate: true,
+                          })
+                        }
                       />
                     ))}
                   </View>
                 </View>
-                <Controller
-                  control={control}
-                  name="timezone"
-                  render={({ field, fieldState }) => (
-                    <Input
-                      label={t('onboarding.timezone')}
-                      autoCapitalize="none"
-                      value={field.value}
-                      onChangeText={field.onChange}
-                      onBlur={field.onBlur}
-                      error={fieldState.error ? t('onboarding.errors.required') : undefined}
-                    />
-                  )}
-                />
-              </View>
-            ) : null}
+              ) : null}
 
-            {step === 1 ? (
-              <View style={{ gap: spacing.lg }}>
-                <View style={styles.chipWrap}>
-                  {FitnessGoal.options.map((goal) => (
-                    <Chip
-                      key={goal}
-                      label={t(`onboarding.goals.${goal}`)}
-                      selected={primaryGoal === goal}
-                      onPress={() => setValue('primaryGoal', goal, { shouldValidate: true })}
-                    />
-                  ))}
-                </View>
-                <Text style={labelStyle}>{t('onboarding.secondaryGoal')}</Text>
-                <View style={styles.chipWrap}>
-                  {FitnessGoal.options.map((goal) => (
-                    <Chip
-                      key={`sec-${goal}`}
-                      label={t(`onboarding.goals.${goal}`)}
-                      selected={secondaryGoal === goal}
-                      onPress={() =>
-                        setValue('secondaryGoal', secondaryGoal === goal ? '' : goal, {
-                          shouldValidate: true,
-                        })
-                      }
-                    />
-                  ))}
-                </View>
-              </View>
-            ) : null}
-
-            {step === 2 ? (
-              <View style={{ gap: spacing.lg }}>
-                <Text style={labelStyle}>{t('onboarding.experience')}</Text>
-                <View style={styles.chipWrap}>
-                  {Difficulty.options.map((level) => (
-                    <Chip
-                      key={level}
-                      label={t(`onboarding.experienceLevels.${level}`)}
-                      selected={experienceLevel === level}
-                      onPress={() => setValue('experienceLevel', level, { shouldValidate: true })}
-                    />
-                  ))}
-                </View>
-                <Controller
-                  control={control}
-                  name="weeklyFrequency"
-                  render={({ field, fieldState }) => (
-                    <Input
-                      label={t('onboarding.weeklyFrequency')}
-                      keyboardType="number-pad"
-                      value={field.value}
-                      onChangeText={field.onChange}
-                      onBlur={field.onBlur}
-                      error={fieldState.error ? t('onboarding.errors.number') : undefined}
-                    />
-                  )}
-                />
-              </View>
-            ) : null}
-
-            {step === 3 ? (
-              <View style={styles.chipWrap}>
-                {Equipment.options.map((item) => (
-                  <Chip
-                    key={item}
-                    label={t(`onboarding.equipment.${item}`)}
-                    selected={selectedEquipment.includes(item)}
-                    onPress={() => toggleEquipment(item)}
-                  />
-                ))}
-              </View>
-            ) : null}
-
-            {step === 4 ? (
-              <View style={{ gap: spacing.lg }}>
-                {(
-                  [
-                    ['targetCalories', t('onboarding.calories')],
-                    ['targetProtein', t('onboarding.protein')],
-                    ['targetCarbs', t('onboarding.carbs')],
-                    ['targetFat', t('onboarding.fat')],
-                  ] as const
-                ).map(([name, label]) => (
+              {step === 2 ? (
+                <View style={{ gap: spacing.lg }}>
+                  <Text style={labelStyle}>{t('onboarding.experience')}</Text>
+                  <View style={{ gap: spacing.md }}>
+                    {Difficulty.options.map((level) => (
+                      <SelectCard
+                        key={level}
+                        title={t(`onboarding.experienceLevels.${level}`)}
+                        description={t(`onboarding.experienceDescriptions.${level}`)}
+                        selected={experienceLevel === level}
+                        onPress={() => setValue('experienceLevel', level, { shouldValidate: true })}
+                      />
+                    ))}
+                  </View>
                   <Controller
-                    key={name}
                     control={control}
-                    name={name}
+                    name="weeklyFrequency"
                     render={({ field, fieldState }) => (
                       <Input
-                        label={label}
+                        label={t('onboarding.weeklyFrequency')}
                         keyboardType="number-pad"
                         value={field.value}
                         onChangeText={field.onChange}
@@ -347,9 +321,51 @@ export default function OnboardingScreen() {
                       />
                     )}
                   />
-                ))}
-              </View>
-            ) : null}
+                </View>
+              ) : null}
+
+              {step === 3 ? (
+                <View style={styles.chipWrap}>
+                  {Equipment.options.map((item) => (
+                    <Chip
+                      key={item}
+                      label={t(`onboarding.equipment.${item}`)}
+                      selected={selectedEquipment.includes(item)}
+                      onPress={() => toggleEquipment(item)}
+                    />
+                  ))}
+                </View>
+              ) : null}
+
+              {step === 4 ? (
+                <View style={{ gap: spacing.lg }}>
+                  {(
+                    [
+                      ['targetCalories', t('onboarding.calories')],
+                      ['targetProtein', t('onboarding.protein')],
+                      ['targetCarbs', t('onboarding.carbs')],
+                      ['targetFat', t('onboarding.fat')],
+                    ] as const
+                  ).map(([name, label]) => (
+                    <Controller
+                      key={name}
+                      control={control}
+                      name={name}
+                      render={({ field, fieldState }) => (
+                        <Input
+                          label={label}
+                          keyboardType="number-pad"
+                          value={field.value}
+                          onChangeText={field.onChange}
+                          onBlur={field.onBlur}
+                          error={fieldState.error ? t('onboarding.errors.number') : undefined}
+                        />
+                      )}
+                    />
+                  ))}
+                </View>
+              ) : null}
+            </Animated.View>
 
             {formError ? (
               <Text style={{ color: colors.danger, fontSize: fontSize.body }}>{formError}</Text>

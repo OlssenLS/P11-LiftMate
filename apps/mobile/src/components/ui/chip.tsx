@@ -8,6 +8,7 @@
 import { StyleSheet, Pressable, Text, View, type ViewStyle } from 'react-native';
 
 import { useTokens } from '@/hooks/use-tokens';
+import { selectionTick } from '@/lib/haptics';
 
 export type ChipProps = {
   /** Already-translated label. */
@@ -48,7 +49,10 @@ export function Chip({ label, selected = false, onPress, style }: ChipProps) {
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={label}
-      onPress={onPress}
+      onPress={() => {
+        selectionTick();
+        onPress();
+      }}
       style={({ pressed }) => [styles.base, containerStyle, pressed ? styles.pressed : null, style]}
     >
       <Text style={textStyle}>{label}</Text>
