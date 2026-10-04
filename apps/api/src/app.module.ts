@@ -6,6 +6,8 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { UsersModule } from './users/users.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { OnboardingModule } from './onboarding/onboarding.module.js';
+import { ExercisesModule } from './exercises/exercises.module.js';
+import { WorkoutsModule } from './workouts/workouts.module.js';
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { OnboardingModule } from './onboarding/onboarding.module.js';
     UsersModule,
     AuthModule,
     OnboardingModule,
+    ExercisesModule,
+    WorkoutsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
