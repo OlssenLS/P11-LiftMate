@@ -1,0 +1,22 @@
+{
+  "name": "liftmate",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter @liftmate/api dev\" \"pnpm --filter @liftmate/mobile start\"",
+    "dev:api": "pnpm --filter @liftmate/api dev",
+    "dev:mobile": "pnpm --filter @liftmate/mobile start",
+    "android": "pnpm --filter @liftmate/mobile android",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}
