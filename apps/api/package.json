@@ -7,9 +7,10 @@
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {
-    "build": "nest build",
+    "build": "pnpm --filter @liftmate/shared build && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
+    "dev": "pnpm --filter @liftmate/shared build && nest start --watch",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
@@ -27,6 +28,7 @@
   "dependencies": {
     "@liftmate/shared": "workspace:*",
     "@nestjs/common": "^12.0.1",
+    "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^12.0.1",
     "@nestjs/jwt": "^12.0.2",
     "@nestjs/passport": "^12.0.0",
