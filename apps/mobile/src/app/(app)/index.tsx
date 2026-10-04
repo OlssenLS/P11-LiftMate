@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -5,10 +6,12 @@ import { Button, ScreenHeader } from '@/components/ui';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTokens } from '@/hooks/use-tokens';
 import { t } from '@/i18n';
+import { pressLight } from '@/lib/haptics';
 import { useAuthStore } from '@/stores/auth-store';
 
 export default function HomeScreen() {
   const { colors } = useTokens();
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
 
@@ -20,6 +23,14 @@ export default function HomeScreen() {
           subtitle={user ? user.displayName : undefined}
         />
         <View style={styles.spacer} />
+        <Button
+          label={t('workout.startTitle')}
+          onPress={() => {
+            pressLight();
+            router.push('/workout/active');
+          }}
+        />
+        <View style={styles.gap} />
         <Button label={t('auth.logout')} variant="secondary" onPress={() => void logout()} />
       </SafeAreaView>
     </View>
@@ -41,5 +52,8 @@ const styles = StyleSheet.create({
   },
   spacer: {
     flex: 1,
+  },
+  gap: {
+    height: Spacing.three,
   },
 });
