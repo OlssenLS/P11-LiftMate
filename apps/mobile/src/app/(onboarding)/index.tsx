@@ -16,7 +16,16 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Chip, DatePicker, Input, ScreenHeader, SelectCard } from '@/components/ui';
+import {
+  Button,
+  Chip,
+  DatePicker,
+  EquipmentCard,
+  Input,
+  NutritionField,
+  ScreenHeader,
+  SelectCard,
+} from '@/components/ui';
 import { useCompleteOnboarding } from '@/features/onboarding/use-complete-onboarding';
 import { useTokens } from '@/hooks/use-tokens';
 import { t } from '@/i18n';
@@ -48,6 +57,17 @@ const STEP_FIELDS: Path<FormValues>[][] = [
 
 const TOTAL_STEPS = STEP_FIELDS.length;
 
+/** Timezones offered as quick picks (Indonesia first; UTC as a fallback). */
+const TIMEZONE_OPTIONS = ['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura', 'UTC'] as const;
+
+/** Per-field error copy for the nutrition step so failures are specific. */
+const NUTRITION_ERROR_KEYS = {
+  targetCalories: 'onboarding.errors.caloriesRange',
+  targetProtein: 'onboarding.errors.proteinRange',
+  targetCarbs: 'onboarding.errors.carbsRange',
+  targetFat: 'onboarding.errors.fatRange',
+} as const;
+
 function toPayload(values: FormValues): OnboardingInput {
   return {
     displayName: values.displayName,
@@ -55,7 +75,9 @@ function toPayload(values: FormValues): OnboardingInput {
     weightUnit: values.weightUnit,
     timezone: values.timezone,
     primaryGoal: values.primaryGoal as OnboardingInput['primaryGoal'],
-    secondaryGoal: values.secondaryGoal ? (values.secondaryGoal as OnboardingInput['secondaryGoal']) : null,
+    secondaryGoal: values.secondaryGoal
+      ? (values.secondaryGoal as OnboardingInput['secondaryGoal'])
+      : null,
     experienceLevel: values.experienceLevel as OnboardingInput['experienceLevel'],
     weeklyFrequency: Number(values.weeklyFrequency),
     equipment: values.equipment,
@@ -64,6 +86,30 @@ function toPayload(values: FormValues): OnboardingInput {
     targetCarbs: Number(values.targetCarbs),
     targetFat: Number(values.targetFat),
   };
+}
+
+/**
+ * Rough starting macros from the primary goal, so a confused user can tap
+ * "Estimate for me" and get sensible, editable numbers. These are deliberate
+ * ballpark presets (not a clinical calculation) and are clearly editable.
+ */
+function estimateTargets(goal: FormValues['primaryGoal']): {
+  targetCalories: string;
+  targetProtein: string;
+  targetCarbs: string;
+  targetFat: string;
+} {
+  switch (goal) {
+    case 'lose_fat':
+      return { targetCalories: '1900', targetProtein: '150', targetCarbs: '160', targetFat: '60' };
+    case 'build_muscle':
+      return { targetCalories: '2600', targetProtein: '170', targetCarbs: '300', targetFat: '80' };
+    case 'gain_strength':
+      return { targetCalories: '2700', targetProtein: '160', targetCarbs: '320', targetFat: '85' };
+    case 'general_fitness':
+    default:
+      return { targetCalories: '2200', targetProtein: '130', targetCarbs: '230', targetFat: '70' };
+  }
 }
 
 const STEP_SCHEMAS = [
@@ -80,31 +126,34 @@ export default function OnboardingScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const complete = useCompleteOnboarding();
 
-  const { control, trigger, getValues, setValue, setError, watch } = useForm<FormValues>({
-    mode: 'onChange',
-    defaultValues: {
-      displayName: '',
-      dateOfBirth: '',
-      weightUnit: 'kg',
-      timezone: 'UTC',
-      primaryGoal: '',
-      secondaryGoal: '',
-      experienceLevel: '',
-      weeklyFrequency: '3',
-      equipment: [],
-      targetCalories: '',
-      targetProtein: '',
-      targetCarbs: '',
-      targetFat: '',
-    },
-  });
+  const { control, trigger, getValues, setValue, setError, clearErrors, watch } =
+    useForm<FormValues>({
+      mode: 'onChange',
+      defaultValues: {
+        displayName: '',
+        dateOfBirth: '',
+        weightUnit: 'kg',
+        timezone: 'Asia/Jakarta',
+        primaryGoal: '',
+        secondaryGoal: '',
+        experienceLevel: '',
+        weeklyFrequency: '3',
+        equipment: [],
+        targetCalories: '',
+        targetProtein: '',
+        targetCarbs: '',
+        targetFat: '',
+      },
+    });
 
   // Validate the current step against its staged schema (coercing the string
-  // inputs to the payload shape) and surface field errors.
+  // inputs to the payload shape) and surface per-field errors so the user sees
+  // exactly what to fix — including on the final (nutrition) step.
   const validateStep = (index: number): boolean => {
     const payload = toPayload(getValues());
     const result = STEP_SCHEMAS[index].safeParse(payload);
     if (result.success) {
+      clearErrors(STEP_FIELDS[index]);
       return true;
     }
     const fieldErrors = result.error.flatten().fieldErrors as Record<string, string[] | undefined>;
@@ -129,8 +178,13 @@ export default function OnboardingScreen() {
 
   const submit = async () => {
     setFormError(null);
-    const payload = toPayload(getValues());
-    const result = onboardingSchema.safeParse(payload);
+    // Run the final step's per-field validation first so a bad macro shows a
+    // specific field error instead of a generic "something went wrong".
+    if (!validateStep(TOTAL_STEPS - 1)) {
+      notifyError();
+      return;
+    }
+    const result = onboardingSchema.safeParse(toPayload(getValues()));
     if (!result.success) {
       notifyError();
       setFormError(t('common.somethingWentWrong'));
@@ -151,11 +205,22 @@ export default function OnboardingScreen() {
     setStep((s) => Math.max(0, s - 1));
   };
 
+  const applyEstimate = () => {
+    const est = estimateTargets(getValues('primaryGoal'));
+    setValue('targetCalories', est.targetCalories, { shouldValidate: true });
+    setValue('targetProtein', est.targetProtein, { shouldValidate: true });
+    setValue('targetCarbs', est.targetCarbs, { shouldValidate: true });
+    setValue('targetFat', est.targetFat, { shouldValidate: true });
+    clearErrors(['targetCalories', 'targetProtein', 'targetCarbs', 'targetFat']);
+    pressLight();
+  };
+
   const selectedEquipment = watch('equipment');
   const primaryGoal = watch('primaryGoal');
   const secondaryGoal = watch('secondaryGoal');
   const experienceLevel = watch('experienceLevel');
   const weightUnit = watch('weightUnit');
+  const timezone = watch('timezone');
 
   const titles = [
     { title: t('onboarding.basicsTitle'), subtitle: t('onboarding.basicsSubtitle') },
@@ -181,6 +246,35 @@ export default function OnboardingScreen() {
     letterSpacing: 1,
   };
 
+  const helpStyle = { color: colors.inkMuted, fontSize: fontSize.label, lineHeight: 18 };
+
+  const nutritionMeta = [
+    {
+      name: 'targetCalories' as const,
+      label: t('onboarding.calories'),
+      unit: t('onboarding.unitKcal'),
+      hint: t('onboarding.caloriesHint'),
+    },
+    {
+      name: 'targetProtein' as const,
+      label: t('onboarding.protein'),
+      unit: t('onboarding.unitGrams'),
+      hint: t('onboarding.proteinHint'),
+    },
+    {
+      name: 'targetCarbs' as const,
+      label: t('onboarding.carbs'),
+      unit: t('onboarding.unitGrams'),
+      hint: t('onboarding.carbsHint'),
+    },
+    {
+      name: 'targetFat' as const,
+      label: t('onboarding.fat'),
+      unit: t('onboarding.unitGrams'),
+      hint: t('onboarding.fatHint'),
+    },
+  ];
+
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <SafeAreaView style={styles.safeArea}>
@@ -189,8 +283,10 @@ export default function OnboardingScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <ScrollView
+            style={styles.flex}
             contentContainerStyle={[styles.content, { padding: spacing.xl, gap: spacing.lg }]}
             keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
             <Text style={labelStyle}>
               {t('onboarding.stepLabel', { current: step + 1, total: TOTAL_STEPS })}
@@ -244,20 +340,20 @@ export default function OnboardingScreen() {
                       ))}
                     </View>
                   </View>
-                  <Controller
-                    control={control}
-                    name="timezone"
-                    render={({ field, fieldState }) => (
-                      <Input
-                        label={t('onboarding.timezone')}
-                        autoCapitalize="none"
-                        value={field.value}
-                        onChangeText={field.onChange}
-                        onBlur={field.onBlur}
-                        error={fieldState.error ? t('onboarding.errors.required') : undefined}
-                      />
-                    )}
-                  />
+                  <View style={{ gap: spacing.sm }}>
+                    <Text style={labelStyle}>{t('onboarding.timezone')}</Text>
+                    <View style={styles.chipWrap}>
+                      {TIMEZONE_OPTIONS.map((tz) => (
+                        <Chip
+                          key={tz}
+                          label={t(`onboarding.timezones.${tz}`)}
+                          selected={timezone === tz}
+                          onPress={() => setValue('timezone', tz, { shouldValidate: true })}
+                        />
+                      ))}
+                    </View>
+                    <Text style={helpStyle}>{t('onboarding.timezoneHelp')}</Text>
+                  </View>
                 </View>
               ) : null}
 
@@ -325,40 +421,48 @@ export default function OnboardingScreen() {
               ) : null}
 
               {step === 3 ? (
-                <View style={styles.chipWrap}>
-                  {Equipment.options.map((item) => (
-                    <Chip
-                      key={item}
-                      label={t(`onboarding.equipment.${item}`)}
-                      selected={selectedEquipment.includes(item)}
-                      onPress={() => toggleEquipment(item)}
-                    />
-                  ))}
+                <View style={{ gap: spacing.md }}>
+                  <View style={styles.grid}>
+                    {Equipment.options.map((item) => (
+                      <View key={item} style={styles.gridItem}>
+                        <EquipmentCard
+                          icon={t(`onboarding.equipmentIcons.${item}`)}
+                          label={t(`onboarding.equipment.${item}`)}
+                          selected={selectedEquipment.includes(item)}
+                          onPress={() => toggleEquipment(item)}
+                        />
+                      </View>
+                    ))}
+                  </View>
+                  <Text style={helpStyle}>{t('onboarding.equipmentHint')}</Text>
                 </View>
               ) : null}
 
               {step === 4 ? (
                 <View style={{ gap: spacing.lg }}>
-                  {(
-                    [
-                      ['targetCalories', t('onboarding.calories')],
-                      ['targetProtein', t('onboarding.protein')],
-                      ['targetCarbs', t('onboarding.carbs')],
-                      ['targetFat', t('onboarding.fat')],
-                    ] as const
-                  ).map(([name, label]) => (
+                  <Text style={helpStyle}>{t('onboarding.nutritionHelp')}</Text>
+                  <View style={{ gap: spacing.sm }}>
+                    <Button
+                      label={t('onboarding.estimate')}
+                      variant="secondary"
+                      onPress={applyEstimate}
+                    />
+                    <Text style={helpStyle}>{t('onboarding.estimateHint')}</Text>
+                  </View>
+                  {nutritionMeta.map((meta) => (
                     <Controller
-                      key={name}
+                      key={meta.name}
                       control={control}
-                      name={name}
+                      name={meta.name}
                       render={({ field, fieldState }) => (
-                        <Input
-                          label={label}
-                          keyboardType="number-pad"
+                        <NutritionField
+                          label={meta.label}
+                          unit={meta.unit}
+                          hint={meta.hint}
                           value={field.value}
                           onChangeText={field.onChange}
                           onBlur={field.onBlur}
-                          error={fieldState.error ? t('onboarding.errors.number') : undefined}
+                          error={fieldState.error ? t(NUTRITION_ERROR_KEYS[meta.name]) : undefined}
                         />
                       )}
                     />
@@ -370,24 +474,38 @@ export default function OnboardingScreen() {
             {formError ? (
               <Text style={{ color: colors.danger, fontSize: fontSize.body }}>{formError}</Text>
             ) : null}
-
-            <View style={[styles.actions, { gap: spacing.md }]}>
-              {step > 0 ? (
-                <Button
-                  label={t('common.back')}
-                  variant="secondary"
-                  style={styles.flexBtn}
-                  onPress={back}
-                />
-              ) : null}
-              <Button
-                label={step < TOTAL_STEPS - 1 ? t('common.continue') : t('onboarding.finish')}
-                loading={complete.isPending}
-                style={styles.flexBtn}
-                onPress={() => void (step < TOTAL_STEPS - 1 ? next() : submit())}
-              />
-            </View>
           </ScrollView>
+
+          {/* Sticky footer: the back/continue controls sit in the exact same
+              place on every step, outside the scroll area. */}
+          <View
+            style={[
+              styles.footer,
+              {
+                paddingHorizontal: spacing.xl,
+                paddingTop: spacing.md,
+                paddingBottom: spacing.lg,
+                gap: spacing.md,
+                backgroundColor: colors.bg,
+                borderTopColor: colors.inkMuted,
+              },
+            ]}
+          >
+            {step > 0 ? (
+              <Button
+                label={t('common.back')}
+                variant="secondary"
+                style={styles.flexBtn}
+                onPress={back}
+              />
+            ) : null}
+            <Button
+              label={step < TOTAL_STEPS - 1 ? t('common.continue') : t('onboarding.finish')}
+              loading={complete.isPending}
+              style={styles.flexBtn}
+              onPress={() => void (step < TOTAL_STEPS - 1 ? next() : submit())}
+            />
+          </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
@@ -401,6 +519,11 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1 },
   chipRow: { flexDirection: 'row', gap: 8 },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  actions: { flexDirection: 'row' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -6 },
+  gridItem: { width: '33.333%', paddingHorizontal: 6, paddingVertical: 6 },
+  footer: {
+    flexDirection: 'row',
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
   flexBtn: { flex: 1 },
 });

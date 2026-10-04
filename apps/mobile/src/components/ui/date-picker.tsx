@@ -3,7 +3,7 @@
  *
  * A clean, brand-consistent alternative to a raw text field or the platform's
  * native picker: three scrollable wheels (year / month / day) rendered inside a
- * bottom-sheet modal that springs up (Reanimated) with a dimmed backdrop.
+ * bottom-sheet modal that slides up with a dimmed backdrop.
  *
  * Design directives honoured:
  * - Colours / spacing / radius / type come exclusively from `@liftmate/shared`
@@ -254,7 +254,7 @@ export function DatePicker({
         >
           <Pressable style={styles.backdropFill} accessibilityLabel={t('common.cancel')} onPress={cancel} />
           <Animated.View
-            entering={SlideInDown.springify().damping(18).stiffness(160)}
+            entering={SlideInDown.duration(240)}
             exiting={SlideOutDown.duration(180)}
             style={[
               styles.sheet,
