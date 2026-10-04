@@ -10,6 +10,7 @@ import {
   onboardingTrainingSchema,
   type OnboardingInput,
 } from '@liftmate/shared';
+import { isAxiosError } from 'axios';
 import { useState } from 'react';
 import { Controller, useForm, type Path } from 'react-hook-form';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -120,6 +121,39 @@ const STEP_SCHEMAS = [
   onboardingNutritionSchema,
 ];
 
+/**
+ * Turn a thrown onboarding error into a specific, user-facing message so the
+ * failure is diagnosable instead of a blanket "something went wrong".
+ *
+ * Distinguishes: no network/no response, an HTTP error (surfacing the server's
+ * message/status), and a response that failed client-side schema parsing.
+ */
+function describeSubmitError(err: unknown): string {
+  if (isAxiosError(err)) {
+    if (!err.response) {
+      // Request left the app but no response came back (server down, wrong
+      // host/IP, device not on the same network, timeout, CORS).
+      return t('onboarding.submitErrors.network');
+    }
+    const status = err.response.status;
+    if (status === 401) {
+      return t('onboarding.submitErrors.auth');
+    }
+    const data = err.response.data as { message?: unknown } | undefined;
+    const serverMessage =
+      data && typeof data.message === 'string' ? data.message : undefined;
+    return t('onboarding.submitErrors.server', {
+      status,
+      message: serverMessage ?? t('common.somethingWentWrong'),
+    });
+  }
+  if (err instanceof Error && err.name === 'ZodError') {
+    // The request succeeded but the response shape did not match the schema.
+    return t('onboarding.submitErrors.response');
+  }
+  return t('common.somethingWentWrong');
+}
+
 export default function OnboardingScreen() {
   const { colors, spacing, fontSize, fontWeight } = useTokens();
   const [step, setStep] = useState(0);
@@ -193,9 +227,9 @@ export default function OnboardingScreen() {
     try {
       await complete.mutateAsync(result.data);
       notifySuccess();
-    } catch {
+    } catch (err) {
       notifyError();
-      setFormError(t('common.somethingWentWrong'));
+      setFormError(describeSubmitError(err));
     }
   };
 

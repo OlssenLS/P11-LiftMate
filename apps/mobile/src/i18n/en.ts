@@ -144,6 +144,13 @@ export const en = {
       carbsRange: 'Enter carbs between 0 and 2,000 g.',
       fatRange: 'Enter fat between 0 and 1,000 g.',
     },
+    submitErrors: {
+      network:
+        'Can’t reach the server. Check that the API is running and your device is on the same network.',
+      auth: 'Your session expired. Please log in again.',
+      server: 'Server error ({status}): {message}',
+      response: 'The server replied in an unexpected format. Please try again.',
+    },
   },
   a11y: {
     // Accessibility labels (never shown visually, still must be translatable).
