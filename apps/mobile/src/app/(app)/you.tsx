@@ -129,7 +129,7 @@ export default function YouScreen() {
                   {t('you.timezone')}
                 </Text>
                 <Text style={{ color: colors.inkMuted, fontSize: fontSize.body }}>
-                  Asia/Jakarta (WIB)
+                  {t('onboarding.timezones.Asia/Jakarta')}
                 </Text>
               </View>
             </View>
@@ -155,7 +155,7 @@ export default function YouScreen() {
                   {t('you.primaryGoal')}
                 </Text>
                 <Text style={{ color: colors.ink, fontSize: fontSize.body, fontWeight: fontWeight.semibold }}>
-                  Build Muscle
+                  {t('onboarding.goals.build_muscle')}
                 </Text>
               </View>
 
@@ -164,7 +164,7 @@ export default function YouScreen() {
                   {t('you.experience')}
                 </Text>
                 <Text style={{ color: colors.ink, fontSize: fontSize.body, fontWeight: fontWeight.semibold }}>
-                  Intermediate
+                  {t('onboarding.experienceLevels.intermediate')}
                 </Text>
               </View>
 

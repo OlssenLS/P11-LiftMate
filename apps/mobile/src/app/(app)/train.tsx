@@ -81,7 +81,7 @@ export default function TrainScreen() {
                   textTransform: 'uppercase',
                 }}
               >
-                DATABASE
+                {t('train.databaseEyebrow')}
               </Text>
               <Text
                 style={{
@@ -100,7 +100,7 @@ export default function TrainScreen() {
                   marginTop: spacing.xs,
                 }}
               >
-                Search movements filtered by target muscle group, equipment, and difficulty.
+                {t('train.browseDescription')}
               </Text>
             </View>
 
@@ -136,7 +136,7 @@ export default function TrainScreen() {
                       fontWeight: fontWeight.semibold,
                     }}
                   >
-                    Phase 3 Roadmap
+                    {t('train.roadmapBadge')}
                   </Text>
                 </View>
               </View>

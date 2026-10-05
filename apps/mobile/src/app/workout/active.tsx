@@ -124,7 +124,7 @@ export default function ActiveWorkoutScreen() {
         >
           <ScreenHeader
             title={t('workout.activeTitle')}
-            subtitle="Track sets and volume in real time"
+            subtitle={t('workout.activeSubtitle')}
           />
 
           {/* Volume Hero Card */}
@@ -158,7 +158,9 @@ export default function ActiveWorkoutScreen() {
                   fontWeight: fontWeight.medium,
                 }}
               >
-                {workout.exercises.length} {workout.exercises.length === 1 ? 'exercise' : 'exercises'} · {completedSetsCount} done
+                {workout.exercises.length === 1
+                  ? t('workout.exerciseCountSingle', { count: 1 })
+                  : t('workout.exerciseCountMultiple', { count: workout.exercises.length })} · {t('workout.setsDone', { count: completedSetsCount })}
               </Text>
             </View>
 
@@ -190,7 +192,7 @@ export default function ActiveWorkoutScreen() {
                     textAlign: 'center',
                   }}
                 >
-                  Ready to train?
+                  {t('workout.readyToTrain')}
                 </Text>
                 <Text
                   style={{

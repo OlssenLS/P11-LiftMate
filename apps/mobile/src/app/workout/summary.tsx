@@ -161,7 +161,7 @@ export default function WorkoutSummaryScreen() {
                       textTransform: 'uppercase',
                     }}
                   >
-                    Breakdown
+                    {t('workout.breakdown')}
                   </Text>
 
                   <View style={styles.statRow}>

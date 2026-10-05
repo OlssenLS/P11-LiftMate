@@ -37,7 +37,7 @@ export default function FoodScreen() {
                       textTransform: 'uppercase',
                     }}
                   >
-                    DAILY BUDGET
+                    {t('food.dailyBudget')}
                   </Text>
                 </View>
               </View>
@@ -59,9 +59,10 @@ export default function FoodScreen() {
                       fontSize: fontSize.label,
                       fontWeight: fontWeight.semibold,
                       letterSpacing: 0.5,
+                      textTransform: 'uppercase',
                     }}
                   >
-                    KCAL TARGET
+                    {t('food.kcalTarget')}
                   </Text>
                 </View>
               </Ring>
@@ -69,8 +70,8 @@ export default function FoodScreen() {
               {/* Macro row */}
               <View style={[styles.macroRow, { marginTop: spacing.sm, gap: spacing.md }]}>
                 <View style={[styles.macroBox, { backgroundColor: colors.surface, borderRadius: radius.cardSm }]}>
-                  <Text style={{ color: colors.inkMuted, fontSize: fontSize.label, fontWeight: fontWeight.bold }}>
-                    PROTEIN
+                  <Text style={{ color: colors.inkMuted, fontSize: fontSize.label, fontWeight: fontWeight.bold, textTransform: 'uppercase' }}>
+                    {t('food.protein')}
                   </Text>
                   <Text style={{ color: colors.ink, fontSize: fontSize.title, fontWeight: fontWeight.bold }}>
                     {protein}g
@@ -78,8 +79,8 @@ export default function FoodScreen() {
                 </View>
 
                 <View style={[styles.macroBox, { backgroundColor: colors.surface, borderRadius: radius.cardSm }]}>
-                  <Text style={{ color: colors.inkMuted, fontSize: fontSize.label, fontWeight: fontWeight.bold }}>
-                    CARBS
+                  <Text style={{ color: colors.inkMuted, fontSize: fontSize.label, fontWeight: fontWeight.bold, textTransform: 'uppercase' }}>
+                    {t('food.carbs')}
                   </Text>
                   <Text style={{ color: colors.ink, fontSize: fontSize.title, fontWeight: fontWeight.bold }}>
                     {carbs}g
@@ -87,8 +88,8 @@ export default function FoodScreen() {
                 </View>
 
                 <View style={[styles.macroBox, { backgroundColor: colors.surface, borderRadius: radius.cardSm }]}>
-                  <Text style={{ color: colors.inkMuted, fontSize: fontSize.label, fontWeight: fontWeight.bold }}>
-                    FAT
+                  <Text style={{ color: colors.inkMuted, fontSize: fontSize.label, fontWeight: fontWeight.bold, textTransform: 'uppercase' }}>
+                    {t('food.fat')}
                   </Text>
                   <Text style={{ color: colors.ink, fontSize: fontSize.title, fontWeight: fontWeight.bold }}>
                     {fat}g

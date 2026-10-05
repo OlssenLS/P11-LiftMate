@@ -59,7 +59,7 @@ export default function CoachScreen() {
                   marginTop: spacing.xs,
                 }}
               >
-                Intelligent Progression
+                {t('coach.heroHeading')}
               </Text>
 
               <Text
@@ -86,7 +86,7 @@ export default function CoachScreen() {
                   textTransform: 'uppercase',
                 }}
               >
-                CORE ARCHITECTURE
+                {t('coach.architectureEyebrow')}
               </Text>
               <Text
                 style={{
@@ -95,7 +95,7 @@ export default function CoachScreen() {
                   fontWeight: fontWeight.bold,
                 }}
               >
-                Deterministic Metrics First
+                {t('coach.architectureTitle')}
               </Text>
               <Text
                 style={{
@@ -105,7 +105,7 @@ export default function CoachScreen() {
                   marginTop: spacing.xs,
                 }}
               >
-                The AI never reads raw database logs or guesses numbers. All weekly volume, estimated 1RMs, and macro totals are calculated deterministically before analysis.
+                {t('coach.architectureDescription')}
               </Text>
             </View>
           </Card>

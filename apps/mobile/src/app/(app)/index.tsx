@@ -9,7 +9,7 @@ import { pressLight } from '@/lib/haptics';
 import { useAuthStore } from '@/stores/auth-store';
 
 export default function HomeScreen() {
-  const { colors, radius, spacing, fontSize, fontWeight } = useTokens();
+  const { colors, radius, spacing, fontSize, fontWeight, cardShadow } = useTokens();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
 
@@ -42,7 +42,7 @@ export default function HomeScreen() {
                       textTransform: 'uppercase',
                     }}
                   >
-                    TODAY&apos;S WORKOUT
+                    {t('home.todayWorkout')}
                   </Text>
                 </View>
               </View>
@@ -85,6 +85,7 @@ export default function HomeScreen() {
             <View
               style={[
                 styles.statCard,
+                cardShadow,
                 {
                   backgroundColor: colors.surface,
                   borderRadius: radius.cardSm,
@@ -118,6 +119,7 @@ export default function HomeScreen() {
             <View
               style={[
                 styles.statCard,
+                cardShadow,
                 {
                   backgroundColor: colors.surface,
                   borderRadius: radius.cardSm,
@@ -179,7 +181,7 @@ export default function HomeScreen() {
                   marginTop: 2,
                 }}
               >
-                160g Protein · 240g Carbs · 70g Fat
+                {t('home.macroGlance', { protein: 160, carbs: 240, fat: 70 })}
               </Text>
             </View>
           </Card>
@@ -237,10 +239,5 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    elevation: 2,
-    shadowColor: '#1A1613',
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
   },
 });
