@@ -36,3 +36,4 @@ Thumbs.db
 docs/
 .kiroignore
 graphify-out/
+.agents/
