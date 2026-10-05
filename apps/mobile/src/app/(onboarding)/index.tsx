@@ -155,7 +155,7 @@ function describeSubmitError(err: unknown): string {
 }
 
 export default function OnboardingScreen() {
-  const { colors, spacing, fontSize, fontWeight } = useTokens();
+  const { colors, spacing, fontSize, fontWeight, alpha } = useTokens();
   const [step, setStep] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
   const complete = useCompleteOnboarding();
@@ -322,9 +322,30 @@ export default function OnboardingScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <Text style={labelStyle}>
-              {t('onboarding.stepLabel', { current: step + 1, total: TOTAL_STEPS })}
-            </Text>
+            {/* Segmented Progress Bar */}
+            <View style={{ gap: spacing.sm }}>
+              <View style={{ flexDirection: 'row', gap: spacing.xs, alignItems: 'center' }}>
+                {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+                  <View
+                    key={i}
+                    style={{
+                      flex: 1,
+                      height: 4,
+                      borderRadius: 2,
+                      backgroundColor:
+                        i < step
+                          ? colors.ink
+                          : i === step
+                          ? colors.accent
+                          : alpha(colors.ink, 0.12),
+                    }}
+                  />
+                ))}
+              </View>
+              <Text style={labelStyle}>
+                {t('onboarding.stepLabel', { current: step + 1, total: TOTAL_STEPS })}
+              </Text>
+            </View>
             <ScreenHeader title={titles[step].title} subtitle={titles[step].subtitle} />
 
             <Animated.View
@@ -521,7 +542,7 @@ export default function OnboardingScreen() {
                 paddingBottom: spacing.lg,
                 gap: spacing.md,
                 backgroundColor: colors.bg,
-                borderTopColor: colors.inkMuted,
+                borderTopColor: alpha(colors.ink, 0.08),
               },
             ]}
           >

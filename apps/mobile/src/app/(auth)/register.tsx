@@ -4,19 +4,28 @@ import { isAxiosError } from 'axios';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Input, ScreenHeader } from '@/components/ui';
+import { Button, Card, Input, ScreenHeader } from '@/components/ui';
 import { useTokens } from '@/hooks/use-tokens';
 import { t } from '@/i18n';
-import { notifyError, notifySuccess } from '@/lib/haptics';
+import { notifyError, notifySuccess, selectionTick } from '@/lib/haptics';
 import { useAuthStore } from '@/stores/auth-store';
 
 export default function RegisterScreen() {
-  const { colors, spacing, fontSize } = useTokens();
+  const { colors, radius, spacing, fontSize, fontWeight, touchTarget } = useTokens();
   const registerUser = useAuthStore((s) => s.register);
   const [formError, setFormError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     control,
@@ -52,72 +61,133 @@ export default function RegisterScreen() {
           <ScrollView
             contentContainerStyle={[styles.content, { padding: spacing.xl, gap: spacing.lg }]}
             keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            <ScreenHeader title={t('auth.registerTitle')} subtitle={t('auth.registerSubtitle')} />
+            {/* Brand Motif */}
+            <View style={styles.brandRow}>
+              <View
+                style={[
+                  styles.brandBadge,
+                  {
+                    backgroundColor: colors.ink,
+                    borderRadius: radius.cardSm,
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: colors.accent,
+                    fontSize: fontSize.title,
+                    fontWeight: fontWeight.bold,
+                    letterSpacing: 1,
+                  }}
+                >
+                  LM
+                </Text>
+              </View>
+            </View>
 
-            <Controller
-              control={control}
-              name="displayName"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label={t('auth.displayName')}
-                  placeholder={t('auth.displayNamePlaceholder')}
-                  autoCapitalize="words"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  error={errors.displayName ? t('auth.errors.displayNameRequired') : undefined}
+            <ScreenHeader
+              title={t('auth.registerTitle')}
+              subtitle={t('auth.registerSubtitle')}
+            />
+
+            <Card padding="xl">
+              <View style={{ gap: spacing.lg }}>
+                <Controller
+                  control={control}
+                  name="displayName"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <Input
+                      label={t('auth.displayName')}
+                      placeholder={t('auth.displayNamePlaceholder')}
+                      autoCapitalize="words"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      error={errors.displayName ? t('auth.errors.displayNameRequired') : undefined}
+                    />
+                  )}
                 />
-              )}
-            />
 
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label={t('auth.email')}
-                  placeholder={t('auth.emailPlaceholder')}
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  keyboardType="email-address"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  error={errors.email ? t('auth.errors.emailInvalid') : undefined}
+                <Controller
+                  control={control}
+                  name="email"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <Input
+                      label={t('auth.email')}
+                      placeholder={t('auth.emailPlaceholder')}
+                      autoCapitalize="none"
+                      autoComplete="email"
+                      keyboardType="email-address"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      error={errors.email ? t('auth.errors.emailInvalid') : undefined}
+                    />
+                  )}
                 />
-              )}
-            />
 
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label={t('auth.password')}
-                  placeholder={t('auth.passwordPlaceholder')}
-                  autoCapitalize="none"
-                  secureTextEntry
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  error={errors.password ? t('auth.errors.passwordMin') : undefined}
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <Input
+                      label={t('auth.password')}
+                      placeholder={t('auth.passwordPlaceholder')}
+                      autoCapitalize="none"
+                      secureTextEntry={!showPassword}
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      error={errors.password ? t('auth.errors.passwordMin') : undefined}
+                      rightElement={
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                          hitSlop={8}
+                          onPress={() => {
+                            selectionTick();
+                            setShowPassword(!showPassword);
+                          }}
+                          style={{
+                            paddingHorizontal: spacing.sm,
+                            paddingVertical: spacing.xs,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: colors.inkMuted,
+                              fontSize: fontSize.label,
+                              fontWeight: fontWeight.semibold,
+                            }}
+                          >
+                            {showPassword ? 'HIDE' : 'SHOW'}
+                          </Text>
+                        </Pressable>
+                      }
+                    />
+                  )}
                 />
-              )}
-            />
 
-            {formError ? (
-              <Text style={{ color: colors.danger, fontSize: fontSize.body }}>{formError}</Text>
-            ) : null}
+                {formError ? (
+                  <Text style={{ color: colors.danger, fontSize: fontSize.body }}>{formError}</Text>
+                ) : null}
 
-            <Button
-              label={t('auth.registerCta')}
-              loading={isSubmitting}
-              onPress={handleSubmit(onSubmit)}
-            />
+                <Button
+                  label={t('auth.registerCta')}
+                  loading={isSubmitting}
+                  onPress={handleSubmit(onSubmit)}
+                />
+              </View>
+            </Card>
 
             <Link href="/(auth)/login" asChild>
-              <Button label={t('auth.toLogin')} variant="ghost" />
+              <Button
+                label={t('auth.toLogin')}
+                variant="ghost"
+                style={{ minHeight: touchTarget.min }}
+              />
             </Link>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -130,5 +200,21 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1 },
   flex: { flex: 1 },
-  content: { flexGrow: 1, justifyContent: 'center' },
+  content: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    maxWidth: 520,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  brandRow: {
+    alignItems: 'center',
+    marginBottom: -8,
+  },
+  brandBadge: {
+    width: 56,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

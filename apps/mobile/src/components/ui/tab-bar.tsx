@@ -10,6 +10,7 @@ import { StyleSheet, Text, Pressable, View, type ViewStyle } from 'react-native'
 
 import { useTokens } from '@/hooks/use-tokens';
 import { t, type TranslationKey } from '@/i18n';
+import { selectionTick } from '@/lib/haptics';
 
 export type TabKey = 'home' | 'train' | 'coach' | 'food' | 'you';
 
@@ -53,15 +54,21 @@ export function TabBar({ active, onSelect, style }: TabBarProps) {
             accessibilityRole="tab"
             accessibilityState={{ selected }}
             accessibilityLabel={label}
-            onPress={() => onSelect(key)}
-            style={[
+            onPress={() => {
+              if (!selected) {
+                selectionTick();
+                onSelect(key);
+              }
+            }}
+            style={({ pressed }) => [
               styles.tab,
               {
                 minHeight: touchTarget.min,
                 borderRadius: radius.tabBar,
-                paddingHorizontal: spacing.md,
+                paddingHorizontal: spacing.sm,
                 backgroundColor: selected ? colors.ink : 'transparent',
               },
+              pressed ? { opacity: 0.85 } : null,
             ]}
           >
             <Text

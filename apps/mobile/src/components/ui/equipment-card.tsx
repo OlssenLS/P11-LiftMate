@@ -7,7 +7,7 @@
  *
  * Tokens only; `icon` and `label` are passed already-resolved/translated.
  */
-import { Pressable, StyleSheet, Text, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { useTokens } from '@/hooks/use-tokens';
 import { selectionTick } from '@/lib/haptics';
@@ -49,9 +49,31 @@ export function EquipmentCard({ icon, label, selected = false, onPress, style }:
       onPress={handlePress}
       style={({ pressed }) => [styles.base, containerStyle, pressed ? styles.pressed : null, style]}
     >
-      <Text style={{ fontSize: fontSize.heading }} accessibilityElementsHidden importantForAccessibility="no">
-        {icon}
-      </Text>
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: radius.cardSm,
+          backgroundColor: selected ? colors.surface : colors.bg,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 1,
+          borderColor: selected ? colors.surface : colors.inkMuted,
+        }}
+      >
+        <Text
+          style={{
+            color: selected ? colors.ink : colors.accent,
+            fontSize: fontSize.body,
+            fontWeight: fontWeight.bold,
+            letterSpacing: 0.5,
+          }}
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        >
+          {icon}
+        </Text>
+      </View>
       <Text
         numberOfLines={2}
         style={{

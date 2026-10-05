@@ -5,7 +5,7 @@
  * (callers use `t('...')`). Colours/spacing/radius/type come from tokens.
  * Focus and error states recolour the border using token colours only.
  */
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -23,9 +23,19 @@ export type InputProps = Omit<TextInputProps, 'style'> & {
   /** Already-translated error message; also recolours the border. */
   error?: string;
   containerStyle?: ViewStyle;
+  /** Optional trailing element (e.g. show/hide toggle or unit badge). */
+  rightElement?: ReactNode;
 };
 
-export function Input({ label, error, containerStyle, onFocus, onBlur, ...rest }: InputProps) {
+export function Input({
+  label,
+  error,
+  containerStyle,
+  rightElement,
+  onFocus,
+  onBlur,
+  ...rest
+}: InputProps) {
   const { colors, radius, spacing, touchTarget, fontSize, fontWeight } = useTokens();
   const [focused, setFocused] = useState(false);
 
@@ -47,30 +57,40 @@ export function Input({ label, error, containerStyle, onFocus, onBlur, ...rest }
         </Text>
       ) : null}
 
-      <TextInput
-        placeholderTextColor={colors.inkMuted}
-        onFocus={(e) => {
-          setFocused(true);
-          onFocus?.(e);
-        }}
-        onBlur={(e) => {
-          setFocused(false);
-          onBlur?.(e);
-        }}
+      <View
         style={{
           minHeight: touchTarget.min,
           borderRadius: radius.cardSm,
           borderWidth: 1.5,
           borderColor,
           backgroundColor: colors.surface,
-          color: colors.ink,
-          paddingHorizontal: spacing.lg,
-          paddingVertical: spacing.md,
-          fontSize: fontSize.body,
-          fontWeight: fontWeight.regular,
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: spacing.md,
         }}
-        {...rest}
-      />
+      >
+        <TextInput
+          placeholderTextColor={colors.inkMuted}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
+          style={{
+            flex: 1,
+            color: colors.ink,
+            paddingVertical: spacing.md,
+            paddingHorizontal: spacing.xs,
+            fontSize: fontSize.body,
+            fontWeight: fontWeight.regular,
+          }}
+          {...rest}
+        />
+        {rightElement ? <View style={{ marginLeft: spacing.xs }}>{rightElement}</View> : null}
+      </View>
 
       {error ? (
         <Text style={{ color: colors.danger, fontSize: fontSize.label, fontWeight: fontWeight.medium }}>
