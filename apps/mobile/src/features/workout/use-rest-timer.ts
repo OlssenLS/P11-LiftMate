@@ -7,8 +7,9 @@
  * A local notification is scheduled for `endAt` so the user is alerted even if
  * the app is backgrounded; it's cancelled if the timer is stopped early.
  */
-import * as Notifications from 'expo-notifications';
+import { isRunningInExpoGo } from 'expo';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 
 import { notifySuccess } from '@/lib/haptics';
 
@@ -25,29 +26,55 @@ export interface RestTimerState {
   stop: () => void;
 }
 
-/** Configure how notifications present while the app is foregrounded. */
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+type NotificationsModule = typeof import('expo-notifications');
+let notificationsModule: NotificationsModule | null = null;
+let handlerConfigured = false;
+
+function getNotifications(): NotificationsModule | null {
+  // In Expo SDK 53+, expo-notifications throws a fatal error on module import
+  // when running inside Expo Go on Android. We avoid loading it in that environment.
+  if (isRunningInExpoGo() && Platform.OS === 'android') {
+    return null;
+  }
+  if (!notificationsModule) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      notificationsModule = require('expo-notifications') as NotificationsModule;
+      if (!handlerConfigured && notificationsModule?.setNotificationHandler) {
+        notificationsModule.setNotificationHandler({
+          handleNotification: async () => ({
+            shouldShowBanner: true,
+            shouldShowList: true,
+            shouldPlaySound: true,
+            shouldSetBadge: false,
+          }),
+        });
+        handlerConfigured = true;
+      }
+    } catch {
+      notificationsModule = null;
+    }
+  }
+  return notificationsModule;
+}
 
 async function scheduleFinishNotification(seconds: number): Promise<string | null> {
   try {
+    const notifications = getNotifications();
+    if (!notifications) {
+      return null;
+    }
     const granted = await ensurePermission();
     if (!granted) {
       return null;
     }
-    return await Notifications.scheduleNotificationAsync({
+    return await notifications.scheduleNotificationAsync({
       content: {
         title: 'Rest complete',
         body: 'Time for your next set.',
       },
       trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        type: notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
         seconds: Math.max(1, Math.round(seconds)),
       },
     });
@@ -58,11 +85,15 @@ async function scheduleFinishNotification(seconds: number): Promise<string | nul
 
 async function ensurePermission(): Promise<boolean> {
   try {
-    const current = await Notifications.getPermissionsAsync();
+    const notifications = getNotifications();
+    if (!notifications) {
+      return false;
+    }
+    const current = await notifications.getPermissionsAsync();
     if (current.granted) {
       return true;
     }
-    const req = await Notifications.requestPermissionsAsync();
+    const req = await notifications.requestPermissionsAsync();
     return req.granted;
   } catch {
     return false;
@@ -89,7 +120,10 @@ export function useRestTimer(): RestTimerState {
   const cancelNotification = useCallback(async () => {
     if (notificationIdRef.current) {
       try {
-        await Notifications.cancelScheduledNotificationAsync(notificationIdRef.current);
+        const notifications = getNotifications();
+        if (notifications) {
+          await notifications.cancelScheduledNotificationAsync(notificationIdRef.current);
+        }
       } catch {
         // ignore
       }
