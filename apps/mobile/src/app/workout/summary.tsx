@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Card, PrimaryButton, ScreenHeader } from '@/components/ui';
+import { Card, InlineError, PrimaryButton, ScreenHeader } from '@/components/ui';
 import { useActiveWorkoutStore } from '@/features/workout/active-workout-store';
 import { useWorkoutSummary } from '@/features/workout/use-workout-queries';
 import { useTokens } from '@/hooks/use-tokens';
@@ -48,11 +48,7 @@ export default function WorkoutSummaryScreen() {
               <ActivityIndicator color={colors.accent} size="large" />
             </View>
           ) : isError || !data ? (
-            <Card>
-              <Text style={{ color: colors.danger, fontSize: fontSize.body }}>
-                {t('common.somethingWentWrong')}
-              </Text>
-            </Card>
+            <InlineError onRetry={close} />
           ) : (
             <>
               {/* Hero Dark Summary Card */}

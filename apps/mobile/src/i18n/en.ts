@@ -16,6 +16,8 @@ export const en = {
     retry: 'Retry',
     loading: 'Loading…',
     somethingWentWrong: 'Something went wrong. Please try again.',
+    offlineBanner: 'Offline — changes will sync',
+    noData: 'No Data',
   },
   tabs: {
     home: 'Home',
@@ -53,6 +55,7 @@ export const en = {
   coach: {
     title: 'AI Coach',
     subtitle: 'Training and recovery advisor',
+    unavailable: 'Coach is unavailable right now',
     badge: 'Coming in Phase 6',
     heroHeading: 'Intelligent Progression',
     description: 'LiftMate AI Coach analyzes your logged volume, nutrition, and recovery metrics to optimize your progression.',

@@ -16,6 +16,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
   Button,
   Card,
+  OfflineBanner,
   PrimaryButton,
   ScreenHeader,
   SecondaryButton,
@@ -133,6 +134,8 @@ export default function ActiveWorkoutScreen() {
             title={t('workout.activeTitle')}
             subtitle={t('workout.activeSubtitle')}
           />
+
+          <OfflineBanner />
 
           {/* Volume Hero Card (DESIGN.md §7.6 dark hero) */}
           <View

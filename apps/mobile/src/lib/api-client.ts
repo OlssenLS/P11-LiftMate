@@ -1,6 +1,7 @@
 import { authTokensSchema, type AuthTokens } from '@liftmate/shared';
 import axios, { AxiosError, type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios';
 import { API_URL } from '@/config/env';
+import { setOffline } from '@/lib/network';
 import { clearTokens, getTokens, saveTokens } from '@/lib/token-store';
 
 type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
@@ -46,8 +47,14 @@ async function refreshTokens(): Promise<AuthTokens | null> {
 }
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    setOffline(false);
+    return response;
+  },
   async (error: AxiosError) => {
+    if (!error.response) {
+      setOffline(true);
+    }
     const original = error.config as RetriableConfig | undefined;
     const isAuthRoute = original?.url?.includes('/auth/');
     if (error.response?.status !== 401 || !original || original._retry || isAuthRoute) {

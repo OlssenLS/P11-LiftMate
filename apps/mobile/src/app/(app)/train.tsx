@@ -9,6 +9,7 @@ import {
   LargeTitleHeader,
   ListGroup,
   ListRowCard,
+  OfflineBanner,
   PrimaryButton,
   SectionHeader,
 } from '@/components/ui';
@@ -56,6 +57,8 @@ export default function TrainScreen() {
             />
           }
         />
+
+        <OfflineBanner />
 
         {/* Hero Card for Next Workout / Quick Start (DESIGN.md §7.5) */}
         <SectionHeader title="Today's Session" />

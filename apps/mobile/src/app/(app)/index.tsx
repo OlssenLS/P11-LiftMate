@@ -22,6 +22,7 @@ import {
   LargeTitleHeader,
   ListRowCard,
   MetricCard,
+  OfflineBanner,
   PrimaryButton,
   SectionHeader,
 } from '@/components/ui';
@@ -123,6 +124,8 @@ export default function HomeScreen() {
             </Pressable>
           }
         />
+
+        <OfflineBanner />
 
         {/* Section: Next Workout */}
         <SectionHeader title="Next workout" />

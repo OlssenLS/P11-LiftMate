@@ -18,6 +18,7 @@ import {
   LargeTitleHeader,
   ListGroup,
   ListRowCard,
+  OfflineBanner,
   PrimaryButton,
   SectionHeader,
   SegmentedControl,
@@ -89,6 +90,8 @@ export default function YouScreen() {
       >
         {/* Large Title Header (DESIGN.md §4 & §7.9) */}
         <LargeTitleHeader title="You" />
+
+        <OfflineBanner />
 
         {/* User Profile Header Card (DESIGN.md §7.9) */}
         <View style={styles.cardWrapper}>

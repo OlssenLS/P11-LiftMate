@@ -34,3 +34,8 @@ export function notifySuccess(): void {
 export function notifyError(): void {
   void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => undefined);
 }
+
+/** Warning notification on destructive actions (DESIGN.md §10). */
+export function notifyWarning(): void {
+  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => undefined);
+}

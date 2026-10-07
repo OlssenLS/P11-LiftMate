@@ -34,6 +34,8 @@ export { EmptyState, type EmptyStateProps } from './empty-state';
 export { Skeleton, SkeletonCard, type SkeletonProps } from './skeleton';
 export { BarChart, type BarChartProps, type BarChartDataPoint } from './bar-chart';
 export { LineChart, type LineChartProps, type LineChartDataPoint } from './line-chart';
+export { OfflineBanner, type OfflineBannerProps } from './offline-banner';
+export { InlineError, type InlineErrorProps } from './inline-error';
 
 // Preserved existing components
 export { Input, type InputProps } from './input';

@@ -7,6 +7,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 import { useTokens } from '@/hooks/use-tokens';
 
 export interface SkeletonProps {
@@ -17,8 +18,9 @@ export interface SkeletonProps {
 }
 
 /**
- * Skeleton block (DESIGN.md §9)
+ * Skeleton block (DESIGN.md §9 & §10)
  * surfaceMuted block with radius matching the real element and smooth 1.2s shimmer pulse.
+ * Disabled/static when reduce-motion is enabled.
  */
 export function Skeleton({
   width = '100%',
@@ -27,9 +29,14 @@ export function Skeleton({
   style,
 }: SkeletonProps) {
   const { colors, radius } = useTokens();
+  const reducedMotion = useReducedMotion();
   const [opacityAnim] = useState(() => new Animated.Value(0.4));
 
   useEffect(() => {
+    if (reducedMotion) {
+      opacityAnim.setValue(0.6);
+      return;
+    }
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(opacityAnim, {
@@ -46,7 +53,7 @@ export function Skeleton({
     );
     pulse.start();
     return () => pulse.stop();
-  }, [opacityAnim]);
+  }, [opacityAnim, reducedMotion]);
 
   return (
     <Animated.View

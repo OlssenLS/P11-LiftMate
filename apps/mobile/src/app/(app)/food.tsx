@@ -23,6 +23,7 @@ import {
   ListGroup,
   ListRowCard,
   MetricCard,
+  OfflineBanner,
   PrimaryButton,
   SectionHeader,
   Sheet,
@@ -101,6 +102,8 @@ export default function FoodScreen() {
             />
           }
         />
+
+        <OfflineBanner />
 
         {/* Week Strip of 7 Date Circles (DESIGN.md §7.7) */}
         <View style={styles.cardWrapper}>
