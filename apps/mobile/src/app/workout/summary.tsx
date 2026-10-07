@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Card, ScreenHeader } from '@/components/ui';
+import { Card, PrimaryButton, ScreenHeader } from '@/components/ui';
 import { useActiveWorkoutStore } from '@/features/workout/active-workout-store';
 import { useWorkoutSummary } from '@/features/workout/use-workout-queries';
 import { useTokens } from '@/hooks/use-tokens';
@@ -10,7 +10,7 @@ import { t } from '@/i18n';
 import { pressLight } from '@/lib/haptics';
 
 export default function WorkoutSummaryScreen() {
-  const { colors, radius, spacing, fontSize, fontWeight } = useTokens();
+  const { colors, radius, spacing, fontSize, fontWeight, alpha, type } = useTokens();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const discardWorkout = useActiveWorkoutStore((s) => s.discardWorkout);
@@ -87,19 +87,28 @@ export default function WorkoutSummaryScreen() {
                       letterSpacing: -0.5,
                       lineHeight: 46,
                       marginTop: spacing.xs,
+                      fontVariant: ['tabular-nums'],
                     }}
                   >
                     {data.totalVolume.toLocaleString()}{' '}
-                    <Text style={{ fontSize: fontSize.title, fontWeight: fontWeight.medium, color: colors.inkMuted }}>
+                    <Text style={{ fontSize: fontSize.title, fontWeight: fontWeight.medium, color: alpha('#FFFFFF', 0.6) }}>
                       kg
                     </Text>
                   </Text>
                 </View>
 
                 {/* Micro stat pills inside hero */}
-                <View style={styles.heroStatsRow}>
+                <View
+                  style={[
+                    styles.heroStatsRow,
+                    {
+                      backgroundColor: alpha('#FFFFFF', 0.08),
+                      borderRadius: radius.cardSm,
+                    },
+                  ]}
+                >
                   <View style={styles.heroStatItem}>
-                    <Text style={{ color: colors.inkMuted, fontSize: fontSize.label }}>
+                    <Text style={{ color: alpha('#FFFFFF', 0.7), fontSize: fontSize.label }}>
                       {t('workout.duration')}
                     </Text>
                     <Text
@@ -107,16 +116,17 @@ export default function WorkoutSummaryScreen() {
                         color: colors.surface,
                         fontSize: fontSize.body,
                         fontWeight: fontWeight.bold,
+                        fontVariant: ['tabular-nums'],
                       }}
                     >
                       {fmtDuration(data.durationSeconds)}
                     </Text>
                   </View>
 
-                  <View style={styles.statDivider} />
+                  <View style={[styles.statDivider, { backgroundColor: alpha('#FFFFFF', 0.15) }]} />
 
                   <View style={styles.heroStatItem}>
-                    <Text style={{ color: colors.inkMuted, fontSize: fontSize.label }}>
+                    <Text style={{ color: alpha('#FFFFFF', 0.7), fontSize: fontSize.label }}>
                       {t('workout.workingSets')}
                     </Text>
                     <Text
@@ -124,16 +134,17 @@ export default function WorkoutSummaryScreen() {
                         color: colors.surface,
                         fontSize: fontSize.body,
                         fontWeight: fontWeight.bold,
+                        fontVariant: ['tabular-nums'],
                       }}
                     >
                       {data.totalWorkingSets}
                     </Text>
                   </View>
 
-                  <View style={styles.statDivider} />
+                  <View style={[styles.statDivider, { backgroundColor: alpha('#FFFFFF', 0.15) }]} />
 
                   <View style={styles.heroStatItem}>
-                    <Text style={{ color: colors.inkMuted, fontSize: fontSize.label }}>
+                    <Text style={{ color: alpha('#FFFFFF', 0.7), fontSize: fontSize.label }}>
                       {t('workout.exercises')}
                     </Text>
                     <Text
@@ -141,6 +152,7 @@ export default function WorkoutSummaryScreen() {
                         color: colors.surface,
                         fontSize: fontSize.body,
                         fontWeight: fontWeight.bold,
+                        fontVariant: ['tabular-nums'],
                       }}
                     >
                       {data.exerciseCount}
@@ -153,40 +165,42 @@ export default function WorkoutSummaryScreen() {
               <Card>
                 <View style={{ gap: spacing.md }}>
                   <Text
-                    style={{
-                      color: colors.inkMuted,
-                      fontSize: fontSize.label,
-                      fontWeight: fontWeight.bold,
-                      letterSpacing: 1,
-                      textTransform: 'uppercase',
-                    }}
+                    style={[
+                      type.cardLabel,
+                      {
+                        color: colors.inkMutedText,
+                        textTransform: 'uppercase',
+                        letterSpacing: 1,
+                      },
+                    ]}
                   >
                     {t('workout.breakdown')}
                   </Text>
 
                   <View style={styles.statRow}>
-                    <Text style={{ color: colors.inkMuted, fontSize: fontSize.body }}>
+                    <Text style={{ color: colors.inkMutedText, fontSize: fontSize.body }}>
                       {t('workout.totalSets')}
                     </Text>
-                    <Text style={{ color: colors.ink, fontSize: fontSize.body, fontWeight: fontWeight.bold }}>
+                    <Text style={{ color: colors.ink, fontSize: fontSize.body, fontWeight: fontWeight.bold, fontVariant: ['tabular-nums'] }}>
                       {data.totalSets}
                     </Text>
                   </View>
 
                   <View style={styles.statRow}>
-                    <Text style={{ color: colors.inkMuted, fontSize: fontSize.body }}>
+                    <Text style={{ color: colors.inkMutedText, fontSize: fontSize.body }}>
                       {t('workout.vsPrevious')}
                     </Text>
                     <Text
                       style={{
                         color:
                           data.volumeChangeVsPrevious == null
-                            ? colors.inkMuted
+                            ? colors.inkMutedText
                             : data.volumeChangeVsPrevious >= 0
                               ? colors.success
                               : colors.danger,
                         fontSize: fontSize.body,
                         fontWeight: fontWeight.bold,
+                        fontVariant: ['tabular-nums'],
                       }}
                     >
                       {data.volumeChangeVsPrevious == null
@@ -201,7 +215,7 @@ export default function WorkoutSummaryScreen() {
 
           <View style={styles.spacer} />
 
-          <Button label={t('workout.close')} onPress={close} />
+          <PrimaryButton label={t('workout.close')} onPress={close} />
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -218,13 +232,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
   heroStatItem: { alignItems: 'center', gap: 2 },
-  statDivider: { width: 1, height: 24, backgroundColor: 'rgba(255, 255, 255, 0.15)' },
+  statDivider: { width: 1, height: 24 },
   statRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   spacer: { flex: 1, minHeight: 24 },
 });

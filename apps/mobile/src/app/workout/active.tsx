@@ -11,9 +11,15 @@ import {
   View,
 } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Card, ScreenHeader } from '@/components/ui';
+import {
+  Button,
+  Card,
+  PrimaryButton,
+  ScreenHeader,
+  SecondaryButton,
+} from '@/components/ui';
 import {
   useActiveWorkoutStore,
   type ActiveExercise,
@@ -28,7 +34,8 @@ import { t } from '@/i18n';
 import { notifySuccess, pressLight, selectionTick } from '@/lib/haptics';
 
 export default function ActiveWorkoutScreen() {
-  const { colors, radius, spacing, fontSize, fontWeight } = useTokens();
+  const insets = useSafeAreaInsets();
+  const { colors, radius, spacing, fontSize, fontWeight, alpha, type } = useTokens();
   const router = useRouter();
   const timer = useRestTimer();
 
@@ -127,13 +134,13 @@ export default function ActiveWorkoutScreen() {
             subtitle={t('workout.activeSubtitle')}
           />
 
-          {/* Volume Hero Card */}
+          {/* Volume Hero Card (DESIGN.md §7.6 dark hero) */}
           <View
             style={[
               styles.volumeHero,
               {
                 backgroundColor: colors.ink,
-                borderRadius: radius.cardLg,
+                borderRadius: radius.card,
                 padding: spacing.lg,
                 gap: spacing.sm,
               },
@@ -141,22 +148,24 @@ export default function ActiveWorkoutScreen() {
           >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text
-                style={{
-                  color: colors.accent,
-                  fontSize: fontSize.label,
-                  fontWeight: fontWeight.bold,
-                  letterSpacing: 1.2,
-                  textTransform: 'uppercase',
-                }}
+                style={[
+                  type.cardLabel,
+                  {
+                    color: colors.accent,
+                    letterSpacing: 1.2,
+                    textTransform: 'uppercase',
+                  },
+                ]}
               >
                 {t('workout.totalVolume')}
               </Text>
               <Text
-                style={{
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  fontSize: fontSize.label,
-                  fontWeight: fontWeight.medium,
-                }}
+                style={[
+                  type.secondary,
+                  {
+                    color: alpha('#FFFFFF', 0.7),
+                  },
+                ]}
               >
                 {workout.exercises.length === 1
                   ? t('workout.exerciseCountSingle', { count: 1 })
@@ -170,10 +179,11 @@ export default function ActiveWorkoutScreen() {
                 fontSize: 34,
                 fontWeight: fontWeight.bold,
                 letterSpacing: -0.5,
+                fontVariant: ['tabular-nums'],
               }}
             >
               {liveVolume.toLocaleString()}{' '}
-              <Text style={{ fontSize: fontSize.title, fontWeight: fontWeight.medium, color: colors.inkMuted }}>
+              <Text style={{ fontSize: fontSize.title, fontWeight: fontWeight.medium, color: alpha('#FFFFFF', 0.6) }}>
                 kg
               </Text>
             </Text>
@@ -196,7 +206,7 @@ export default function ActiveWorkoutScreen() {
                 </Text>
                 <Text
                   style={{
-                    color: colors.inkMuted,
+                    color: colors.inkMutedText,
                     fontSize: fontSize.body,
                     textAlign: 'center',
                     lineHeight: 22,
@@ -204,7 +214,7 @@ export default function ActiveWorkoutScreen() {
                 >
                   {t('workout.emptyExercises')}
                 </Text>
-                <Button
+                <PrimaryButton
                   label={t('workout.addFirstExercise')}
                   onPress={() => {
                     pressLight();
@@ -231,9 +241,8 @@ export default function ActiveWorkoutScreen() {
           )}
 
           {workout.exercises.length > 0 && (
-            <Button
+            <SecondaryButton
               label={t('workout.addExercise')}
-              variant="secondary"
               onPress={() => {
                 pressLight();
                 setPickerOpen(true);
@@ -248,20 +257,23 @@ export default function ActiveWorkoutScreen() {
             {
               paddingHorizontal: spacing.xl,
               paddingTop: spacing.md,
-              paddingBottom: spacing.lg,
+              paddingBottom: Math.max(insets.bottom, 16) + 12,
               gap: spacing.md,
               backgroundColor: colors.bg,
-              borderTopColor: colors.inkMuted + '22',
+              borderTopColor: colors.hairline,
             },
           ]}
         >
-          <Button
+          <SecondaryButton
             label={t('workout.discard')}
-            variant="secondary"
             style={styles.flexBtn}
             onPress={onDiscard}
           />
-          <Button label={t('workout.finish')} style={styles.flexBtn} onPress={() => void onFinish()} />
+          <PrimaryButton
+            label={t('workout.finish')}
+            style={styles.flexBtn}
+            onPress={() => void onFinish()}
+          />
         </View>
       </SafeAreaView>
 
@@ -294,20 +306,21 @@ function ExerciseCard({
   onRemoveSet: (setId: string) => void;
   onRest: () => void;
 }) {
-  const { colors, spacing, fontSize, fontWeight } = useTokens();
+  const { colors, spacing, fontSize, fontWeight, type, touchTarget } = useTokens();
 
   return (
     <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(120)} layout={LinearTransition}>
       <Card>
         <View style={styles.cardHeader}>
-          <Text style={{ color: colors.ink, fontSize: fontSize.title, fontWeight: fontWeight.bold, flex: 1 }}>
+          <Text style={[type.title, { color: colors.ink, flex: 1 }]}>
             {exercise.name}
           </Text>
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel={`Remove ${exercise.name}`}
             onPress={onRemoveExercise}
-            hitSlop={12}
-            style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
+            hitSlop={Math.max(0, (touchTarget.min - 44) / 2)}
+            style={{ minWidth: touchTarget.min, minHeight: touchTarget.min, alignItems: 'center', justifyContent: 'center' }}
           >
             <Text style={{ color: colors.danger, fontSize: fontSize.body, fontWeight: fontWeight.semibold }}>
               ✕
@@ -317,16 +330,16 @@ function ExerciseCard({
 
         {/* Column Headers */}
         <View style={[styles.columnHeaders, { marginTop: spacing.sm, paddingHorizontal: 2 }]}>
-          <Text style={[styles.columnHeader, { width: 48, color: colors.inkMuted, fontSize: fontSize.label }]}>
+          <Text style={[styles.columnHeader, type.cardLabel, { width: 48, color: colors.inkMutedText }]}>
             SET
           </Text>
-          <Text style={[styles.columnHeader, { flex: 1, color: colors.inkMuted, fontSize: fontSize.label }]}>
+          <Text style={[styles.columnHeader, type.cardLabel, { flex: 1, color: colors.inkMutedText }]}>
             KG
           </Text>
-          <Text style={[styles.columnHeader, { flex: 1, color: colors.inkMuted, fontSize: fontSize.label }]}>
+          <Text style={[styles.columnHeader, type.cardLabel, { flex: 1, color: colors.inkMutedText }]}>
             REPS
           </Text>
-          <Text style={[styles.columnHeader, { width: 48, textAlign: 'center', color: colors.inkMuted, fontSize: fontSize.label }]}>
+          <Text style={[styles.columnHeader, type.cardLabel, { width: 48, textAlign: 'center', color: colors.inkMutedText }]}>
             DONE
           </Text>
           <View style={{ width: 36 }} />
@@ -340,6 +353,7 @@ function ExerciseCard({
               set={set}
               onUpdate={(patch) => onUpdateSet(set.id, patch)}
               onRemove={() => onRemoveSet(set.id)}
+              onRest={onRest}
             />
           ))}
         </View>
@@ -360,6 +374,7 @@ function SetRow({
   set,
   onUpdate,
   onRemove,
+  onRest,
 }: {
   index: number;
   set: ActiveSet;
@@ -367,14 +382,16 @@ function SetRow({
     patch: Partial<Pick<ActiveSet, 'weight' | 'reps' | 'rir' | 'setType' | 'completed'>>,
   ) => void;
   onRemove: () => void;
+  onRest: () => void;
 }) {
-  const { colors, radius, spacing, fontSize, fontWeight } = useTokens();
+  const { colors, radius, spacing, fontSize, fontWeight, touchTarget } = useTokens();
   const isWorking = set.setType === 'working';
 
   const numInput = (
     value: number,
     onChange: (n: number) => void,
     placeholder: string,
+    accessibilityLabel: string,
   ) => (
     <View style={{ flex: 1 }}>
       <TextInput
@@ -382,25 +399,37 @@ function SetRow({
         onChangeText={(txt) => onChange(Number(txt.replace(/[^0-9.]/g, '')) || 0)}
         keyboardType="decimal-pad"
         placeholder={placeholder}
-        placeholderTextColor={colors.inkMuted}
+        placeholderTextColor={colors.inkMutedText}
+        accessibilityLabel={accessibilityLabel}
         style={{
           borderRadius: radius.cardSm,
-          borderWidth: 1.5,
-          borderColor: colors.inkMuted + '33',
-          backgroundColor: colors.surface,
+          borderWidth: 1,
+          borderColor: colors.hairline,
+          backgroundColor: set.completed ? colors.surfaceMuted : colors.surface,
           color: colors.ink,
           paddingHorizontal: spacing.sm,
-          minHeight: 48,
+          minHeight: Math.max(touchTarget.min, 48),
           textAlign: 'center',
           fontSize: fontSize.body,
           fontWeight: fontWeight.bold,
+          fontVariant: ['tabular-nums'],
         }}
       />
     </View>
   );
 
   return (
-    <View style={[styles.setRow, { gap: spacing.sm }]}>
+    <View
+      style={[
+        styles.setRow,
+        {
+          gap: spacing.sm,
+          backgroundColor: set.completed ? colors.surfaceMuted : 'transparent',
+          borderRadius: radius.cardSm,
+          paddingVertical: 2,
+        },
+      ]}
+    >
       {/* set_type toggle (min 48x48) */}
       <Pressable
         accessibilityRole="button"
@@ -411,56 +440,60 @@ function SetRow({
           onUpdate({ setType: isWorking ? 'warmup' : 'working' });
         }}
         style={{
-          width: 48,
-          height: 48,
+          width: Math.max(touchTarget.min, 48),
+          height: Math.max(touchTarget.min, 48),
           borderRadius: radius.cardSm,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: isWorking ? colors.ink : colors.surface,
-          borderWidth: 1.5,
-          borderColor: isWorking ? colors.ink : colors.inkMuted + '44',
+          borderWidth: 1,
+          borderColor: isWorking ? colors.ink : colors.hairline,
         }}
       >
-        <Text style={{ color: isWorking ? colors.surface : colors.inkMuted, fontSize: fontSize.label, fontWeight: fontWeight.bold }}>
+        <Text style={{ color: isWorking ? colors.surface : colors.inkMutedText, fontSize: fontSize.label, fontWeight: fontWeight.bold }}>
           {isWorking ? index + 1 : 'W'}
         </Text>
       </Pressable>
 
-      {numInput(set.weight, (n) => onUpdate({ weight: n }), '0')}
-      {numInput(set.reps, (n) => onUpdate({ reps: n }), '0')}
+      {numInput(set.weight, (n) => onUpdate({ weight: n }), '0', `Set ${index + 1} weight`)}
+      {numInput(set.reps, (n) => onUpdate({ reps: n }), '0', `Set ${index + 1} reps`)}
 
-      {/* complete toggle (min 48x48) */}
+      {/* complete toggle (min 48x48) - completing a set starts rest timer (DESIGN.md §7.6) */}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Mark set completed"
+        accessibilityLabel={`Set ${index + 1} complete status`}
         accessibilityState={{ selected: set.completed }}
         onPress={() => {
+          const nextCompleted = !set.completed;
           selectionTick();
-          onUpdate({ completed: !set.completed });
+          onUpdate({ completed: nextCompleted });
+          if (nextCompleted) {
+            onRest();
+          }
         }}
         style={{
-          width: 48,
-          height: 48,
+          width: Math.max(touchTarget.min, 48),
+          height: Math.max(touchTarget.min, 48),
           borderRadius: radius.cardSm,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: set.completed ? colors.success : colors.surface,
-          borderWidth: 1.5,
-          borderColor: set.completed ? colors.success : colors.inkMuted + '44',
+          borderWidth: 1,
+          borderColor: set.completed ? colors.success : colors.hairline,
         }}
       >
-        <Text style={{ color: set.completed ? colors.surface : colors.inkMuted, fontSize: fontSize.title, fontWeight: fontWeight.bold }}>
+        <Text style={{ color: set.completed ? '#FFFFFF' : colors.inkMutedText, fontSize: fontSize.title, fontWeight: fontWeight.bold }}>
           ✓
         </Text>
       </Pressable>
 
-      {/* remove button (min 44x48) */}
+      {/* remove button (min 48x48 hit area) */}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Remove set"
+        accessibilityLabel={`Remove set ${index + 1}`}
         onPress={onRemove}
-        hitSlop={8}
-        style={{ width: 36, height: 48, justifyContent: 'center', alignItems: 'center' }}
+        hitSlop={Math.max(0, (touchTarget.min - 36) / 2)}
+        style={{ width: 36, height: Math.max(touchTarget.min, 48), justifyContent: 'center', alignItems: 'center' }}
       >
         <Text style={{ color: colors.danger, fontSize: fontSize.body, fontWeight: fontWeight.semibold }}>✕</Text>
       </Pressable>
@@ -477,6 +510,6 @@ const styles = StyleSheet.create({
   columnHeaders: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   columnHeader: { fontWeight: '700', letterSpacing: 0.8 },
   setRow: { flexDirection: 'row', alignItems: 'center' },
-  footer: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth },
+  footer: { flexDirection: 'row', borderTopWidth: 1 },
   flexBtn: { flex: 1 },
 });

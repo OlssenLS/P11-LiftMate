@@ -12,7 +12,7 @@ import { t } from '@/i18n';
 import { pressLight } from '@/lib/haptics';
 
 export function RestTimerBar({ timer }: { timer: RestTimerState }) {
-  const { colors, radius, spacing, touchTarget, fontSize, fontWeight } = useTokens();
+  const { colors, radius, spacing, touchTarget, fontSize, fontWeight, alpha } = useTokens();
 
   const mmss = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -27,17 +27,17 @@ export function RestTimerBar({ timer }: { timer: RestTimerState }) {
           styles.runningRow,
           {
             backgroundColor: colors.ink,
-            borderRadius: radius.button,
+            borderRadius: radius.pill,
             paddingHorizontal: spacing.lg,
             paddingVertical: spacing.sm,
             minHeight: touchTarget.min,
           },
         ]}
       >
-        <Text style={{ color: colors.bg, fontSize: fontSize.label, fontWeight: fontWeight.semibold }}>
+        <Text style={{ color: alpha('#FFFFFF', 0.8), fontSize: fontSize.label, fontWeight: fontWeight.semibold, letterSpacing: 0.8 }}>
           {t('workout.rest').toUpperCase()}
         </Text>
-        <Text style={{ color: colors.surface, fontSize: fontSize.title, fontWeight: fontWeight.bold }}>
+        <Text style={{ color: colors.surface, fontSize: fontSize.title, fontWeight: fontWeight.bold, fontVariant: ['tabular-nums'] }}>
           {mmss(timer.remaining)}
         </Text>
         <Pressable
@@ -46,6 +46,8 @@ export function RestTimerBar({ timer }: { timer: RestTimerState }) {
             pressLight();
             timer.stop();
           }}
+          hitSlop={8}
+          style={{ minHeight: touchTarget.min, justifyContent: 'center' }}
         >
           <Text style={{ color: colors.accent, fontSize: fontSize.body, fontWeight: fontWeight.semibold }}>
             {t('workout.stopRest')}
@@ -59,7 +61,7 @@ export function RestTimerBar({ timer }: { timer: RestTimerState }) {
     <View style={{ gap: spacing.sm }}>
       <Text
         style={{
-          color: colors.inkMuted,
+          color: colors.inkMutedText,
           fontSize: fontSize.label,
           fontWeight: fontWeight.semibold,
           textTransform: 'uppercase',
@@ -82,8 +84,8 @@ export function RestTimerBar({ timer }: { timer: RestTimerState }) {
                 flex: 1,
                 minHeight: touchTarget.min,
                 borderRadius: radius.cardSm,
-                borderWidth: 1.5,
-                borderColor: colors.inkMuted,
+                borderWidth: 1,
+                borderColor: colors.hairline,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: colors.surface,
@@ -91,7 +93,7 @@ export function RestTimerBar({ timer }: { timer: RestTimerState }) {
               pressed ? { opacity: 0.85 } : null,
             ]}
           >
-            <Text style={{ color: colors.ink, fontSize: fontSize.body, fontWeight: fontWeight.semibold }}>
+            <Text style={{ color: colors.ink, fontSize: fontSize.body, fontWeight: fontWeight.semibold, fontVariant: ['tabular-nums'] }}>
               {secs}
             </Text>
           </Pressable>

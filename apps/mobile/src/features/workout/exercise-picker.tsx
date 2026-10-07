@@ -56,8 +56,8 @@ export function ExercisePicker({ visible, onClose, onSelect }: ExercisePickerPro
             styles.sheet,
             {
               backgroundColor: colors.surface,
-              borderTopLeftRadius: radius.cardLg,
-              borderTopRightRadius: radius.cardLg,
+              borderTopLeftRadius: 32,
+              borderTopRightRadius: 32,
               padding: spacing.xl,
               gap: spacing.lg,
             },
@@ -69,15 +69,15 @@ export function ExercisePicker({ visible, onClose, onSelect }: ExercisePickerPro
 
           <TextInput
             placeholder={t('workout.searchPlaceholder')}
-            placeholderTextColor={colors.inkMuted}
+            placeholderTextColor={colors.inkMutedText}
             value={query}
             onChangeText={setQuery}
             autoCapitalize="none"
             style={{
               minHeight: touchTarget.min,
               borderRadius: radius.cardSm,
-              borderWidth: 1.5,
-              borderColor: colors.inkMuted,
+              borderWidth: 1,
+              borderColor: colors.hairline,
               backgroundColor: colors.surface,
               color: colors.ink,
               paddingHorizontal: spacing.lg,
@@ -102,7 +102,7 @@ export function ExercisePicker({ visible, onClose, onSelect }: ExercisePickerPro
             </View>
           ) : !data || data.length === 0 ? (
             <View style={styles.state}>
-              <Text style={{ color: colors.inkMuted, fontSize: fontSize.body }}>
+              <Text style={{ color: colors.inkMutedText, fontSize: fontSize.body }}>
                 {t('workout.noResults')}
               </Text>
             </View>
@@ -120,8 +120,8 @@ export function ExercisePicker({ visible, onClose, onSelect }: ExercisePickerPro
                     {
                       minHeight: touchTarget.min,
                       borderRadius: radius.cardSm,
-                      borderWidth: 1.5,
-                      borderColor: colors.inkMuted,
+                      borderWidth: 1,
+                      borderColor: colors.hairline,
                       paddingHorizontal: spacing.lg,
                       paddingVertical: spacing.md,
                       backgroundColor: colors.surface,
@@ -133,7 +133,7 @@ export function ExercisePicker({ visible, onClose, onSelect }: ExercisePickerPro
                   <Text style={{ color: colors.ink, fontSize: fontSize.body, fontWeight: fontWeight.semibold }}>
                     {item.name}
                   </Text>
-                  <Text style={{ color: colors.inkMuted, fontSize: fontSize.label }}>
+                  <Text style={{ color: colors.inkMutedText, fontSize: fontSize.label, marginTop: 2 }}>
                     {item.primaryMuscle} · {item.equipment}
                   </Text>
                 </Pressable>
@@ -147,11 +147,11 @@ export function ExercisePicker({ visible, onClose, onSelect }: ExercisePickerPro
             style={({ pressed }) => [
               {
                 minHeight: touchTarget.min,
-                borderRadius: radius.button,
-                borderWidth: 1.5,
-                borderColor: colors.ink,
+                borderRadius: radius.pill,
+                backgroundColor: colors.surfaceMuted,
                 alignItems: 'center',
                 justifyContent: 'center',
+                paddingVertical: spacing.md,
               },
               pressed ? { opacity: 0.85 } : null,
             ]}
