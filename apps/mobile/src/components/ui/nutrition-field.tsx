@@ -41,7 +41,7 @@ export function NutritionField({
   const { colors, radius, spacing, touchTarget, fontSize, fontWeight } = useTokens();
   const [focused, setFocused] = useState(false);
 
-  const borderColor = error ? colors.danger : focused ? colors.accent : colors.inkMuted;
+  const borderColor = error ? colors.danger : focused ? colors.accent : colors.hairline;
 
   const handleChange = (text: string) => {
     // Keep only digits so the numeric payload is always clean.

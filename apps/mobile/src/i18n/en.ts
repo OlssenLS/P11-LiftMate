@@ -124,6 +124,11 @@ export const en = {
     },
   },
   onboarding: {
+    welcomeTitle: 'Welcome to LiftMate',
+    welcomeSubtitle: 'Your companion for progressive strength training and evidence-based nutrition tracking.',
+    welcomeParagraph:
+      'We’ll take a couple of minutes to set up your profile, equipment, and starting numbers so your workouts and targets fit you.',
+    welcomeStart: 'Get Started',
     stepLabel: 'Step {current} of {total}',
     basicsTitle: 'About you',
     basicsSubtitle: 'The essentials to personalise your plan',
@@ -168,6 +173,8 @@ export const en = {
       advanced: 'Years of structured training under your belt.',
     },
     weeklyFrequency: 'Days per week',
+    trainingDaysTitle: 'Training days',
+    trainingDaysCount: '{count} days per week',
     equipmentTitle: 'Your equipment',
     equipmentSubtitle: 'Select everything you can train with',
     equipmentHint: 'Tap all that you have access to. You can change this later.',

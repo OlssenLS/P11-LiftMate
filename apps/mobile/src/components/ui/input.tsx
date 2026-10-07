@@ -39,7 +39,7 @@ export function Input({
   const { colors, radius, spacing, touchTarget, fontSize, fontWeight } = useTokens();
   const [focused, setFocused] = useState(false);
 
-  const borderColor = error ? colors.danger : focused ? colors.accent : colors.inkMuted;
+  const borderColor = error ? colors.danger : focused ? colors.accent : colors.hairline;
 
   return (
     <View style={[styles.container, { gap: spacing.xs }, containerStyle]}>

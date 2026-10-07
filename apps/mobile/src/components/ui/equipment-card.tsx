@@ -28,12 +28,12 @@ export function EquipmentCard({ icon, label, selected = false, onPress, style }:
   const containerStyle: ViewStyle = {
     minHeight: touchTarget.min * 1.6,
     borderRadius: radius.cardSm,
-    borderWidth: 1.5,
+    borderWidth: 2,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.lg,
     gap: spacing.sm,
-    backgroundColor: selected ? colors.ink : colors.surface,
-    borderColor: selected ? colors.ink : colors.inkMuted,
+    backgroundColor: selected ? colors.accentSoft : colors.surface,
+    borderColor: selected ? colors.accent : colors.hairline,
   };
 
   const handlePress = () => {
@@ -54,16 +54,16 @@ export function EquipmentCard({ icon, label, selected = false, onPress, style }:
           width: 44,
           height: 44,
           borderRadius: radius.cardSm,
-          backgroundColor: selected ? colors.surface : colors.bg,
+          backgroundColor: selected ? colors.surface : colors.surfaceMuted,
           alignItems: 'center',
           justifyContent: 'center',
           borderWidth: 1,
-          borderColor: selected ? colors.surface : colors.inkMuted,
+          borderColor: selected ? colors.accent : colors.hairline,
         }}
       >
         <Text
           style={{
-            color: selected ? colors.ink : colors.accent,
+            color: selected ? colors.accentText : colors.ink,
             fontSize: fontSize.body,
             fontWeight: fontWeight.bold,
             letterSpacing: 0.5,
@@ -77,9 +77,9 @@ export function EquipmentCard({ icon, label, selected = false, onPress, style }:
       <Text
         numberOfLines={2}
         style={{
-          color: selected ? colors.surface : colors.ink,
+          color: selected ? colors.accentText : colors.ink,
           fontSize: fontSize.label,
-          fontWeight: fontWeight.semibold,
+          fontWeight: selected ? fontWeight.bold : fontWeight.medium,
           textAlign: 'center',
         }}
       >

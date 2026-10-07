@@ -11,26 +11,50 @@ import {
   type OnboardingInput,
 } from '@liftmate/shared';
 import { isAxiosError } from 'axios';
+import {
+  Activity,
+  Compass,
+  Dumbbell,
+  Flame,
+  Heart,
+  Scale,
+  Sparkles,
+  Target,
+  Timer,
+  TrendingUp,
+  Trophy,
+  Utensils,
+  Zap,
+} from 'lucide-react-native';
 import { useState } from 'react';
 import { Controller, useForm, type Path } from 'react-hook-form';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
-  Button,
   Chip,
+  CircleButton,
   DatePicker,
+  DaySelector,
   EquipmentCard,
   Input,
   NutritionField,
-  ScreenHeader,
+  PrimaryButton,
+  SecondaryButton,
   SelectCard,
 } from '@/components/ui';
 import { useCompleteOnboarding } from '@/features/onboarding/use-complete-onboarding';
 import { useTokens } from '@/hooks/use-tokens';
 import { t } from '@/i18n';
-import { notifyError, notifySuccess, pressLight } from '@/lib/haptics';
+import { notifyError, notifySuccess, pressLight, selectionTick } from '@/lib/haptics';
 
 type FormValues = {
   displayName: string;
@@ -48,7 +72,7 @@ type FormValues = {
   targetFat: string;
 };
 
-const STEP_FIELDS: Path<FormValues>[][] = [
+const FORM_STEP_FIELDS: Path<FormValues>[][] = [
   ['displayName', 'dateOfBirth', 'weightUnit', 'timezone'],
   ['primaryGoal'],
   ['experienceLevel', 'weeklyFrequency'],
@@ -56,7 +80,7 @@ const STEP_FIELDS: Path<FormValues>[][] = [
   ['targetCalories', 'targetProtein', 'targetCarbs', 'targetFat'],
 ];
 
-const TOTAL_STEPS = STEP_FIELDS.length;
+const TOTAL_FORM_STEPS = FORM_STEP_FIELDS.length;
 
 /** Timezones offered as quick picks (Indonesia first; UTC as a fallback). */
 const TIMEZONE_OPTIONS = ['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura', 'UTC'] as const;
@@ -68,6 +92,14 @@ const NUTRITION_ERROR_KEYS = {
   targetCarbs: 'onboarding.errors.carbsRange',
   targetFat: 'onboarding.errors.fatRange',
 } as const;
+
+const STEP_SCHEMAS = [
+  onboardingBasicsSchema,
+  onboardingGoalSchema,
+  onboardingTrainingSchema,
+  onboardingEquipmentSchema,
+  onboardingNutritionSchema,
+];
 
 function toPayload(values: FormValues): OnboardingInput {
   return {
@@ -90,9 +122,8 @@ function toPayload(values: FormValues): OnboardingInput {
 }
 
 /**
- * Rough starting macros from the primary goal, so a confused user can tap
- * "Estimate for me" and get sensible, editable numbers. These are deliberate
- * ballpark presets (not a clinical calculation) and are clearly editable.
+ * Rough starting macros from the primary goal, so a user can tap
+ * "Estimate for me" and get sensible, editable numbers.
  */
 function estimateTargets(goal: FormValues['primaryGoal']): {
   targetCalories: string;
@@ -113,26 +144,9 @@ function estimateTargets(goal: FormValues['primaryGoal']): {
   }
 }
 
-const STEP_SCHEMAS = [
-  onboardingBasicsSchema,
-  onboardingGoalSchema,
-  onboardingTrainingSchema,
-  onboardingEquipmentSchema,
-  onboardingNutritionSchema,
-];
-
-/**
- * Turn a thrown onboarding error into a specific, user-facing message so the
- * failure is diagnosable instead of a blanket "something went wrong".
- *
- * Distinguishes: no network/no response, an HTTP error (surfacing the server's
- * message/status), and a response that failed client-side schema parsing.
- */
 function describeSubmitError(err: unknown): string {
   if (isAxiosError(err)) {
     if (!err.response) {
-      // Request left the app but no response came back (server down, wrong
-      // host/IP, device not on the same network, timeout, CORS).
       return t('onboarding.submitErrors.network');
     }
     const status = err.response.status;
@@ -148,15 +162,33 @@ function describeSubmitError(err: unknown): string {
     });
   }
   if (err instanceof Error && err.name === 'ZodError') {
-    // The request succeeded but the response shape did not match the schema.
     return t('onboarding.submitErrors.response');
   }
   return t('common.somethingWentWrong');
 }
 
+/** Satellite icons cluster for Welcome hero (DESIGN.md §7.1). */
+const SATELLITE_ICONS = [
+  { Icon: Flame, size: 20, circle: 40, x: -75, y: -45 },
+  { Icon: Utensils, size: 20, circle: 40, x: 75, y: -42 },
+  { Icon: Scale, size: 20, circle: 40, x: -110, y: 12 },
+  { Icon: TrendingUp, size: 20, circle: 40, x: 110, y: 12 },
+  { Icon: Sparkles, size: 18, circle: 36, x: -65, y: 68 },
+  { Icon: Heart, size: 20, circle: 40, x: 68, y: 68 },
+  { Icon: Target, size: 18, circle: 36, x: 0, y: -82 },
+  { Icon: Activity, size: 18, circle: 36, x: 0, y: 82 },
+  { Icon: Timer, size: 18, circle: 36, x: -125, y: -42 },
+  { Icon: Trophy, size: 18, circle: 36, x: 125, y: -42 },
+  { Icon: Zap, size: 16, circle: 34, x: -38, y: -72 },
+  { Icon: Compass, size: 16, circle: 34, x: 38, y: -72 },
+];
+
 export default function OnboardingScreen() {
-  const { colors, spacing, fontSize, fontWeight, alpha } = useTokens();
+  const insets = useSafeAreaInsets();
+  const { colors, spacing, radius, type, floatingShadow } = useTokens();
+  // step 0 = Welcome screen; steps 1..5 = wizard steps
   const [step, setStep] = useState(0);
+  const [selectedDays, setSelectedDays] = useState<string[]>(['mon', 'wed', 'fri']);
   const [formError, setFormError] = useState<string | null>(null);
   const complete = useCompleteOnboarding();
 
@@ -180,18 +212,15 @@ export default function OnboardingScreen() {
       },
     });
 
-  // Validate the current step against its staged schema (coercing the string
-  // inputs to the payload shape) and surface per-field errors so the user sees
-  // exactly what to fix — including on the final (nutrition) step.
   const validateStep = (index: number): boolean => {
     const payload = toPayload(getValues());
     const result = STEP_SCHEMAS[index].safeParse(payload);
     if (result.success) {
-      clearErrors(STEP_FIELDS[index]);
+      clearErrors(FORM_STEP_FIELDS[index]);
       return true;
     }
     const fieldErrors = result.error.flatten().fieldErrors as Record<string, string[] | undefined>;
-    for (const field of STEP_FIELDS[index]) {
+    for (const field of FORM_STEP_FIELDS[index]) {
       if (fieldErrors[field]) {
         setError(field, { type: 'manual' });
       }
@@ -201,20 +230,21 @@ export default function OnboardingScreen() {
 
   const next = async () => {
     setFormError(null);
-    await trigger(STEP_FIELDS[step]);
-    if (!validateStep(step)) {
-      notifyError();
-      return;
+    const formIndex = step - 1;
+    if (formIndex >= 0 && formIndex < TOTAL_FORM_STEPS) {
+      await trigger(FORM_STEP_FIELDS[formIndex]);
+      if (!validateStep(formIndex)) {
+        notifyError();
+        return;
+      }
     }
     pressLight();
-    setStep((s) => Math.min(TOTAL_STEPS - 1, s + 1));
+    setStep((s) => Math.min(TOTAL_FORM_STEPS, s + 1));
   };
 
   const submit = async () => {
     setFormError(null);
-    // Run the final step's per-field validation first so a bad macro shows a
-    // specific field error instead of a generic "something went wrong".
-    if (!validateStep(TOTAL_STEPS - 1)) {
+    if (!validateStep(TOTAL_FORM_STEPS - 1)) {
       notifyError();
       return;
     }
@@ -249,6 +279,12 @@ export default function OnboardingScreen() {
     pressLight();
   };
 
+  const handleDaysChange = (days: string[]) => {
+    setSelectedDays(days);
+    const count = Math.max(1, Math.min(7, days.length || 1));
+    setValue('weeklyFrequency', String(count), { shouldValidate: true });
+  };
+
   const selectedEquipment = watch('equipment');
   const primaryGoal = watch('primaryGoal');
   const secondaryGoal = watch('secondaryGoal');
@@ -271,16 +307,6 @@ export default function OnboardingScreen() {
       : [...current, value];
     setValue('equipment', nextValue, { shouldValidate: true });
   };
-
-  const labelStyle = {
-    color: colors.inkMuted,
-    fontSize: fontSize.label,
-    fontWeight: fontWeight.semibold,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 1,
-  };
-
-  const helpStyle = { color: colors.inkMuted, fontSize: fontSize.label, lineHeight: 18 };
 
   const nutritionMeta = [
     {
@@ -309,276 +335,489 @@ export default function OnboardingScreen() {
     },
   ];
 
-  return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  // -------------------------------------------------------------------------
+  // Step 0: Welcome Screen (DESIGN.md §7.1)
+  // -------------------------------------------------------------------------
+  if (step === 0) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.accentSoft }]}>
+        {/* Coloured band with status bar */}
+        <View style={{ height: Math.max(insets.top, 24) + 24 }} />
+
+        {/* White sheet with top radius 32 filling the rest */}
+        <View
+          style={[
+            styles.welcomeSheet,
+            {
+              backgroundColor: colors.surface,
+              borderTopLeftRadius: 32,
+              borderTopRightRadius: 32,
+              paddingHorizontal: spacing.xl,
+              paddingTop: spacing.xxl,
+            },
+          ]}
         >
           <ScrollView
             style={styles.flex}
-            contentContainerStyle={[styles.content, { padding: spacing.xl, gap: spacing.lg }]}
-            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={[
+              styles.welcomeContent,
+              { paddingBottom: Math.max(insets.bottom, 16) + 24 },
+            ]}
             showsVerticalScrollIndicator={false}
           >
-            {/* Segmented Progress Bar */}
-            <View style={{ gap: spacing.sm }}>
-              <View style={{ flexDirection: 'row', gap: spacing.xs, alignItems: 'center' }}>
-                {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+            <View style={{ gap: spacing.xxl }}>
+              {/* Hero: loose cluster of 10–14 LiftMate icons around the app mark */}
+              <View style={styles.clusterContainer}>
+                {SATELLITE_ICONS.map((item, idx) => (
                   <View
-                    key={i}
-                    style={{
-                      flex: 1,
-                      height: 4,
-                      borderRadius: 2,
-                      backgroundColor:
-                        i < step
-                          ? colors.ink
-                          : i === step
-                          ? colors.accent
-                          : alpha(colors.ink, 0.12),
-                    }}
-                  />
+                    key={idx}
+                    style={[
+                      styles.satelliteCircle,
+                      {
+                        width: item.circle,
+                        height: item.circle,
+                        borderRadius: item.circle / 2,
+                        backgroundColor: colors.accentSoft,
+                        left: '50%',
+                        top: '50%',
+                        marginLeft: item.x - item.circle / 2,
+                        marginTop: item.y - item.circle / 2,
+                      },
+                    ]}
+                  >
+                    <item.Icon size={item.size} color={colors.accentText} strokeWidth={2} />
+                  </View>
                 ))}
+                {/* Central app icon badge */}
+                <View
+                  style={[
+                    styles.centerCircle,
+                    floatingShadow,
+                    {
+                      backgroundColor: colors.accent,
+                      left: '50%',
+                      top: '50%',
+                      marginLeft: -34,
+                      marginTop: -34,
+                    },
+                  ]}
+                >
+                  <Dumbbell size={32} color="#FFFFFF" strokeWidth={2.2} />
+                </View>
               </View>
-              <Text style={labelStyle}>
-                {t('onboarding.stepLabel', { current: step + 1, total: TOTAL_STEPS })}
-              </Text>
+
+              {/* Text: left-aligned title bold, then 1–2 muted body paragraphs */}
+              <View style={{ gap: spacing.md }}>
+                <Text style={[type.largeTitle, { color: colors.ink }]}>
+                  {t('onboarding.welcomeTitle')}
+                </Text>
+                <Text style={[type.body, { color: colors.inkMutedText, lineHeight: 22 }]}>
+                  {t('onboarding.welcomeSubtitle')}
+                </Text>
+                <Text style={[type.body, { color: colors.inkMutedText, lineHeight: 22 }]}>
+                  {t('onboarding.welcomeParagraph')}
+                </Text>
+              </View>
             </View>
-            <ScreenHeader title={titles[step].title} subtitle={titles[step].subtitle} />
 
-            <Animated.View
-              key={step}
-              entering={FadeIn.duration(220)}
-              exiting={FadeOut.duration(120)}
-              style={{ gap: spacing.lg }}
+            {/* Bottom: full-width PrimaryButton 24dp above bottom inset */}
+            <View style={{ paddingTop: spacing.xxl }}>
+              <PrimaryButton
+                label={t('onboarding.welcomeStart')}
+                onPress={() => {
+                  pressLight();
+                  setStep(1);
+                }}
+              />
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Steps 1..5: Onboarding Wizard Steps (DESIGN.md §7.10)
+  // -------------------------------------------------------------------------
+  const formIndex = step - 1;
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        {/* Step Header: CircleButton back on top left, slim progress bar on top right */}
+        <View
+          style={[
+            styles.stepHeader,
+            {
+              paddingTop: Math.max(insets.top, spacing.md),
+              paddingHorizontal: spacing.lg,
+              paddingBottom: spacing.sm,
+              gap: spacing.md,
+            },
+          ]}
+        >
+          <CircleButton
+            icon="back"
+            accessibilityLabel={t('common.back')}
+            onPress={back}
+          />
+
+          <View style={styles.progressContainer}>
+            <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
+              {t('onboarding.stepLabel', { current: step, total: TOTAL_FORM_STEPS })}
+            </Text>
+            <View
+              style={[
+                styles.progressBarTrack,
+                { backgroundColor: colors.surfaceMuted, borderRadius: radius.pill },
+              ]}
             >
-              {step === 0 ? (
-                <View style={{ gap: spacing.lg }}>
-                  <Controller
-                    control={control}
-                    name="displayName"
-                    render={({ field, fieldState }) => (
-                      <Input
-                        label={t('auth.displayName')}
-                        value={field.value}
-                        onChangeText={field.onChange}
-                        onBlur={field.onBlur}
-                        error={fieldState.error ? t('onboarding.errors.required') : undefined}
-                      />
-                    )}
-                  />
-                  <Controller
-                    control={control}
-                    name="dateOfBirth"
-                    render={({ field, fieldState }) => (
-                      <DatePicker
-                        label={t('onboarding.dateOfBirth')}
-                        placeholder={t('onboarding.dateOfBirthPlaceholder')}
-                        value={field.value}
-                        onChange={field.onChange}
-                        error={fieldState.error ? t('onboarding.errors.dateInvalid') : undefined}
-                      />
-                    )}
-                  />
-                  <View style={{ gap: spacing.sm }}>
-                    <Text style={labelStyle}>{t('onboarding.weightUnit')}</Text>
-                    <View style={styles.chipRow}>
-                      {(['kg', 'lb'] as const).map((unit) => (
-                        <Chip
-                          key={unit}
-                          label={unit.toUpperCase()}
-                          selected={weightUnit === unit}
-                          onPress={() => setValue('weightUnit', unit, { shouldValidate: true })}
-                        />
-                      ))}
-                    </View>
-                  </View>
-                  <View style={{ gap: spacing.sm }}>
-                    <Text style={labelStyle}>{t('onboarding.timezone')}</Text>
-                    <View style={styles.chipWrap}>
-                      {TIMEZONE_OPTIONS.map((tz) => (
-                        <Chip
-                          key={tz}
-                          label={t(`onboarding.timezones.${tz}`)}
-                          selected={timezone === tz}
-                          onPress={() => setValue('timezone', tz, { shouldValidate: true })}
-                        />
-                      ))}
-                    </View>
-                    <Text style={helpStyle}>{t('onboarding.timezoneHelp')}</Text>
-                  </View>
-                </View>
-              ) : null}
+              <View
+                style={[
+                  styles.progressBarFill,
+                  {
+                    width: `${(step / TOTAL_FORM_STEPS) * 100}%`,
+                    backgroundColor: colors.accent,
+                    borderRadius: radius.pill,
+                  },
+                ]}
+              />
+            </View>
+          </View>
+        </View>
 
-              {step === 1 ? (
-                <View style={{ gap: spacing.lg }}>
-                  <Text style={labelStyle}>{t('onboarding.primaryGoal')}</Text>
-                  <View style={{ gap: spacing.md }}>
-                    {FitnessGoal.options.map((goal) => (
-                      <SelectCard
-                        key={goal}
-                        title={t(`onboarding.goals.${goal}`)}
-                        description={t(`onboarding.goalDescriptions.${goal}`)}
-                        selected={primaryGoal === goal}
-                        onPress={() => setValue('primaryGoal', goal, { shouldValidate: true })}
-                      />
-                    ))}
-                  </View>
-                  <Text style={labelStyle}>{t('onboarding.secondaryGoal')}</Text>
-                  <View style={styles.chipWrap}>
-                    {FitnessGoal.options.map((goal) => (
-                      <Chip
-                        key={`sec-${goal}`}
-                        label={t(`onboarding.goals.${goal}`)}
-                        selected={secondaryGoal === goal}
-                        onPress={() =>
-                          setValue('secondaryGoal', secondaryGoal === goal ? '' : goal, {
-                            shouldValidate: true,
-                          })
-                        }
-                      />
-                    ))}
-                  </View>
-                </View>
-              ) : null}
+        {/* Step Title & Subtitle */}
+        <View style={{ paddingHorizontal: spacing.xl, paddingTop: spacing.sm, paddingBottom: spacing.md, gap: spacing.xs }}>
+          <Text style={[type.title, { color: colors.ink }]}>{titles[formIndex].title}</Text>
+          <Text style={[type.secondary, { color: colors.inkMutedText }]}>{titles[formIndex].subtitle}</Text>
+        </View>
 
-              {step === 2 ? (
-                <View style={{ gap: spacing.lg }}>
-                  <Text style={labelStyle}>{t('onboarding.experience')}</Text>
-                  <View style={{ gap: spacing.md }}>
-                    {Difficulty.options.map((level) => (
-                      <SelectCard
-                        key={level}
-                        title={t(`onboarding.experienceLevels.${level}`)}
-                        description={t(`onboarding.experienceDescriptions.${level}`)}
-                        selected={experienceLevel === level}
-                        onPress={() => setValue('experienceLevel', level, { shouldValidate: true })}
-                      />
-                    ))}
-                  </View>
-                  <Controller
-                    control={control}
-                    name="weeklyFrequency"
-                    render={({ field, fieldState }) => (
-                      <Input
-                        label={t('onboarding.weeklyFrequency')}
-                        keyboardType="number-pad"
-                        value={field.value}
-                        onChangeText={field.onChange}
-                        onBlur={field.onBlur}
-                        error={fieldState.error ? t('onboarding.errors.number') : undefined}
-                      />
-                    )}
-                  />
-                </View>
-              ) : null}
-
-              {step === 3 ? (
-                <View style={{ gap: spacing.md }}>
-                  <View style={styles.grid}>
-                    {Equipment.options.map((item) => (
-                      <View key={item} style={styles.gridItem}>
-                        <EquipmentCard
-                          icon={t(`onboarding.equipmentIcons.${item}`)}
-                          label={t(`onboarding.equipment.${item}`)}
-                          selected={selectedEquipment.includes(item)}
-                          onPress={() => toggleEquipment(item)}
-                        />
-                      </View>
-                    ))}
-                  </View>
-                  <Text style={helpStyle}>{t('onboarding.equipmentHint')}</Text>
-                </View>
-              ) : null}
-
-              {step === 4 ? (
-                <View style={{ gap: spacing.lg }}>
-                  <Text style={helpStyle}>{t('onboarding.nutritionHelp')}</Text>
-                  <View style={{ gap: spacing.sm }}>
-                    <Button
-                      label={t('onboarding.estimate')}
-                      variant="secondary"
-                      onPress={applyEstimate}
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={[styles.content, { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl, gap: spacing.lg }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.View
+            key={step}
+            entering={FadeIn.duration(200)}
+            exiting={FadeOut.duration(120)}
+            style={{ gap: spacing.lg }}
+          >
+            {/* Step 1: Basics */}
+            {step === 1 ? (
+              <View style={{ gap: spacing.lg }}>
+                <Controller
+                  control={control}
+                  name="displayName"
+                  render={({ field, fieldState }) => (
+                    <Input
+                      label={t('auth.displayName')}
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      onBlur={field.onBlur}
+                      error={fieldState.error ? t('onboarding.errors.required') : undefined}
                     />
-                    <Text style={helpStyle}>{t('onboarding.estimateHint')}</Text>
+                  )}
+                />
+
+                <Controller
+                  control={control}
+                  name="dateOfBirth"
+                  render={({ field, fieldState }) => (
+                    <DatePicker
+                      label={t('onboarding.dateOfBirth')}
+                      placeholder={t('onboarding.dateOfBirthPlaceholder')}
+                      value={field.value}
+                      onChange={field.onChange}
+                      error={fieldState.error ? t('onboarding.errors.dateInvalid') : undefined}
+                    />
+                  )}
+                />
+
+                <View style={{ gap: spacing.xs }}>
+                  <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
+                    {t('onboarding.weightUnit')}
+                  </Text>
+                  <View style={styles.chipRow}>
+                    {(['kg', 'lb'] as const).map((unit) => (
+                      <Chip
+                        key={unit}
+                        label={unit.toUpperCase()}
+                        selected={weightUnit === unit}
+                        onPress={() => {
+                          selectionTick();
+                          setValue('weightUnit', unit, { shouldValidate: true });
+                        }}
+                      />
+                    ))}
                   </View>
-                  {nutritionMeta.map((meta) => (
-                    <Controller
-                      key={meta.name}
-                      control={control}
-                      name={meta.name}
-                      render={({ field, fieldState }) => (
-                        <NutritionField
-                          label={meta.label}
-                          unit={meta.unit}
-                          hint={meta.hint}
-                          value={field.value}
-                          onChangeText={field.onChange}
-                          onBlur={field.onBlur}
-                          error={fieldState.error ? t(NUTRITION_ERROR_KEYS[meta.name]) : undefined}
-                        />
-                      )}
+                </View>
+
+                <View style={{ gap: spacing.xs }}>
+                  <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
+                    {t('onboarding.timezone')}
+                  </Text>
+                  <View style={styles.chipWrap}>
+                    {TIMEZONE_OPTIONS.map((tz) => (
+                      <Chip
+                        key={tz}
+                        label={t(`onboarding.timezones.${tz}`)}
+                        selected={timezone === tz}
+                        onPress={() => {
+                          selectionTick();
+                          setValue('timezone', tz, { shouldValidate: true });
+                        }}
+                      />
+                    ))}
+                  </View>
+                  <Text style={[type.secondary, { color: colors.inkMutedText, marginTop: spacing.xs }]}>
+                    {t('onboarding.timezoneHelp')}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+
+            {/* Step 2: Goal */}
+            {step === 2 ? (
+              <View style={{ gap: spacing.lg }}>
+                <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
+                  {t('onboarding.primaryGoal')}
+                </Text>
+                <View style={{ gap: spacing.md }}>
+                  {FitnessGoal.options.map((goal) => (
+                    <SelectCard
+                      key={goal}
+                      title={t(`onboarding.goals.${goal}`)}
+                      description={t(`onboarding.goalDescriptions.${goal}`)}
+                      selected={primaryGoal === goal}
+                      onPress={() => setValue('primaryGoal', goal, { shouldValidate: true })}
                     />
                   ))}
                 </View>
-              ) : null}
-            </Animated.View>
 
-            {formError ? (
-              <Text style={{ color: colors.danger, fontSize: fontSize.body }}>{formError}</Text>
+                <Text style={[type.cardLabel, { color: colors.inkMutedText, marginTop: spacing.sm }]}>
+                  {t('onboarding.secondaryGoal')}
+                </Text>
+                <View style={styles.chipWrap}>
+                  {FitnessGoal.options.map((goal) => (
+                    <Chip
+                      key={`sec-${goal}`}
+                      label={t(`onboarding.goals.${goal}`)}
+                      selected={secondaryGoal === goal}
+                      onPress={() => {
+                        selectionTick();
+                        setValue('secondaryGoal', secondaryGoal === goal ? '' : goal, {
+                          shouldValidate: true,
+                        });
+                      }}
+                    />
+                  ))}
+                </View>
+              </View>
             ) : null}
-          </ScrollView>
 
-          {/* Sticky footer: the back/continue controls sit in the exact same
-              place on every step, outside the scroll area. */}
-          <View
-            style={[
-              styles.footer,
-              {
-                paddingHorizontal: spacing.xl,
-                paddingTop: spacing.md,
-                paddingBottom: spacing.lg,
-                gap: spacing.md,
-                backgroundColor: colors.bg,
-                borderTopColor: alpha(colors.ink, 0.08),
-              },
-            ]}
-          >
-            {step > 0 ? (
-              <Button
-                label={t('common.back')}
-                variant="secondary"
-                style={styles.flexBtn}
-                onPress={back}
-              />
+            {/* Step 3: Training Profile & Schedule */}
+            {step === 3 ? (
+              <View style={{ gap: spacing.lg }}>
+                <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
+                  {t('onboarding.experience')}
+                </Text>
+                <View style={{ gap: spacing.md }}>
+                  {Difficulty.options.map((level) => (
+                    <SelectCard
+                      key={level}
+                      title={t(`onboarding.experienceLevels.${level}`)}
+                      description={t(`onboarding.experienceDescriptions.${level}`)}
+                      selected={experienceLevel === level}
+                      onPress={() => setValue('experienceLevel', level, { shouldValidate: true })}
+                    />
+                  ))}
+                </View>
+
+                {/* Training Schedule via DaySelector (DESIGN.md §7.10 & §6.10) */}
+                <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
+                  <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
+                    {t('onboarding.trainingDaysTitle')}
+                  </Text>
+                  <DaySelector
+                    selectedDays={selectedDays}
+                    onChange={handleDaysChange}
+                  />
+                  <Text style={[type.secondary, { color: colors.inkMutedText }]}>
+                    {t('onboarding.trainingDaysCount', { count: selectedDays.length || 1 })}
+                  </Text>
+                </View>
+              </View>
             ) : null}
-            <Button
-              label={step < TOTAL_STEPS - 1 ? t('common.continue') : t('onboarding.finish')}
-              loading={complete.isPending}
-              style={styles.flexBtn}
-              onPress={() => void (step < TOTAL_STEPS - 1 ? next() : submit())}
-            />
-          </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+
+            {/* Step 4: Equipment */}
+            {step === 3 ? null : step === 4 ? (
+              <View style={{ gap: spacing.md }}>
+                <View style={styles.grid}>
+                  {Equipment.options.map((item) => (
+                    <View key={item} style={styles.gridItem}>
+                      <EquipmentCard
+                        icon={t(`onboarding.equipmentIcons.${item}`)}
+                        label={t(`onboarding.equipment.${item}`)}
+                        selected={selectedEquipment.includes(item)}
+                        onPress={() => toggleEquipment(item)}
+                      />
+                    </View>
+                  ))}
+                </View>
+                <Text style={[type.secondary, { color: colors.inkMutedText, marginTop: spacing.xs }]}>
+                  {t('onboarding.equipmentHint')}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Step 5: Nutrition */}
+            {step === 5 ? (
+              <View style={{ gap: spacing.lg }}>
+                <Text style={[type.secondary, { color: colors.inkMutedText }]}>
+                  {t('onboarding.nutritionHelp')}
+                </Text>
+
+                <View style={{ gap: spacing.xs }}>
+                  <SecondaryButton
+                    label={t('onboarding.estimate')}
+                    onPress={applyEstimate}
+                  />
+                  <Text style={[type.secondary, { color: colors.inkMutedText, textAlign: 'center' }]}>
+                    {t('onboarding.estimateHint')}
+                  </Text>
+                </View>
+
+                {nutritionMeta.map((meta) => (
+                  <Controller
+                    key={meta.name}
+                    control={control}
+                    name={meta.name}
+                    render={({ field, fieldState }) => (
+                      <NutritionField
+                        label={meta.label}
+                        unit={meta.unit}
+                        hint={meta.hint}
+                        value={field.value}
+                        onChangeText={field.onChange}
+                        onBlur={field.onBlur}
+                        error={fieldState.error ? t(NUTRITION_ERROR_KEYS[meta.name]) : undefined}
+                      />
+                    )}
+                  />
+                ))}
+              </View>
+            ) : null}
+          </Animated.View>
+
+          {formError ? (
+            <Text style={{ color: colors.danger, ...type.body }}>{formError}</Text>
+          ) : null}
+        </ScrollView>
+
+        {/* Sticky footer: full-width PrimaryButton 24dp above inset */}
+        <View
+          style={[
+            styles.footer,
+            {
+              paddingHorizontal: spacing.xl,
+              paddingTop: spacing.md,
+              paddingBottom: Math.max(insets.bottom, 16) + 12,
+              backgroundColor: colors.bg,
+              borderTopColor: colors.hairline,
+            },
+          ]}
+        >
+          <PrimaryButton
+            label={step < TOTAL_FORM_STEPS ? t('common.continue') : t('onboarding.finish')}
+            loading={complete.isPending}
+            onPress={() => void (step < TOTAL_FORM_STEPS ? next() : submit())}
+          />
+        </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  safeArea: { flex: 1 },
-  flex: { flex: 1 },
-  content: { flexGrow: 1 },
-  chipRow: { flexDirection: 'row', gap: 8 },
-  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -6 },
-  gridItem: { width: '33.333%', paddingHorizontal: 6, paddingVertical: 6 },
-  footer: {
-    flexDirection: 'row',
-    borderTopWidth: StyleSheet.hairlineWidth,
+  container: {
+    flex: 1,
   },
-  flexBtn: { flex: 1 },
+  flex: {
+    flex: 1,
+  },
+  welcomeSheet: {
+    flex: 1,
+  },
+  welcomeContent: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
+  },
+  clusterContainer: {
+    height: 220,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  satelliteCircle: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerCircle: {
+    position: 'absolute',
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  progressContainer: {
+    flex: 1,
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  progressBarTrack: {
+    width: '100%',
+    height: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+  },
+  content: {
+    flexGrow: 1,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -6,
+  },
+  gridItem: {
+    width: '33.333%',
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+  },
+  footer: {
+    borderTopWidth: 1,
+  },
 });

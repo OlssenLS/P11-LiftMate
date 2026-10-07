@@ -40,13 +40,13 @@ export function SelectCard({
   const { colors, radius, spacing, touchTarget, fontSize, fontWeight } = useTokens();
 
   const containerStyle: ViewStyle = {
-    minHeight: touchTarget.min,
+    minHeight: Math.max(touchTarget.min, 56),
     borderRadius: radius.card,
-    borderWidth: 1.5,
+    borderWidth: 2,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
-    backgroundColor: selected ? colors.ink : colors.surface,
-    borderColor: selected ? colors.ink : colors.inkMuted,
+    backgroundColor: selected ? colors.accentSoft : colors.surface,
+    borderColor: selected ? colors.accent : colors.hairline,
   };
 
   const handlePress = () => {
@@ -70,7 +70,7 @@ export function SelectCard({
       <View style={{ gap: spacing.xs }}>
         <Text
           style={{
-            color: selected ? colors.surface : colors.ink,
+            color: selected ? colors.accentText : colors.ink,
             fontSize: fontSize.body,
             fontWeight: fontWeight.semibold,
           }}
@@ -80,9 +80,10 @@ export function SelectCard({
         {description ? (
           <Text
             style={{
-              color: selected ? colors.bg : colors.inkMuted,
+              color: colors.inkMutedText,
               fontSize: fontSize.label,
               fontWeight: fontWeight.regular,
+              lineHeight: 18,
             }}
           >
             {description}
