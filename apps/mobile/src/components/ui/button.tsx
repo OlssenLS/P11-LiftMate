@@ -1,14 +1,3 @@
-/**
- * Button — pill-shaped action button.
- *
- * Variants:
- * - `primary`   accent fill (the single brand colour; primary actions only)
- * - `secondary` inked outline on surface
- * - `ghost`     text-only, no background
- *
- * All colours/spacing/radius come from `@liftmate/shared` tokens. Touch target
- * is kept ≥ 48dp (brief §3) via `minHeight`.
- */
 import { useMemo } from 'react';
 import {
   ActivityIndicator,
@@ -16,6 +5,7 @@ import {
   type PressableProps,
   StyleSheet,
   Text,
+  type StyleProp,
   type ViewStyle,
 } from 'react-native';
 
@@ -24,14 +14,102 @@ import { useTokens } from '@/hooks/use-tokens';
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 
 export type ButtonProps = Omit<PressableProps, 'style' | 'children'> & {
-  /** Visible, already-translated label (callers pass `t('...')`). */
   label: string;
   variant?: ButtonVariant;
   loading?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 };
 
+/**
+ * Canonical PrimaryButton (DESIGN.md §6.8)
+ * Full-width pill, height 56, accent fill, white button text.
+ */
+export function PrimaryButton({
+  label,
+  loading = false,
+  disabled = false,
+  style,
+  ...rest
+}: Omit<ButtonProps, 'variant'>) {
+  const { colors, radius, type } = useTokens();
+  const isDisabled = disabled || loading;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      accessibilityLabel={label}
+      disabled={isDisabled}
+      style={({ pressed }) => [
+        styles.canonicalPill,
+        {
+          backgroundColor: colors.accent,
+          borderRadius: radius.pill,
+          opacity: isDisabled ? 0.4 : pressed ? 0.88 : 1,
+          transform: [{ scale: pressed && !isDisabled ? 0.98 : 1 }],
+        },
+        style,
+      ]}
+      {...rest}
+    >
+      {loading ? (
+        <ActivityIndicator color="#FFFFFF" size="small" />
+      ) : (
+        <Text numberOfLines={1} style={[type.button, { color: '#FFFFFF' }]}>
+          {label}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+
+/**
+ * Canonical SecondaryButton (DESIGN.md §6.8)
+ * Full-width pill, height 56, surfaceMuted fill, ink text.
+ */
+export function SecondaryButton({
+  label,
+  loading = false,
+  disabled = false,
+  style,
+  ...rest
+}: Omit<ButtonProps, 'variant'>) {
+  const { colors, radius, type } = useTokens();
+  const isDisabled = disabled || loading;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      accessibilityLabel={label}
+      disabled={isDisabled}
+      style={({ pressed }) => [
+        styles.canonicalPill,
+        {
+          backgroundColor: colors.surfaceMuted,
+          borderRadius: radius.pill,
+          opacity: isDisabled ? 0.4 : pressed ? 0.88 : 1,
+          transform: [{ scale: pressed && !isDisabled ? 0.98 : 1 }],
+        },
+        style,
+      ]}
+      {...rest}
+    >
+      {loading ? (
+        <ActivityIndicator color={colors.ink} size="small" />
+      ) : (
+        <Text numberOfLines={1} style={[type.button, { color: colors.ink }]}>
+          {label}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+
+/**
+ * Backward-compatible generic Button component.
+ */
 export function Button({
   label,
   variant = 'primary',
@@ -40,37 +118,37 @@ export function Button({
   style,
   ...rest
 }: ButtonProps) {
-  const { colors, radius, spacing, touchTarget, fontSize, fontWeight } = useTokens();
+  const { colors, radius, spacing, touchTarget, type } = useTokens();
 
-  const { container, text, spinnerColor } = useMemo(() => {
+  const { container, textColor, spinnerColor } = useMemo(() => {
     const base: ViewStyle = {
       minHeight: touchTarget.min,
-      borderRadius: radius.button,
+      borderRadius: radius.pill,
       paddingHorizontal: spacing.xl,
       paddingVertical: spacing.md,
     };
     switch (variant) {
       case 'secondary':
         return {
-          container: { ...base, backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.ink },
-          text: { color: colors.ink },
+          container: { ...base, backgroundColor: colors.surfaceMuted },
+          textColor: colors.ink,
           spinnerColor: colors.ink,
         };
       case 'ghost':
         return {
           container: { ...base, backgroundColor: 'transparent' },
-          text: { color: colors.accent },
+          textColor: colors.accentText,
           spinnerColor: colors.accent,
         };
       case 'primary':
       default:
         return {
           container: { ...base, backgroundColor: colors.accent },
-          text: { color: colors.surface },
-          spinnerColor: colors.surface,
+          textColor: '#FFFFFF',
+          spinnerColor: '#FFFFFF',
         };
     }
-  }, [variant, colors, radius.button, spacing.xl, spacing.md, touchTarget.min]);
+  }, [variant, colors, radius.pill, spacing.xl, spacing.md, touchTarget.min]);
 
   const isDisabled = disabled || loading;
 
@@ -89,12 +167,9 @@ export function Button({
       {...rest}
     >
       {loading ? (
-        <ActivityIndicator color={spinnerColor} />
+        <ActivityIndicator color={spinnerColor} size="small" />
       ) : (
-        <Text
-          numberOfLines={1}
-          style={[styles.label, text, { fontSize: fontSize.body, fontWeight: fontWeight.semibold }]}
-        >
+        <Text numberOfLines={1} style={[type.button, { color: textColor }]}>
           {label}
         </Text>
       )}
@@ -103,13 +178,18 @@ export function Button({
 }
 
 const styles = StyleSheet.create({
+  canonicalPill: {
+    height: 56,
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+  },
   base: {
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-  },
-  label: {
-    textAlign: 'center',
   },
   pressed: {
     opacity: 0.85,

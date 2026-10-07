@@ -1,45 +1,49 @@
-/**
- * Chip — small, optionally-selectable pill (e.g. equipment filters, tags).
- *
- * `label` is an already-translated string. When `onPress` is provided the chip
- * behaves as a toggle button and exposes a `selected` accessibility state.
- * Colours/spacing/radius/type come from tokens.
- */
-import { StyleSheet, Pressable, Text, View, type ViewStyle } from 'react-native';
+import { StyleSheet, Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useTokens } from '@/hooks/use-tokens';
 import { selectionTick } from '@/lib/haptics';
 
 export type ChipProps = {
-  /** Already-translated label. */
   label: string;
   selected?: boolean;
   onPress?: () => void;
-  style?: ViewStyle;
+  accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
 };
 
-export function Chip({ label, selected = false, onPress, style }: ChipProps) {
-  const { colors, radius, spacing, fontSize, fontWeight } = useTokens();
-
-  const containerStyle: ViewStyle = {
-    borderRadius: radius.button,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderWidth: 1.5,
-    backgroundColor: selected ? colors.ink : colors.surface,
-    borderColor: selected ? colors.ink : colors.inkMuted,
-  };
+/**
+ * Chip primitive (DESIGN.md §6.12)
+ * Pill, height 36, surfaceMuted (selected: accentSoft + accentText).
+ * Hit area padded to ≥ 48dp.
+ */
+export function Chip({
+  label,
+  selected = false,
+  onPress,
+  accessibilityLabel,
+  style,
+}: ChipProps) {
+  const { colors, radius, type, touchTarget } = useTokens();
 
   const textStyle = {
-    color: selected ? colors.surface : colors.ink,
-    fontSize: fontSize.label,
-    fontWeight: fontWeight.semibold,
+    color: selected ? colors.accentText : colors.ink,
+    fontWeight: selected ? ('600' as const) : ('500' as const),
   };
 
   if (!onPress) {
     return (
-      <View style={[styles.base, containerStyle, style]}>
-        <Text style={textStyle}>{label}</Text>
+      <View
+        style={[
+          styles.base,
+          {
+            height: 36,
+            borderRadius: radius.pill,
+            backgroundColor: selected ? colors.accentSoft : colors.surfaceMuted,
+          },
+          style,
+        ]}
+      >
+        <Text style={[type.caption, textStyle]}>{label}</Text>
       </View>
     );
   }
@@ -48,14 +52,24 @@ export function Chip({ label, selected = false, onPress, style }: ChipProps) {
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       onPress={() => {
         selectionTick();
         onPress();
       }}
-      style={({ pressed }) => [styles.base, containerStyle, pressed ? styles.pressed : null, style]}
+      hitSlop={Math.max(0, (touchTarget.min - 36) / 2)}
+      style={({ pressed }) => [
+        styles.base,
+        {
+          height: 36,
+          borderRadius: radius.pill,
+          backgroundColor: selected ? colors.accentSoft : colors.surfaceMuted,
+          opacity: pressed ? 0.75 : 1,
+        },
+        style,
+      ]}
     >
-      <Text style={textStyle}>{label}</Text>
+      <Text style={[type.caption, textStyle]}>{label}</Text>
     </Pressable>
   );
 }
@@ -65,8 +79,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  pressed: {
-    opacity: 0.8,
+    paddingHorizontal: 14,
   },
 });
