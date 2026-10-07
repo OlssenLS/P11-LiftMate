@@ -18,3 +18,14 @@ Format: date — decision — reason.
 - Added derived neutrals (`surfaceMuted`, `hairline`, `scrim`, `accentSoft`) — provides tokens for segmented tracks, dividers, sheets, and highlights per DESIGN.md §3.3.
 - Enforced elevation 0 (flat cards, no shadow) and elevation 1 (floating shadow) — strictly adheres to DESIGN.md §3.4 and §13.
 
+## 2026-10-07 — UI Redesign Slices B–E (Primitives, Navigation, Screens & Polish)
+
+- Built 14 canonical primitives in `components/ui` matching DESIGN.md §6.
+- Floating pill tab bar with detached Coach circle button opening full-height Sheet (DESIGN.md §5 & §14.1).
+- Single dark hero card on Home ("Next workout") only, flat white/surface cards elsewhere (DESIGN.md §7.2 & §14.2).
+- Single accent system with no per-domain rainbow colours (DESIGN.md §14.3).
+- Offline banner slim pill ("Offline — changes will sync") mounted under headers across screens with zero-dependency network listener (DESIGN.md §9).
+- Reduced motion support in skeletons and chart primitives (DESIGN.md §10).
+- Extended haptic vocabulary with `notifyWarning` for destructive confirms (DESIGN.md §10).
+
+
