@@ -192,7 +192,7 @@ export default function HomeScreen() {
             unit="kcal"
             sublabel="of 2,200 target"
             sparklineData={[1650, 1900, 1780, 2120, 1840]}
-            onPress={() => router.push('/(app)/food')}
+            onPress={() => router.push({ pathname: '/metric/[id]', params: { id: 'calories' } })}
           />
 
           {/* 2. Workouts MetricCard */}
@@ -210,7 +210,7 @@ export default function HomeScreen() {
             unit="done"
             sublabel="of 4 planned"
             sparklineData={[1, 0, 1, 1]}
-            onPress={() => router.push('/(app)/train')}
+            onPress={() => router.push({ pathname: '/metric/[id]', params: { id: 'workouts' } })}
           />
 
           {/* 3. Body Weight MetricCard */}
@@ -227,7 +227,7 @@ export default function HomeScreen() {
             value="72.4"
             unit={user?.weightUnit ?? 'kg'}
             sparklineData={[73.5, 73.1, 72.8, 72.6, 72.4]}
-            onPress={() => router.push('/(app)/train')}
+            onPress={() => router.push({ pathname: '/metric/[id]', params: { id: 'weight' } })}
           />
 
           {/* 4. Training Volume MetricCard */}
@@ -245,7 +245,7 @@ export default function HomeScreen() {
             unit="kg"
             sublabel="Total tonnage lifted"
             sparklineData={[11200, 12800, 13400, 14250]}
-            onPress={() => router.push('/(app)/train')}
+            onPress={() => router.push({ pathname: '/metric/[id]', params: { id: 'volume' } })}
           />
 
           {/* ListRowCard: Show All Data */}

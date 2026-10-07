@@ -93,6 +93,7 @@ function RootNavigator() {
       <Stack.Screen name="(app)" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(onboarding)" />
+      <Stack.Screen name="metric/[id]" options={{ presentation: 'card' }} />
       <Stack.Screen name="workout/active" options={{ presentation: 'card' }} />
       <Stack.Screen name="workout/summary" options={{ presentation: 'card', gestureEnabled: false }} />
     </Stack>

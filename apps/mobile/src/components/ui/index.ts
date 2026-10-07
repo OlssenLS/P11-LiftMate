@@ -32,6 +32,8 @@ export { DaySelector, type DaySelectorProps, type DayOption } from './day-select
 export { Chip, type ChipProps } from './chip';
 export { EmptyState, type EmptyStateProps } from './empty-state';
 export { Skeleton, SkeletonCard, type SkeletonProps } from './skeleton';
+export { BarChart, type BarChartProps, type BarChartDataPoint } from './bar-chart';
+export { LineChart, type LineChartProps, type LineChartDataPoint } from './line-chart';
 
 // Preserved existing components
 export { Input, type InputProps } from './input';
