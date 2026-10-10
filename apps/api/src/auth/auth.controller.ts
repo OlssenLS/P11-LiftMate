@@ -9,11 +9,16 @@ import {
   UseGuards,
   UsePipes,
 } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import {
+  forgotPasswordSchema,
   loginSchema,
   registerSchema,
+  resetPasswordSchema,
+  type ForgotPasswordDto,
   type LoginInput,
   type RegisterInput,
+  type ResetPasswordDto,
 } from '@liftmate/shared';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 import { CurrentRefresh } from './decorators/current-refresh.decorator.js';
@@ -43,6 +48,24 @@ export class AuthController {
   @UsePipes(new ZodValidationPipe(loginSchema))
   login(@Body() body: LoginInput, @Headers('user-agent') userAgent?: string) {
     return this.auth.login(body, userAgent);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @UsePipes(new ZodValidationPipe(forgotPasswordSchema))
+  forgotPassword(@Body() body: ForgotPasswordDto) {
+    return this.auth.forgotPassword(body);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @UsePipes(new ZodValidationPipe(resetPasswordSchema))
+  resetPassword(@Body() body: ResetPasswordDto) {
+    return this.auth.resetPassword(body);
   }
 
   @Post('refresh')

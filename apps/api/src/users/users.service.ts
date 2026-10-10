@@ -46,4 +46,12 @@ export class UsersService {
   update(id: string, data: UpdateUserInput): Promise<User> {
     return this.prisma.user.update({ where: { id }, data });
   }
+
+  async updatePassword(id: string, password: string): Promise<User> {
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    return this.prisma.user.update({
+      where: { id },
+      data: { passwordHash },
+    });
+  }
 }

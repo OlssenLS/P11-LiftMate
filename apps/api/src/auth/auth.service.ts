@@ -1,5 +1,7 @@
 import {
+  BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -8,17 +10,21 @@ import { JwtService } from '@nestjs/jwt';
 import type {
   AuthResponse,
   AuthTokens,
+  ForgotPasswordDto,
   LoginInput,
   RegisterInput,
+  ResetPasswordDto,
 } from '@liftmate/shared';
 import type { User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService, toPublicUser } from '../users/users.service.js';
+import { EMAIL_PROVIDER, type EmailProvider } from './email/email-provider.interface.js';
 
 const REFRESH_SALT_ROUNDS = 10;
 const REFRESH_TTL_DAYS = 30;
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 @Injectable()
 export class AuthService {
@@ -27,6 +33,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    @Inject(EMAIL_PROVIDER) private readonly emailProvider: EmailProvider,
   ) {}
 
   async register(input: RegisterInput, deviceInfo?: string): Promise<AuthResponse> {
@@ -85,6 +92,62 @@ export class AuthService {
       where: { id: jti, userId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+  }
+
+  async forgotPassword(input: ForgotPasswordDto): Promise<{ message: string }> {
+    const genericResponse = {
+      message: 'If that email exists, a password reset link has been sent.',
+    };
+
+    const email = input.email.toLowerCase().trim();
+    const user = await this.users.findByEmail(email);
+    if (!user) {
+      return genericResponse;
+    }
+
+    const rawToken = randomBytes(32).toString('hex');
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash,
+        expiresAt,
+      },
+    });
+
+    const resetLink = `liftmate://reset-password?token=${rawToken}`;
+    await this.emailProvider.sendPasswordResetEmail(user.email, resetLink, rawToken);
+
+    return genericResponse;
+  }
+
+  async resetPassword(input: ResetPasswordDto): Promise<{ message: string }> {
+    const tokenHash = createHash('sha256').update(input.token).digest('hex');
+    const record = await this.prisma.passwordResetToken.findFirst({
+      where: { tokenHash },
+    });
+
+    if (!record || record.usedAt !== null || record.expiresAt < new Date()) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    await this.users.updatePassword(record.userId, input.newPassword);
+
+    await this.prisma.passwordResetToken.update({
+      where: { id: record.id },
+      data: { usedAt: new Date() },
+    });
+
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: record.userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    return {
+      message: 'Password has been successfully reset. Please log in with your new password.',
+    };
   }
 
   private async issueTokens(user: User, deviceInfo?: string): Promise<AuthTokens> {

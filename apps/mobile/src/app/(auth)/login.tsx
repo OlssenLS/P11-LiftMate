@@ -1,11 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@liftmate/shared';
 import { isAxiosError } from 'axios';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -24,6 +23,7 @@ import { useAuthStore } from '@/stores/auth-store';
 
 export default function LoginScreen() {
   const { colors, radius, spacing, fontSize, fontWeight, touchTarget } = useTokens();
+  const router = useRouter();
   const login = useAuthStore((s) => s.login);
   const [formError, setFormError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -53,9 +53,7 @@ export default function LoginScreen() {
   };
 
   const onForgotPassword = () => {
-    Alert.alert(t('auth.forgotPasswordTitle'), t('auth.forgotPasswordBody'), [
-      { text: t('common.done') },
-    ]);
+    router.push('/(auth)/forgot-password');
   };
 
   return (

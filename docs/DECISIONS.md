@@ -31,4 +31,12 @@ Format: date — decision — reason.
 - **Tab Bar layout resolved (§63):** Floating pill contains 4 tabs (`Home · Train · Food · You`) plus a detached 64dp circle Coach button opening the coach sheet.
 - **Fixture Gating Rule:** Hardcoded fixture numbers and subtitles moved to `src/dev/fixtures.ts` behind `EXPO_PUBLIC_USE_FIXTURES` (default false). When false, unfinished/unconnected screens render empty states or "No Data" without fake data.
 
+## 2026-10-10 — Phase 1 Slice P1 (Forgot Password §3.3)
+
+- **Added `@nestjs/throttler` (api):** Rate limiting auth endpoints (`POST /auth/forgot-password`, `POST /auth/reset-password`, `POST /auth/login`) to mitigate brute-force password guessing and spamming reset requests.
+- **Reset link & dev fallback:** Password reset uses custom-scheme deep links (`liftmate://reset-password?token=...`) and an explicit manual "enter code" input field on the reset screen, enabling dev verification via server console logs without requiring HTTPS App Links in MVP.
+- **Hashed token storage:** Password reset tokens are generated as 32-byte cryptographically secure random values and stored as SHA-256 hashes in `password_reset_tokens` table with single-use enforcement (`usedAt`) and 1-hour expiration.
+- **Opaque response:** `POST /auth/forgot-password` returns a generic success message regardless of whether an email exists, preventing user enumeration attacks.
+
+
 

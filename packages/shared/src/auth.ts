@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Difficulty, Equipment, WeightUnit } from "./enums.js";
-import { publicUserSchema } from "./user.js";
+import { emailSchema, passwordSchema, publicUserSchema } from "./user.js";
 
 export const FitnessGoal = z.enum([
   "lose_fat",
@@ -9,6 +9,17 @@ export const FitnessGoal = z.enum([
   "general_fitness",
 ]);
 export type FitnessGoal = z.infer<typeof FitnessGoal>;
+
+export const forgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+export type ForgotPasswordDto = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
+  newPassword: passwordSchema,
+});
+export type ResetPasswordDto = z.infer<typeof resetPasswordSchema>;
 
 export const accessTokenPayloadSchema = z.object({
   sub: z.string().uuid(),

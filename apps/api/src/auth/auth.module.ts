@@ -6,10 +6,21 @@ import { AuthService } from './auth.service.js';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy.js';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy.js';
 import { UsersModule } from '../users/users.module.js';
+import { EMAIL_PROVIDER } from './email/email-provider.interface.js';
+import { ConsoleEmailProvider } from './email/console-email.provider.js';
 
 @Module({
   imports: [UsersModule, PassportModule, JwtModule.register({})],
-  providers: [AuthService, JwtAccessStrategy, JwtRefreshStrategy],
+  providers: [
+    AuthService,
+    JwtAccessStrategy,
+    JwtRefreshStrategy,
+    {
+      provide: EMAIL_PROVIDER,
+      useClass: ConsoleEmailProvider,
+    },
+  ],
   controllers: [AuthController],
+  exports: [AuthService],
 })
 export class AuthModule {}
