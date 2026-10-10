@@ -1,14 +1,8 @@
 import { z } from "zod";
-import { Difficulty, Equipment, WeightUnit } from "./enums.js";
+import { Difficulty, Equipment, FitnessGoal, WeightUnit } from "./enums.js";
 import { emailSchema, passwordSchema, publicUserSchema } from "./user.js";
 
-export const FitnessGoal = z.enum([
-  "lose_fat",
-  "build_muscle",
-  "gain_strength",
-  "general_fitness",
-]);
-export type FitnessGoal = z.infer<typeof FitnessGoal>;
+export { FitnessGoal };
 
 export const forgotPasswordSchema = z.object({
   email: emailSchema,

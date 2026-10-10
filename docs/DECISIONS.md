@@ -38,5 +38,15 @@ Format: date — decision — reason.
 - **Hashed token storage:** Password reset tokens are generated as 32-byte cryptographically secure random values and stored as SHA-256 hashes in `password_reset_tokens` table with single-use enforcement (`usedAt`) and 1-hour expiration.
 - **Opaque response:** `POST /auth/forgot-password` returns a generic success message regardless of whether an email exists, preventing user enumeration attacks.
 
+## 2026-10-10 — Phase 1 Slice P2 (Migration M-A & Shared Schemas)
+
+- **PostgreSQL Enum Migration Pattern:** When altering the `Equipment` enum to replace legacy values (`cable → cable_machine`, `machine → machines`, `band → resistance_bands`), columns (`exercises.equipment` and `user_equipment.equipment`) were cast to `TEXT`, rows updated, the old enum dropped, and the new 14-item enum created before re-casting. This avoids Postgres's prohibition on using newly added enum values within the same transaction.
+- **Nullable M-A Columns on Users:** All new user profile columns (`gender`, `height_cm`, `weight_kg`, `body_fat_pct`, `target_weight_kg`, `workout_duration`, `training_location`) are nullable at the database level so existing registered users survive without data loss. Required fields for new accounts are strictly validated at the application/Zod schema layer during onboarding.
+- **FitnessGoal Enum:** Expanded to 5 items with `body_recomposition` per customer specification §5.
+- **Equipment Enum:** Fully incorporates all 12 specification items (`barbell, dumbbell, cable_machine, smith_machine, leg_press, hack_squat, pulldown_machine, chest_press, machines, pull_up_bar, resistance_bands, bodyweight`) while retaining `kettlebell` and `other` as extras.
+- **WorkoutDuration Wire Format:** Stored as `lt30`, `30_45`, `45_60`, `60_90`, `gt90` in Postgres and exposed as string literals in Zod DTOs (`WorkoutDuration`), mapped internally in Prisma service layer to avoid schema identifier grammar constraints.
+- **UserPreferences Additions:** Added array columns (`preferred_equipment`, `preferred_exercises`, `avoid_exercises`, `dietary_preferences`) and boolean notification toggles (`notifications_workout_reminder`, `notifications_nutrition_reminder`, `notifications_progress_reminder`, `notifications_ai_insight`).
+
+
 
 

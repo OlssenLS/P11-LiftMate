@@ -17,14 +17,42 @@ enum SetType {
   working
 }
 
+enum Gender {
+  male
+  female
+  other
+  prefer_not_to_say
+}
+
+enum WorkoutDuration {
+  lt30
+  d30_45 @map("30_45")
+  d45_60 @map("45_60")
+  d60_90 @map("60_90")
+  gt90
+}
+
+enum TrainingLocation {
+  commercial_gym
+  home_gym
+  home
+  outdoor
+}
+
 enum Equipment {
   barbell
   dumbbell
-  machine
-  cable
-  kettlebell
+  cable_machine
+  smith_machine
+  leg_press
+  hack_squat
+  pulldown_machine
+  chest_press
+  machines
+  pull_up_bar
+  resistance_bands
   bodyweight
-  band
+  kettlebell
   other
 }
 
@@ -67,6 +95,7 @@ enum FitnessGoal {
   build_muscle
   gain_strength
   general_fitness
+  body_recomposition
 }
 
 model User {
@@ -78,12 +107,20 @@ model User {
   weightUnit   WeightUnit @default(kg) @map("weight_unit")
   timezone     String     @default("UTC")
 
+  gender           Gender?
+  heightCm         Float?            @map("height_cm")
+  weightKg         Float?            @map("weight_kg")
+  bodyFatPct       Float?            @map("body_fat_pct")
+  targetWeightKg   Float?            @map("target_weight_kg")
+  workoutDuration  WorkoutDuration?  @map("workout_duration")
+  trainingLocation TrainingLocation? @map("training_location")
+
   onboardedAt DateTime? @map("onboarded_at")
 
-  equipment     UserEquipment[]
-  preferences   UserPreferences?
-  workouts      Workout[]
-  refreshTokens RefreshToken[]
+  equipment           UserEquipment[]
+  preferences         UserPreferences?
+  workouts            Workout[]
+  refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
 
   createdAt DateTime  @default(now()) @map("created_at")
@@ -114,9 +151,13 @@ model UserPreferences {
   id     String @id @default(uuid()) @db.Uuid
   userId String @unique @map("user_id") @db.Uuid
 
-  avoidExercises String[] @default([]) @map("avoid_exercises")
-  weeklyFrequency Int?    @map("weekly_frequency")
-  defaultRestSeconds Int  @default(120) @map("default_rest_seconds")
+  preferredEquipment Equipment[] @default([]) @map("preferred_equipment")
+  preferredExercises String[]    @default([]) @map("preferred_exercises")
+  avoidExercises     String[]    @default([]) @map("avoid_exercises")
+  dietaryPreferences String[]    @default([]) @map("dietary_preferences")
+
+  weeklyFrequency    Int?        @map("weekly_frequency")
+  defaultRestSeconds Int         @default(120) @map("default_rest_seconds")
 
   primaryGoal     FitnessGoal? @map("primary_goal")
   secondaryGoal   FitnessGoal? @map("secondary_goal")
@@ -126,6 +167,11 @@ model UserPreferences {
   targetProtein  Int? @map("target_protein")
   targetCarbs    Int? @map("target_carbs")
   targetFat      Int? @map("target_fat")
+
+  notificationsWorkoutReminder   Boolean @default(true) @map("notifications_workout_reminder")
+  notificationsNutritionReminder Boolean @default(true) @map("notifications_nutrition_reminder")
+  notificationsProgressReminder  Boolean @default(true) @map("notifications_progress_reminder")
+  notificationsAiInsight         Boolean @default(true) @map("notifications_ai_insight")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

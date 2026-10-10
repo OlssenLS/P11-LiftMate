@@ -1,10 +1,27 @@
 import { Injectable } from '@nestjs/common';
-import type { PublicUser, UpdateUserInput } from '@liftmate/shared';
-import type { User } from '@prisma/client';
+import type { PublicUser, UpdateUserInput, WorkoutDuration as SharedWorkoutDuration } from '@liftmate/shared';
+import type { User, WorkoutDuration as PrismaWorkoutDuration } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const SALT_ROUNDS = 12;
+
+function toSharedDuration(d: PrismaWorkoutDuration | null | undefined): SharedWorkoutDuration | null {
+  if (!d) return null;
+  if (d === 'd30_45') return '30_45';
+  if (d === 'd45_60') return '45_60';
+  if (d === 'd60_90') return '60_90';
+  return d;
+}
+
+function toPrismaDuration(d: SharedWorkoutDuration | null | undefined): PrismaWorkoutDuration | null | undefined {
+  if (d === undefined) return undefined;
+  if (d === null) return null;
+  if (d === '30_45') return 'd30_45';
+  if (d === '45_60') return 'd45_60';
+  if (d === '60_90') return 'd60_90';
+  return d;
+}
 
 export function toPublicUser(user: User): PublicUser {
   return {
@@ -14,6 +31,13 @@ export function toPublicUser(user: User): PublicUser {
     dateOfBirth: user.dateOfBirth,
     weightUnit: user.weightUnit,
     timezone: user.timezone,
+    gender: user.gender,
+    heightCm: user.heightCm,
+    weightKg: user.weightKg,
+    bodyFatPct: user.bodyFatPct,
+    targetWeightKg: user.targetWeightKg,
+    workoutDuration: toSharedDuration(user.workoutDuration),
+    trainingLocation: user.trainingLocation,
     onboardedAt: user.onboardedAt,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
@@ -44,7 +68,14 @@ export class UsersService {
   }
 
   update(id: string, data: UpdateUserInput): Promise<User> {
-    return this.prisma.user.update({ where: { id }, data });
+    const { workoutDuration, ...rest } = data;
+    const prismaData = {
+      ...rest,
+      ...(workoutDuration !== undefined
+        ? { workoutDuration: toPrismaDuration(workoutDuration) }
+        : {}),
+    };
+    return this.prisma.user.update({ where: { id }, data: prismaData });
   }
 
   async updatePassword(id: string, password: string): Promise<User> {
