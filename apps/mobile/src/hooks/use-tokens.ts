@@ -151,6 +151,12 @@ const typeStyles: Record<TypographyToken, TextStyle> = {
     lineHeight: tokens.typography.button.lineHeight,
     fontWeight: tokens.typography.button.fontWeight,
   },
+  primaryButton: {
+    fontFamily: tokens.fontFamily.bold,
+    fontSize: tokens.typography.primaryButton.fontSize,
+    lineHeight: tokens.typography.primaryButton.lineHeight,
+    fontWeight: tokens.typography.primaryButton.fontWeight,
+  },
 };
 
 export function useTokens() {

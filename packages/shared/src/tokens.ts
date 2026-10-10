@@ -133,6 +133,7 @@ export const fontSize = {
   cardLabel: 17,
   unit: 17,
   button: 17,
+  primaryButton: 18,
   sectionTitle: 22,
   title: 28,
   largeTitle: 34,
@@ -216,6 +217,11 @@ export const typography = {
     fontSize: 17,
     lineHeight: 22,
     fontWeight: "600" as const,
+  },
+  primaryButton: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: "700" as const,
   },
 } as const;
 export type TypographyToken = keyof typeof typography;

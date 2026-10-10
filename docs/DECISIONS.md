@@ -18,14 +18,17 @@ Format: date — decision — reason.
 - Added derived neutrals (`surfaceMuted`, `hairline`, `scrim`, `accentSoft`) — provides tokens for segmented tracks, dividers, sheets, and highlights per DESIGN.md §3.3.
 - Enforced elevation 0 (flat cards, no shadow) and elevation 1 (floating shadow) — strictly adheres to DESIGN.md §3.4 and §13.
 
-## 2026-10-07 — UI Redesign Slices B–E (Primitives, Navigation, Screens & Polish)
+## 2026-10-10 — Phase 0 Corrections (Tokens, Contrast & Fixture Architecture)
 
-- Built 14 canonical primitives in `components/ui` matching DESIGN.md §6.
-- Floating pill tab bar with detached Coach circle button opening full-height Sheet (DESIGN.md §5 & §14.1).
-- Single dark hero card on Home ("Next workout") only, flat white/surface cards elsewhere (DESIGN.md §7.2 & §14.2).
-- Single accent system with no per-domain rainbow colours (DESIGN.md §14.3).
-- Offline banner slim pill ("Offline — changes will sync") mounted under headers across screens with zero-dependency network listener (DESIGN.md §9).
-- Reduced motion support in skeletons and chart primitives (DESIGN.md §10).
-- Extended haptic vocabulary with `notifyWarning` for destructive confirms (DESIGN.md §10).
+- **Type scale synced to DESIGN.md §3.5:** `largeTitle: 34/40 bold (-0.4 tracking)`, `title: 28/34 bold`, `sectionTitle: 22/28 bold`, `metricHero: 48/52 bold`, `metricValue: 36/40 bold`, `unit: 17/22 medium`, `cardLabel: 17/22 semibold in accentText`, `body: 17/24 regular`, `secondary: 15/20 regular`, `eyebrow: 13/16 semibold uppercase (+0.6 tracking)`, `caption: 12/16 medium`, `primaryButton: 18/24 bold (700)`.
+- **Primary button label:** set to 18sp bold (`#FFFFFF` on `#E2603B`).
+- **Accent hex retained:** `#E2603B` preserved without alteration.
+- **Measured WCAG Contrast Ratios:**
+  - `accent` (`#E2603B`) on `white` (`#FFFFFF`): **3.52:1**
+  - `white` (`#FFFFFF`) on `accent` (`#E2603B`): **3.52:1** (satisfies WCAG AA threshold of 3.0:1 for large text and bold buttons ≥18sp bold).
+  - `accentText` (`#C4471F`) on `cream` (`#F6F1EA`): **4.38:1** (satisfies WCAG AA threshold of 3.0:1 for large text, headings, and card label accents).
+  - `inkMutedText` (`#6F675F`) on `cream` (`#F6F1EA`): **4.94:1** (satisfies WCAG AA threshold of 4.5:1 for body and secondary text).
+- **Tab Bar layout resolved (§63):** Floating pill contains 4 tabs (`Home · Train · Food · You`) plus a detached 64dp circle Coach button opening the coach sheet.
+- **Fixture Gating Rule:** Hardcoded fixture numbers and subtitles moved to `src/dev/fixtures.ts` behind `EXPO_PUBLIC_USE_FIXTURES` (default false). When false, unfinished/unconnected screens render empty states or "No Data" without fake data.
 
 

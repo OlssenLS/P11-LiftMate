@@ -56,7 +56,7 @@ export function PrimaryButton({
       {loading ? (
         <ActivityIndicator color="#FFFFFF" size="small" />
       ) : (
-        <Text numberOfLines={1} style={[type.button, { color: '#FFFFFF' }]}>
+        <Text numberOfLines={1} style={[type.primaryButton, { color: '#FFFFFF' }]}>
           {label}
         </Text>
       )}

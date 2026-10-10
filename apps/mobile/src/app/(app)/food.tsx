@@ -19,6 +19,7 @@ import {
 import {
   Card,
   CircleButton,
+  EmptyState,
   LargeTitleHeader,
   ListGroup,
   ListRowCard,
@@ -28,6 +29,8 @@ import {
   SectionHeader,
   Sheet,
 } from '@/components/ui';
+import { USE_FIXTURES } from '@/config/env';
+import { FOOD_FIXTURES } from '@/dev/fixtures';
 import { useTokens } from '@/hooks/use-tokens';
 import { useTabScrollPadding } from '@/hooks/use-tab-scroll-padding';
 import { selectionTick } from '@/lib/haptics';
@@ -67,11 +70,13 @@ export default function FoodScreen() {
     setEditingItem(null);
   };
 
-  const macros = [
-    { name: 'Protein', current: 142, target: 160, unit: 'g' },
-    { name: 'Carbs', current: 195, target: 240, unit: 'g' },
-    { name: 'Fat', current: 58, target: 70, unit: 'g' },
-  ];
+  const macros = USE_FIXTURES
+    ? FOOD_FIXTURES.macros
+    : [
+        { name: 'Protein', current: 0, target: 160, unit: 'g' },
+        { name: 'Carbs', current: 0, target: 240, unit: 'g' },
+        { name: 'Fat', current: 0, target: 70, unit: 'g' },
+      ];
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -185,10 +190,10 @@ export default function FoodScreen() {
               />
             }
             timestamp="Today"
-            value="1,840"
+            value={USE_FIXTURES ? '1,840' : '--'}
             unit="kcal"
-            sublabel="of 2,200 kcal budget"
-            sparklineData={[1650, 1900, 1780, 2120, 1840]}
+            sublabel={USE_FIXTURES ? 'of 2,200 kcal budget' : 'No meals logged'}
+            sparklineData={USE_FIXTURES ? [1650, 1900, 1780, 2120, 1840] : undefined}
             onPress={() =>
               router.push({
                 pathname: '/metric/[id]',
@@ -203,7 +208,7 @@ export default function FoodScreen() {
           <Card variant="surface" padding="lg">
             <View style={{ gap: 14 }}>
               {macros.map((m) => {
-                const pct = Math.min(100, Math.round((m.current / m.target) * 100));
+                const pct = m.target > 0 ? Math.min(100, Math.round((m.current / m.target) * 100)) : 0;
 
                 return (
                   <View key={m.name} style={{ gap: 6 }}>
@@ -244,154 +249,174 @@ export default function FoodScreen() {
           </Card>
         </View>
 
-        {/* Section: Breakfast (DESIGN.md §7.7) */}
-        <SectionHeader
-          title="Breakfast · 520 kcal"
-          actionText="+ Add"
-          onAction={() => setActiveMealCategory('Breakfast')}
-        />
-        <View style={styles.cardWrapper}>
-          <ListGroup>
-            <ListRowCard
-              label="Oatmeal with Whey & Berries"
-              subtitle="420 kcal · 32g P · 54g C · 8g F"
-              icon={
-                <Coffee
-                  size={icons.cardLabelSize}
-                  color={colors.accentText}
-                  strokeWidth={icons.strokeWidth}
-                />
-              }
-              onPress={() =>
-                setEditingItem({
-                  id: '1',
-                  name: 'Oatmeal with Whey & Berries',
-                  calories: 420,
-                  protein: 32,
-                  carbs: 54,
-                  fat: 8,
-                })
-              }
+        {USE_FIXTURES ? (
+          <>
+            {/* Section: Breakfast (DESIGN.md §7.7) */}
+            <SectionHeader
+              title="Breakfast · 520 kcal"
+              actionText="+ Add"
+              onAction={() => setActiveMealCategory('Breakfast')}
             />
-            <ListRowCard
-              label="Whole Milk Latte"
-              subtitle="100 kcal · 6g P · 8g C · 5g F"
-              icon={
-                <Coffee
-                  size={icons.cardLabelSize}
-                  color={colors.accentText}
-                  strokeWidth={icons.strokeWidth}
+            <View style={styles.cardWrapper}>
+              <ListGroup>
+                <ListRowCard
+                  label="Oatmeal with Whey & Berries"
+                  subtitle="420 kcal · 32g P · 54g C · 8g F"
+                  icon={
+                    <Coffee
+                      size={icons.cardLabelSize}
+                      color={colors.accentText}
+                      strokeWidth={icons.strokeWidth}
+                    />
+                  }
+                  onPress={() =>
+                    setEditingItem({
+                      id: '1',
+                      name: 'Oatmeal with Whey & Berries',
+                      calories: 420,
+                      protein: 32,
+                      carbs: 54,
+                      fat: 8,
+                    })
+                  }
                 />
-              }
-              onPress={() =>
-                setEditingItem({
-                  id: '2',
-                  name: 'Whole Milk Latte',
-                  calories: 100,
-                  protein: 6,
-                  carbs: 8,
-                  fat: 5,
-                })
-              }
-            />
-          </ListGroup>
-        </View>
+                <ListRowCard
+                  label="Whole Milk Latte"
+                  subtitle="100 kcal · 6g P · 8g C · 5g F"
+                  icon={
+                    <Coffee
+                      size={icons.cardLabelSize}
+                      color={colors.accentText}
+                      strokeWidth={icons.strokeWidth}
+                    />
+                  }
+                  onPress={() =>
+                    setEditingItem({
+                      id: '2',
+                      name: 'Whole Milk Latte',
+                      calories: 100,
+                      protein: 6,
+                      carbs: 8,
+                      fat: 5,
+                    })
+                  }
+                />
+              </ListGroup>
+            </View>
 
-        {/* Section: Lunch (DESIGN.md §7.7) */}
-        <SectionHeader
-          title="Lunch · 680 kcal"
-          actionText="+ Add"
-          onAction={() => setActiveMealCategory('Lunch')}
-        />
-        <View style={styles.cardWrapper}>
-          <ListGroup>
-            <ListRowCard
-              label="Grilled Chicken Rice Bowl"
-              subtitle="680 kcal · 48g P · 72g C · 16g F"
+            {/* Section: Lunch (DESIGN.md §7.7) */}
+            <SectionHeader
+              title="Lunch · 680 kcal"
+              actionText="+ Add"
+              onAction={() => setActiveMealCategory('Lunch')}
+            />
+            <View style={styles.cardWrapper}>
+              <ListGroup>
+                <ListRowCard
+                  label="Grilled Chicken Rice Bowl"
+                  subtitle="680 kcal · 48g P · 72g C · 16g F"
+                  icon={
+                    <Utensils
+                      size={icons.cardLabelSize}
+                      color={colors.accentText}
+                      strokeWidth={icons.strokeWidth}
+                    />
+                  }
+                  onPress={() =>
+                    setEditingItem({
+                      id: '3',
+                      name: 'Grilled Chicken Rice Bowl',
+                      calories: 680,
+                      protein: 48,
+                      carbs: 72,
+                      fat: 16,
+                    })
+                  }
+                />
+              </ListGroup>
+            </View>
+
+            {/* Section: Dinner (DESIGN.md §7.7) */}
+            <SectionHeader
+              title="Dinner · 540 kcal"
+              actionText="+ Add"
+              onAction={() => setActiveMealCategory('Dinner')}
+            />
+            <View style={styles.cardWrapper}>
+              <ListGroup>
+                <ListRowCard
+                  label="Salmon Fillet with Sweet Potato"
+                  subtitle="540 kcal · 42g P · 45g C · 18g F"
+                  icon={
+                    <Moon
+                      size={icons.cardLabelSize}
+                      color={colors.accentText}
+                      strokeWidth={icons.strokeWidth}
+                    />
+                  }
+                  onPress={() =>
+                    setEditingItem({
+                      id: '4',
+                      name: 'Salmon Fillet with Sweet Potato',
+                      calories: 540,
+                      protein: 42,
+                      carbs: 45,
+                      fat: 18,
+                    })
+                  }
+                />
+              </ListGroup>
+            </View>
+
+            {/* Section: Snacks (DESIGN.md §7.7) */}
+            <SectionHeader
+              title="Snacks · 100 kcal"
+              actionText="+ Add"
+              onAction={() => setActiveMealCategory('Snacks')}
+            />
+            <View style={styles.cardWrapper}>
+              <ListGroup>
+                <ListRowCard
+                  label="Greek Yogurt Cup"
+                  subtitle="100 kcal · 14g P · 6g C · 1g F"
+                  icon={
+                    <Apple
+                      size={icons.cardLabelSize}
+                      color={colors.accentText}
+                      strokeWidth={icons.strokeWidth}
+                    />
+                  }
+                  onPress={() =>
+                    setEditingItem({
+                      id: '5',
+                      name: 'Greek Yogurt Cup',
+                      calories: 100,
+                      protein: 14,
+                      carbs: 6,
+                      fat: 1,
+                    })
+                  }
+                />
+              </ListGroup>
+            </View>
+          </>
+        ) : (
+          <View style={[styles.cardWrapper, { marginTop: layout.cardGap }]}>
+            <EmptyState
+              title="No Food Logged"
+              description="Nutrition tracking and food database search will be active in Phase 4."
               icon={
                 <Utensils
-                  size={icons.cardLabelSize}
-                  color={colors.accentText}
+                  size={40}
+                  color={colors.inkMuted}
                   strokeWidth={icons.strokeWidth}
                 />
               }
-              onPress={() =>
-                setEditingItem({
-                  id: '3',
-                  name: 'Grilled Chicken Rice Bowl',
-                  calories: 680,
-                  protein: 48,
-                  carbs: 72,
-                  fat: 16,
-                })
-              }
+              actionText="+ Log Food"
+              onAction={() => setActiveMealCategory('Lunch')}
             />
-          </ListGroup>
-        </View>
-
-        {/* Section: Dinner (DESIGN.md §7.7) */}
-        <SectionHeader
-          title="Dinner · 540 kcal"
-          actionText="+ Add"
-          onAction={() => setActiveMealCategory('Dinner')}
-        />
-        <View style={styles.cardWrapper}>
-          <ListGroup>
-            <ListRowCard
-              label="Salmon Fillet with Sweet Potato"
-              subtitle="540 kcal · 42g P · 45g C · 18g F"
-              icon={
-                <Moon
-                  size={icons.cardLabelSize}
-                  color={colors.accentText}
-                  strokeWidth={icons.strokeWidth}
-                />
-              }
-              onPress={() =>
-                setEditingItem({
-                  id: '4',
-                  name: 'Salmon Fillet with Sweet Potato',
-                  calories: 540,
-                  protein: 42,
-                  carbs: 45,
-                  fat: 18,
-                })
-              }
-            />
-          </ListGroup>
-        </View>
-
-        {/* Section: Snacks (DESIGN.md §7.7) */}
-        <SectionHeader
-          title="Snacks · 100 kcal"
-          actionText="+ Add"
-          onAction={() => setActiveMealCategory('Snacks')}
-        />
-        <View style={styles.cardWrapper}>
-          <ListGroup>
-            <ListRowCard
-              label="Greek Yogurt Cup"
-              subtitle="100 kcal · 14g P · 6g C · 1g F"
-              icon={
-                <Apple
-                  size={icons.cardLabelSize}
-                  color={colors.accentText}
-                  strokeWidth={icons.strokeWidth}
-                />
-              }
-              onPress={() =>
-                setEditingItem({
-                  id: '5',
-                  name: 'Greek Yogurt Cup',
-                  calories: 100,
-                  protein: 14,
-                  carbs: 6,
-                  fat: 1,
-                })
-              }
-            />
-          </ListGroup>
-        </View>
+          </View>
+        )}
       </ScrollView>
 
       {/* Add / Edit Meal Sheet (DESIGN.md §6.9 & §7.7) */}

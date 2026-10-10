@@ -32,6 +32,9 @@ import { t } from '@/i18n';
 import { pressLight } from '@/lib/haptics';
 import { useAuthStore } from '@/stores/auth-store';
 
+import { USE_FIXTURES } from '@/config/env';
+import { HOME_FIXTURES } from '@/dev/fixtures';
+
 export default function HomeScreen() {
   const { colors, radius, layout, type, floatingShadow, icons, touchTarget } = useTokens();
   const bottomScrollPadding = useTabScrollPadding();
@@ -127,7 +130,7 @@ export default function HomeScreen() {
 
         <OfflineBanner />
 
-        {/* Section: Next Workout */}
+        {/* Section: Next Workout (Spec §12) */}
         <SectionHeader title="Next workout" />
 
         {/* Signature Dark Hero Card (DESIGN.md §7.2 & §14.2) */}
@@ -142,37 +145,75 @@ export default function HomeScreen() {
               },
             ]}
           >
-            <View style={styles.heroHeader}>
-              <Text
-                style={[
-                  type.eyebrow,
-                  { color: 'rgba(255, 255, 255, 0.70)', letterSpacing: 0.6 },
-                ]}
-              >
-                PULL & HYPERTROPHY
-              </Text>
-              <Text
-                style={[
-                  type.title,
-                  { color: '#FFFFFF', marginTop: 4, marginBottom: 4 },
-                ]}
-              >
-                Pull Day
-              </Text>
-              <Text style={[type.secondary, { color: 'rgba(255, 255, 255, 0.75)' }]}>
-                Pull · 44 min · 5 exercises
-              </Text>
-            </View>
+            {USE_FIXTURES ? (
+              <>
+                <View style={styles.heroHeader}>
+                  <Text
+                    style={[
+                      type.eyebrow,
+                      { color: 'rgba(255, 255, 255, 0.70)', letterSpacing: 0.6 },
+                    ]}
+                  >
+                    {HOME_FIXTURES.nextWorkout.eyebrow}
+                  </Text>
+                  <Text
+                    style={[
+                      type.title,
+                      { color: '#FFFFFF', marginTop: 4, marginBottom: 4 },
+                    ]}
+                  >
+                    {HOME_FIXTURES.nextWorkout.title}
+                  </Text>
+                  <Text style={[type.secondary, { color: 'rgba(255, 255, 255, 0.75)' }]}>
+                    {HOME_FIXTURES.nextWorkout.subtitle}
+                  </Text>
+                </View>
 
-            <View style={{ marginTop: 20 }}>
-              <PrimaryButton
-                label={t('home.heroAction')}
-                onPress={() => {
-                  pressLight();
-                  router.push('/workout/active');
-                }}
-              />
-            </View>
+                <View style={{ marginTop: 20 }}>
+                  <PrimaryButton
+                    label={t('home.heroAction')}
+                    onPress={() => {
+                      pressLight();
+                      router.push('/workout/active');
+                    }}
+                  />
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.heroHeader}>
+                  <Text
+                    style={[
+                      type.eyebrow,
+                      { color: 'rgba(255, 255, 255, 0.70)', letterSpacing: 0.6 },
+                    ]}
+                  >
+                    SCHEDULE
+                  </Text>
+                  <Text
+                    style={[
+                      type.title,
+                      { color: '#FFFFFF', marginTop: 4, marginBottom: 4 },
+                    ]}
+                  >
+                    No workout scheduled
+                  </Text>
+                  <Text style={[type.secondary, { color: 'rgba(255, 255, 255, 0.75)' }]}>
+                    Start a custom session or pick an exercise to train today.
+                  </Text>
+                </View>
+
+                <View style={{ marginTop: 20 }}>
+                  <PrimaryButton
+                    label="Create Workout"
+                    onPress={() => {
+                      pressLight();
+                      router.push('/workout/active');
+                    }}
+                  />
+                </View>
+              </>
+            )}
           </View>
         </View>
 
@@ -191,10 +232,10 @@ export default function HomeScreen() {
               />
             }
             timestamp="Today"
-            value="1,840"
+            value={USE_FIXTURES ? HOME_FIXTURES.metrics.calories.value : '--'}
             unit="kcal"
-            sublabel="of 2,200 target"
-            sparklineData={[1650, 1900, 1780, 2120, 1840]}
+            sublabel={USE_FIXTURES ? HOME_FIXTURES.metrics.calories.sublabel : 'No data logged'}
+            sparklineData={USE_FIXTURES ? [...HOME_FIXTURES.metrics.calories.sparkline] : undefined}
             onPress={() => router.push({ pathname: '/metric/[id]', params: { id: 'calories' } })}
           />
 
@@ -209,10 +250,10 @@ export default function HomeScreen() {
               />
             }
             timestamp="This Week"
-            value="3"
+            value={USE_FIXTURES ? HOME_FIXTURES.metrics.workouts.value : '--'}
             unit="done"
-            sublabel="of 4 planned"
-            sparklineData={[1, 0, 1, 1]}
+            sublabel={USE_FIXTURES ? HOME_FIXTURES.metrics.workouts.sublabel : 'No data logged'}
+            sparklineData={USE_FIXTURES ? [...HOME_FIXTURES.metrics.workouts.sparkline] : undefined}
             onPress={() => router.push({ pathname: '/metric/[id]', params: { id: 'workouts' } })}
           />
 
@@ -227,9 +268,10 @@ export default function HomeScreen() {
               />
             }
             timestamp="Latest"
-            value="72.4"
+            value={USE_FIXTURES ? HOME_FIXTURES.metrics.weight.value : '--'}
             unit={user?.weightUnit ?? 'kg'}
-            sparklineData={[73.5, 73.1, 72.8, 72.6, 72.4]}
+            sublabel={USE_FIXTURES ? undefined : 'No data logged'}
+            sparklineData={USE_FIXTURES ? [...HOME_FIXTURES.metrics.weight.sparkline] : undefined}
             onPress={() => router.push({ pathname: '/metric/[id]', params: { id: 'weight' } })}
           />
 
@@ -244,10 +286,10 @@ export default function HomeScreen() {
               />
             }
             timestamp="This Week"
-            value="14,250"
+            value={USE_FIXTURES ? HOME_FIXTURES.metrics.volume.value : '--'}
             unit="kg"
-            sublabel="Total tonnage lifted"
-            sparklineData={[11200, 12800, 13400, 14250]}
+            sublabel={USE_FIXTURES ? HOME_FIXTURES.metrics.volume.sublabel : 'No data logged'}
+            sparklineData={USE_FIXTURES ? [...HOME_FIXTURES.metrics.volume.sparkline] : undefined}
             onPress={() => router.push({ pathname: '/metric/[id]', params: { id: 'volume' } })}
           />
 
@@ -266,13 +308,13 @@ export default function HomeScreen() {
         </View>
 
         {/* Section: Insights (DESIGN.md §7.2) */}
-        {!insightDismissed ? (
+        {USE_FIXTURES && !insightDismissed ? (
           <>
             <SectionHeader title="Insights" />
             <View style={styles.cardWrapper}>
               <InsightCard
-                title="Upper body volume on track"
-                description="You've completed 12 chest and back sets this week. Optimal range for hypertrophy is 10–16 sets."
+                title={HOME_FIXTURES.insight.title}
+                description={HOME_FIXTURES.insight.description}
                 icon={
                   <Sparkles
                     size={24}
@@ -280,7 +322,7 @@ export default function HomeScreen() {
                     strokeWidth={icons.strokeWidth}
                   />
                 }
-                actionText="View breakdown"
+                actionText={HOME_FIXTURES.insight.actionText}
                 onAction={() => router.push('/(app)/train')}
                 onDismiss={() => setInsightDismissed(true)}
               />

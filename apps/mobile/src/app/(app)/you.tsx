@@ -30,6 +30,9 @@ import { t } from '@/i18n';
 import { notifySuccess } from '@/lib/haptics';
 import { useAuthStore } from '@/stores/auth-store';
 
+import { USE_FIXTURES } from '@/config/env';
+import { YOU_FIXTURES } from '@/dev/fixtures';
+
 export default function YouScreen() {
   const { colors, radius, layout, type, icons, spacing } = useTokens();
   const bottomScrollPadding = useTabScrollPadding();
@@ -113,7 +116,7 @@ export default function YouScreen() {
 
               <View style={styles.profileInfo}>
                 <Text style={[type.eyebrow, { color: colors.accentText }]}>
-                  BUILD MUSCLE · INTERMEDIATE
+                  {USE_FIXTURES ? YOU_FIXTURES.subtitle : 'PROFILE'}
                 </Text>
                 <Text style={[type.sectionTitle, { color: colors.ink, marginTop: 2 }]} numberOfLines={1}>
                   {user?.displayName ?? 'Lifter'}
@@ -144,7 +147,7 @@ export default function YouScreen() {
             />
             <ListRowCard
               label="Goals & Targets"
-              subtitle="Hypertrophy · 2,200 kcal"
+              subtitle={USE_FIXTURES ? YOU_FIXTURES.goalsSubtitle : 'Not configured yet'}
               icon={
                 <Target
                   size={icons.cardLabelSize}
@@ -156,7 +159,11 @@ export default function YouScreen() {
             />
             <ListRowCard
               label="Training Days"
-              subtitle={`${selectedDays.length} days scheduled / week`}
+              subtitle={
+                USE_FIXTURES
+                  ? YOU_FIXTURES.trainingDaysSubtitle
+                  : `${selectedDays.length} days scheduled / week`
+              }
               icon={
                 <Calendar
                   size={icons.cardLabelSize}
@@ -168,7 +175,7 @@ export default function YouScreen() {
             />
             <ListRowCard
               label="Equipment"
-              subtitle="Barbell, Dumbbells, Cables, Bench"
+              subtitle={USE_FIXTURES ? YOU_FIXTURES.equipmentSubtitle : 'Not configured yet'}
               icon={
                 <Dumbbell
                   size={icons.cardLabelSize}

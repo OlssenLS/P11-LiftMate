@@ -22,3 +22,9 @@ function resolveApiUrl(): string {
 }
 
 export const API_URL = resolveApiUrl();
+
+/**
+ * Fixture flag (LIFTMATE_AGENT_BRIEF.md §4 constraint 2).
+ * Defaults to false so production screens never ship fake data.
+ */
+export const USE_FIXTURES = process.env.EXPO_PUBLIC_USE_FIXTURES === 'true';

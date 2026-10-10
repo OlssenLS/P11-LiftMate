@@ -5,6 +5,7 @@ import { Clock, Dumbbell, Search, Sparkles } from 'lucide-react-native';
 
 import {
   CircleButton,
+  EmptyState,
   InsightCard,
   LargeTitleHeader,
   ListGroup,
@@ -13,6 +14,8 @@ import {
   PrimaryButton,
   SectionHeader,
 } from '@/components/ui';
+import { USE_FIXTURES } from '@/config/env';
+import { TRAIN_FIXTURES } from '@/dev/fixtures';
 import { ExercisePicker } from '@/features/workout/exercise-picker';
 import { useTokens } from '@/hooks/use-tokens';
 import { useTabScrollPadding } from '@/hooks/use-tab-scroll-padding';
@@ -73,159 +76,197 @@ export default function TrainScreen() {
               },
             ]}
           >
-            <View style={styles.heroHeader}>
-              <Text
-                style={[
-                  type.eyebrow,
-                  { color: 'rgba(255, 255, 255, 0.70)', letterSpacing: 0.6 },
-                ]}
-              >
-                PULL & HYPERTROPHY
-              </Text>
-              <Text
-                style={[
-                  type.title,
-                  { color: '#FFFFFF', marginTop: 4, marginBottom: 4 },
-                ]}
-              >
-                Pull Day
-              </Text>
-              <Text style={[type.secondary, { color: 'rgba(255, 255, 255, 0.75)' }]}>
-                Pull · 44 min · 5 exercises
-              </Text>
-            </View>
+            {USE_FIXTURES ? (
+              <>
+                <View style={styles.heroHeader}>
+                  <Text
+                    style={[
+                      type.eyebrow,
+                      { color: 'rgba(255, 255, 255, 0.70)', letterSpacing: 0.6 },
+                    ]}
+                  >
+                    {TRAIN_FIXTURES.heroSession.eyebrow}
+                  </Text>
+                  <Text
+                    style={[
+                      type.title,
+                      { color: '#FFFFFF', marginTop: 4, marginBottom: 4 },
+                    ]}
+                  >
+                    {TRAIN_FIXTURES.heroSession.title}
+                  </Text>
+                  <Text style={[type.secondary, { color: 'rgba(255, 255, 255, 0.75)' }]}>
+                    {TRAIN_FIXTURES.heroSession.subtitle}
+                  </Text>
+                </View>
 
-            <View style={{ marginTop: 20 }}>
-              <PrimaryButton
-                label={t('home.heroAction')}
-                onPress={() => {
-                  pressLight();
-                  router.push('/workout/active');
-                }}
-              />
-            </View>
+                <View style={{ marginTop: 20 }}>
+                  <PrimaryButton
+                    label={t('home.heroAction')}
+                    onPress={() => {
+                      pressLight();
+                      router.push('/workout/active');
+                    }}
+                  />
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.heroHeader}>
+                  <Text
+                    style={[
+                      type.eyebrow,
+                      { color: 'rgba(255, 255, 255, 0.70)', letterSpacing: 0.6 },
+                    ]}
+                  >
+                    SESSION
+                  </Text>
+                  <Text
+                    style={[
+                      type.title,
+                      { color: '#FFFFFF', marginTop: 4, marginBottom: 4 },
+                    ]}
+                  >
+                    No workout scheduled
+                  </Text>
+                  <Text style={[type.secondary, { color: 'rgba(255, 255, 255, 0.75)' }]}>
+                    Start a custom session or search the exercise database below.
+                  </Text>
+                </View>
+
+                <View style={{ marginTop: 20 }}>
+                  <PrimaryButton
+                    label="Create Workout"
+                    onPress={() => {
+                      pressLight();
+                      router.push('/workout/active');
+                    }}
+                  />
+                </View>
+              </>
+            )}
           </View>
         </View>
 
         {/* Section: My Program (DESIGN.md §7.5) */}
         <SectionHeader title="My Program" />
         <View style={styles.cardWrapper}>
-          <ListGroup>
-            <ListRowCard
-              label="Day 1: Upper Body Strength"
-              subtitle="Chest, Back, Arms · 6 exercises"
+          {USE_FIXTURES ? (
+            <ListGroup>
+              {TRAIN_FIXTURES.myProgram.map((item) => (
+                <ListRowCard
+                  key={item.id}
+                  label={item.label}
+                  subtitle={item.subtitle}
+                  icon={
+                    <Dumbbell
+                      size={icons.cardLabelSize}
+                      color={colors.accentText}
+                      strokeWidth={icons.strokeWidth}
+                    />
+                  }
+                  onPress={() => {
+                    pressLight();
+                    router.push('/workout/active');
+                  }}
+                />
+              ))}
+            </ListGroup>
+          ) : (
+            <EmptyState
+              title="No Program Assigned"
+              description="Programs will be generated by the AI Planner or assigned by your coach in Phase 3."
               icon={
                 <Dumbbell
-                  size={icons.cardLabelSize}
-                  color={colors.accentText}
+                  size={40}
+                  color={colors.inkMuted}
                   strokeWidth={icons.strokeWidth}
                 />
               }
-              onPress={() => {
+              actionText="Create Workout"
+              onAction={() => {
                 pressLight();
                 router.push('/workout/active');
               }}
             />
-            <ListRowCard
-              label="Day 2: Lower Body Strength"
-              subtitle="Quads, Hamstrings, Calves · 5 exercises"
-              icon={
-                <Dumbbell
-                  size={icons.cardLabelSize}
-                  color={colors.accentText}
-                  strokeWidth={icons.strokeWidth}
-                />
-              }
-              onPress={() => {
-                pressLight();
-                router.push('/workout/active');
-              }}
-            />
-            <ListRowCard
-              label="Day 3: Upper Body Hypertrophy"
-              subtitle="Shoulders, Back, Arms · 7 exercises"
-              icon={
-                <Dumbbell
-                  size={icons.cardLabelSize}
-                  color={colors.accentText}
-                  strokeWidth={icons.strokeWidth}
-                />
-              }
-              onPress={() => {
-                pressLight();
-                router.push('/workout/active');
-              }}
-            />
-            <ListRowCard
-              label="Day 4: Lower Body Hypertrophy"
-              subtitle="Legs, Glutes, Core · 6 exercises"
-              icon={
-                <Dumbbell
-                  size={icons.cardLabelSize}
-                  color={colors.accentText}
-                  strokeWidth={icons.strokeWidth}
-                />
-              }
-              onPress={() => {
-                pressLight();
-                router.push('/workout/active');
-              }}
-            />
-          </ListGroup>
+          )}
         </View>
 
         {/* Section: Planner (DESIGN.md §7.5) */}
         <SectionHeader title="Planner" />
         <View style={styles.cardWrapper}>
-          <InsightCard
-            title="AI Periodization Planner"
-            description="Your deload week is scheduled in 10 days. Auto-progression will adjust set counts after Friday."
-            icon={
-              <Sparkles
-                size={24}
-                color={colors.accent}
-                strokeWidth={icons.strokeWidth}
-              />
-            }
-            actionText="Review Plan"
-            onAction={() => {
-              pressLight();
-              setPickerOpen(true);
-            }}
-          />
+          {USE_FIXTURES ? (
+            <InsightCard
+              title={TRAIN_FIXTURES.plannerInsight.title}
+              description={TRAIN_FIXTURES.plannerInsight.description}
+              icon={
+                <Sparkles
+                  size={24}
+                  color={colors.accent}
+                  strokeWidth={icons.strokeWidth}
+                />
+              }
+              actionText={TRAIN_FIXTURES.plannerInsight.actionText}
+              onAction={() => {
+                pressLight();
+                setPickerOpen(true);
+              }}
+            />
+          ) : (
+            <EmptyState
+              title="No Plan Available"
+              description="AI Periodization Planner will be activated in Phase 6."
+              icon={
+                <Sparkles
+                  size={40}
+                  color={colors.inkMuted}
+                  strokeWidth={icons.strokeWidth}
+                />
+              }
+            />
+          )}
         </View>
 
         {/* Section: History (DESIGN.md §7.5) */}
         <SectionHeader title="History" />
         <View style={styles.cardWrapper}>
-          <ListGroup>
-            <ListRowCard
-              label="Pull Day"
-              subtitle="Yesterday · 44 min · 14,250 kg"
-              value="PRs: 2"
+          {USE_FIXTURES ? (
+            <ListGroup>
+              {TRAIN_FIXTURES.history.map((item) => (
+                <ListRowCard
+                  key={item.id}
+                  label={item.label}
+                  subtitle={item.subtitle}
+                  value={item.value}
+                  icon={
+                    <Clock
+                      size={icons.cardLabelSize}
+                      color={colors.ink}
+                      strokeWidth={icons.strokeWidth}
+                    />
+                  }
+                  onPress={() => router.push({ pathname: '/metric/[id]', params: { id: 'volume' } })}
+                />
+              ))}
+            </ListGroup>
+          ) : (
+            <EmptyState
+              title="No Workout History"
+              description="Completed workout sessions will appear here with performance summaries."
               icon={
                 <Clock
-                  size={icons.cardLabelSize}
-                  color={colors.ink}
+                  size={40}
+                  color={colors.inkMuted}
                   strokeWidth={icons.strokeWidth}
                 />
               }
-              onPress={() => router.push({ pathname: '/metric/[id]', params: { id: 'volume' } })}
+              actionText="Start First Workout"
+              onAction={() => {
+                pressLight();
+                router.push('/workout/active');
+              }}
             />
-            <ListRowCard
-              label="Lower Body Strength"
-              subtitle="3 days ago · 52 min · 18,100 kg"
-              value="PRs: 1"
-              icon={
-                <Clock
-                  size={icons.cardLabelSize}
-                  color={colors.ink}
-                  strokeWidth={icons.strokeWidth}
-                />
-              }
-              onPress={() => router.push({ pathname: '/metric/[id]', params: { id: 'volume' } })}
-            />
-          </ListGroup>
+          )}
         </View>
 
         {/* Section: Exercise Library (DESIGN.md §7.5) */}

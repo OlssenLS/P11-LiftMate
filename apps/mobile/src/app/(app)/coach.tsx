@@ -2,14 +2,34 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Card, ScreenHeader } from '@/components/ui';
+import { Card, EmptyState, ScreenHeader } from '@/components/ui';
+import { USE_FIXTURES } from '@/config/env';
 import { useTokens } from '@/hooks/use-tokens';
+import { Sparkles } from 'lucide-react-native';
 import { t } from '@/i18n';
 import { selectionTick } from '@/lib/haptics';
 
 export function CoachSheetContent() {
-  const { colors, radius, spacing, fontSize, fontWeight } = useTokens();
+  const { colors, radius, spacing, fontSize, fontWeight, icons } = useTokens();
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
+
+  if (!USE_FIXTURES) {
+    return (
+      <View style={{ paddingVertical: spacing.xl, paddingBottom: spacing.xxl }}>
+        <EmptyState
+          title="AI Coach Coming Soon"
+          description="Context-aware AI Coach is scheduled for Phase 6. Real workout, nutrition, and progress tracking must be active first."
+          icon={
+            <Sparkles
+              size={48}
+              color={colors.accent}
+              strokeWidth={icons.strokeWidth}
+            />
+          }
+        />
+      </View>
+    );
+  }
 
   const sampleQuestions = [
     t('coach.q1'),
