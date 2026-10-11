@@ -133,6 +133,17 @@ export class WorkoutsService {
         },
       });
 
+      // Soft-delete exercises that were removed from this workout
+      const incomingExerciseIds = input.exercises.map((e) => e.id);
+      await tx.workoutExercise.updateMany({
+        where: {
+          workoutId: input.id,
+          id: { notIn: incomingExerciseIds },
+          deletedAt: null,
+        },
+        data: { deletedAt: new Date() },
+      });
+
       for (const we of input.exercises) {
         await tx.workoutExercise.upsert({
           where: { id: we.id },
@@ -143,6 +154,17 @@ export class WorkoutsService {
             position: we.position,
           },
           update: { exerciseId: we.exerciseId, position: we.position, deletedAt: null },
+        });
+
+        // Soft-delete sets that were removed from this exercise
+        const incomingSetIds = we.sets.map((s) => s.id);
+        await tx.workoutSet.updateMany({
+          where: {
+            workoutExerciseId: we.id,
+            id: { notIn: incomingSetIds },
+            deletedAt: null,
+          },
+          data: { deletedAt: new Date() },
         });
         for (const set of we.sets) {
           await tx.workoutSet.upsert({

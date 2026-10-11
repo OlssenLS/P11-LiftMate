@@ -166,4 +166,12 @@ Format: date — decision — reason.
   - Surface stats card displays Total Volume (computed via shared `computeVolume`), Exercises count, and Working sets.
   - Read-only exercise cards display set rows (`weight × reps · RIR`), warmup badges (`W`), and set notes.
 
+## 2026-10-11 — Fix Workout Sets Position Unique Constraint Violation (P2002)
+
+- **Removed Unconditional Unique Constraints on (parent_id, position):**
+  - `workout_sets` and `workout_exercises` use soft-delete (`deletedAt`). Unconditional unique constraints on `(workout_exercise_id, position)` and `(workout_id, position)` caused P2002 errors when sets/exercises were deleted or reordered during workout synchronization because soft-deleted rows still held their position indexes.
+  - Applied migration `20261011150000_drop_position_unique_constraints` dropping `workout_sets_workout_exercise_id_position_key` and `workout_exercises_workout_id_position_key`, replacing them with non-unique indexes for ordering performance.
+  - Enhanced `WorkoutsService.create` to atomically soft-delete sets or exercises that were removed on the client during bulk sync.
+
+
 

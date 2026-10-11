@@ -248,7 +248,7 @@ model WorkoutExercise {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  @@unique([workoutId, position])
+  @@index([workoutId, position])
   @@index([workoutId])
   @@index([exerciseId])
   @@map("workout_exercises")
@@ -275,7 +275,7 @@ model WorkoutSet {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  @@unique([workoutExerciseId, position])
+  @@index([workoutExerciseId, position])
   @@index([workoutExerciseId])
   @@map("workout_sets")
 }
