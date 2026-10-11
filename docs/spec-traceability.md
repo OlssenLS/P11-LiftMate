@@ -106,13 +106,20 @@
   - `POST /programs` (create custom program)
   - `POST /programs/:id/activate` (activate program and archive previous)
   - `POST /programs/:id/start-day/:day` (instantiate pre-filled workout with progressive overload baseline)
+- **Foods Controller (`/foods`)**:
+  - `GET /foods/search?q=&limit=` (search verified and custom food catalog)
+  - `POST /foods` (create custom food)
+  - `GET /foods/:id` (food detail)
+- **Food Logs Controller (`/food-logs`)**:
+  - `GET /food-logs?date=YYYY-MM-DD` (daily macro summary, meal groups, progress %, targets)
+  - `POST /food-logs` (create/upsert food log entry with offline client UUID)
+  - `PATCH /food-logs/:id` (update food log entry)
+  - `DELETE /food-logs/:id` (soft-delete food log entry)
 - **App Controller (`/`)**:
   - `GET /` (health / greeting)
 
 ### 2.4 Missing API Endpoints per Spec
 - **Auth**: `POST /auth/forgot-password`, `POST /auth/reset-password` (§3.3)
-- **Profile / Users**: `PATCH /users/me` (update name, age, height, weight, target weight), `POST /auth/change-password`, `GET /users/me/preferences`, `PATCH /users/me/preferences` (§65)
-- **Nutrition**: `GET /foods/search`, `POST /foods`, `GET /food-logs`, `POST /food-logs`, `PATCH /food-logs/:id`, `DELETE /food-logs/:id` (§24–28)
 - **Progress**: `GET /progress/weight`, `POST /progress/weight`, `GET /progress/strength/:exerciseId`, `GET /progress/volume`, `GET /progress/consistency` (§44–49)
 
 ---

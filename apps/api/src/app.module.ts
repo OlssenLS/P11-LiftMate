@@ -10,6 +10,7 @@ import { OnboardingModule } from './onboarding/onboarding.module.js';
 import { ExercisesModule } from './exercises/exercises.module.js';
 import { WorkoutsModule } from './workouts/workouts.module.js';
 import { ProgramsModule } from './programs/programs.module.js';
+import { NutritionModule } from './nutrition/nutrition.module.js';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ProgramsModule } from './programs/programs.module.js';
     ExercisesModule,
     WorkoutsModule,
     ProgramsModule,
+    NutritionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

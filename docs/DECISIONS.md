@@ -245,3 +245,29 @@ Format: date — decision — reason.
   - Seeded 28 staples covering Indonesian staples (TKPI: Nasi Putih, Nasi Merah, Tempe Goreng, Tempe Kukus, Tahu Putih, Tahu Goreng, Ikan Kembung, Ubi Jalar, Bayam) and core fitness staples (Dada Ayam, Paha Ayam, Telur Rebus, Putih Telur, Daging Sapi Cincang, Salmon, Oatmeal, Roti Gandum, Pisang, Apel, Kentang, Brokoli, Susu Full Cream, Susu Low Fat, Greek Yogurt, Whey Protein, Selai Kacang, Minyak Zaitun, Alpukat).
 - **Automated Verification:**
   - Added `apps/api/src/common/migration-m-d.spec.ts` testing PostgreSQL enum constraints, model CRUD, food logging, updates, and soft deletes.
+
+## 2026-10-11 — Phase 4 Slice N1 (Backend Nutrition API & Daily Aggregations)
+
+- **Foods API (`apps/api/src/nutrition/foods.*`):**
+  - `GET /foods/search?q=&limit=`: Searches foods by name with case-insensitive contains, filtering out soft-deleted records, prioritized by verified/tkpi sources.
+  - `POST /foods`: Creates custom food entries validated by `createFoodSchema` (`ZodValidationPipe`).
+  - `GET /foods/:id`: Fetches a single food item by UUID.
+- **Food Logs API (`apps/api/src/nutrition/food-logs.*`):**
+  - `GET /food-logs?date=YYYY-MM-DD`:
+    - Retrieves daily logs within UTC boundaries `00:00:00` to `23:59:59.999`.
+    - Queries user's personalized targets from `UserPreferences` (`targetCalories`, `targetProtein`, `targetCarbs`, `targetFat`) falling back to baseline defaults (2000 kcal / 150g P / 200g C / 65g F).
+    - Computes totals across all logged meals rounded to 1 decimal place.
+    - Computes remaining macros: `Math.max(0, target - total)`.
+    - Computes progress percentages: `(total / target) * 100`.
+    - Groups logs into meal categories (`breakfast`, `lunch`, `dinner`, `snack`) with per-meal macro subtotals.
+    - Conforms to `DailyNutritionSummary` shared schema.
+  - `POST /food-logs`:
+    - Accepts `CreateFoodLogInput` with optional client UUID (`id`).
+    - Uses Prisma `upsert` on `id` ensuring offline sync idempotency without creating duplicate entries upon retry.
+  - `PATCH /food-logs/:id`:
+    - Partially updates existing food log fields with ownership verification (`userId`).
+  - `DELETE /food-logs/:id`:
+    - Soft-deletes food log (`deletedAt = new Date()`) with ownership verification (`userId`).
+- **Automated Verification:**
+  - Added 19 unit tests across `foods.service.spec.ts`, `foods.controller.spec.ts`, `food-logs.service.spec.ts`, and `food-logs.controller.spec.ts` (120/120 tests passing in backend suite).
+
