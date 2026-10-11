@@ -38,6 +38,7 @@ import { useCurrentProgram, useStartProgramDay } from '@/features/program/use-pr
 import { useWorkoutHistory } from '@/features/workout/use-workout-queries';
 import { useActiveWorkoutStore } from '@/features/workout/active-workout-store';
 import { useDailyNutritionSummary } from '@/features/nutrition';
+import { useProgressSummary } from '@/features/progress';
 
 export default function HomeScreen() {
   const { colors, radius, layout, type, floatingShadow, icons, touchTarget } = useTokens();
@@ -54,6 +55,7 @@ export default function HomeScreen() {
 
   const todayDateStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const { data: nutritionSummary } = useDailyNutritionSummary(todayDateStr);
+  const { data: progressSummary } = useProgressSummary();
 
   const programDays = useMemo(() => {
     if (!currentProgram?.programExercises || currentProgram.programExercises.length === 0) return [];
@@ -387,10 +389,25 @@ export default function HomeScreen() {
               />
             }
             timestamp="This Week"
-            value={USE_FIXTURES ? HOME_FIXTURES.metrics.workouts.value : '--'}
+            value={
+              progressSummary
+                ? `${progressSummary.consistency.completedSessions} of ${progressSummary.consistency.plannedSessions}`
+                : USE_FIXTURES
+                ? HOME_FIXTURES.metrics.workouts.value
+                : '--'
+            }
             unit="done"
-            sublabel={USE_FIXTURES ? HOME_FIXTURES.metrics.workouts.sublabel : 'No data logged'}
-            sparklineData={USE_FIXTURES ? [...HOME_FIXTURES.metrics.workouts.sparkline] : undefined}
+            sublabel={
+              progressSummary
+                ? `${progressSummary.consistency.consistencyPct}% weekly consistency · ${progressSummary.consistency.streakWeeks}-wk streak`
+                : USE_FIXTURES
+                ? HOME_FIXTURES.metrics.workouts.sublabel
+                : 'No data logged'
+            }
+            sparklineData={
+              progressSummary?.consistency.weeklyBreakdown.map((w) => w.completed) ??
+              (USE_FIXTURES ? [...HOME_FIXTURES.metrics.workouts.sparkline] : undefined)
+            }
             onPress={() => router.push({ pathname: '/metric/[id]', params: { id: 'workouts' } })}
           />
 
@@ -405,10 +422,28 @@ export default function HomeScreen() {
               />
             }
             timestamp="Latest"
-            value={USE_FIXTURES ? HOME_FIXTURES.metrics.weight.value : '--'}
+            value={
+              progressSummary?.weight.currentWeightKg
+                ? String(progressSummary.weight.currentWeightKg)
+                : USE_FIXTURES
+                ? HOME_FIXTURES.metrics.weight.value
+                : '--'
+            }
             unit={user?.weightUnit ?? 'kg'}
-            sublabel={USE_FIXTURES ? undefined : 'No data logged'}
-            sparklineData={USE_FIXTURES ? [...HOME_FIXTURES.metrics.weight.sparkline] : undefined}
+            sublabel={
+              progressSummary?.weight.changeThisMonthKg !== null && progressSummary?.weight.changeThisMonthKg !== undefined
+                ? `${progressSummary.weight.changeThisMonthKg > 0 ? '+' : ''}${progressSummary.weight.changeThisMonthKg} kg this month`
+                : USE_FIXTURES
+                ? undefined
+                : 'No data logged'
+            }
+            sparklineData={
+              progressSummary?.weight.sparkline.length
+                ? progressSummary.weight.sparkline
+                : USE_FIXTURES
+                ? [...HOME_FIXTURES.metrics.weight.sparkline]
+                : undefined
+            }
             onPress={() => router.push({ pathname: '/metric/[id]', params: { id: 'weight' } })}
           />
 
@@ -423,10 +458,30 @@ export default function HomeScreen() {
               />
             }
             timestamp="This Week"
-            value={USE_FIXTURES ? HOME_FIXTURES.metrics.volume.value : '--'}
+            value={
+              progressSummary
+                ? Math.round(progressSummary.volume.totalVolumeKg).toLocaleString()
+                : USE_FIXTURES
+                ? HOME_FIXTURES.metrics.volume.value
+                : '--'
+            }
             unit="kg"
-            sublabel={USE_FIXTURES ? HOME_FIXTURES.metrics.volume.sublabel : 'No data logged'}
-            sparklineData={USE_FIXTURES ? [...HOME_FIXTURES.metrics.volume.sparkline] : undefined}
+            sublabel={
+              progressSummary
+                ? progressSummary.volume.byMuscleGroup[0]?.muscleGroup
+                  ? `${progressSummary.volume.byMuscleGroup[0].muscleGroup} leading volume`
+                  : 'Total lifted this week'
+                : USE_FIXTURES
+                ? HOME_FIXTURES.metrics.volume.sublabel
+                : 'No data logged'
+            }
+            sparklineData={
+              progressSummary?.volume.sparkline.length
+                ? progressSummary.volume.sparkline
+                : USE_FIXTURES
+                ? [...HOME_FIXTURES.metrics.volume.sparkline]
+                : undefined
+            }
             onPress={() => router.push({ pathname: '/metric/[id]', params: { id: 'volume' } })}
           />
 

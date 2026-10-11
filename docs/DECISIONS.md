@@ -333,3 +333,27 @@ Format: date — decision — reason.
 - **Automated Verification:**
   - Added 14 unit tests across `progress.service.spec.ts` and `progress.controller.spec.ts` (137/137 tests passing in backend suite).
 
+## 2026-10-11 — Phase 5 Slice PRG2 (Mobile Progress Integration & Metric Detail Screen)
+
+- **Mobile Progress Feature (`apps/mobile/src/features/progress/`):**
+  - Implemented `use-progress-queries.ts`:
+    - `useProgressSummary()`: Queries `GET /progress/summary` for combined weight, volume, consistency, and PR metrics.
+    - `useWeightProgress()`: Queries `GET /progress/weight` for weight history, 30-day delta, and sparkline points.
+    - `useLogWeight()`: Offline-capable mutation with client-generated UUID via `newId()`, fallback enqueueing to SQLite `sync_queue`, invalidating `['progress']` and `['user', 'profile']`.
+    - `useVolumeProgress(range)`: Queries `GET /progress/volume?range=${range}` for total volume and muscle breakdown.
+    - `useConsistencyProgress()`: Queries `GET /progress/consistency` for adherence % and 4-week compliance history.
+    - `useStrengthProgress(exerciseId)`: Queries `GET /progress/strength/${exerciseId}` for per-exercise progression.
+- **Metric Detail Screen (`apps/mobile/src/app/metric/[id].tsx`):**
+  - Replaced static `METRIC_CONFIGS` fixtures with live API queries:
+    - **Weight:** Displays live `currentWeightKg`, `unit`, `changeThisMonthKg`, `LineChart` of actual history entries, and an interactive "Log Body Weight" sheet that saves directly to backend via `useLogWeight()`.
+    - **Calories:** Displays live daily calories consumed vs budget, macro ratio breakdown bar chart, and direct shortcut to log meals.
+    - **Volume:** Displays live total volume, Week/Month range picker, `BarChart` timeline, and dynamic muscle group distribution breakdown with percentage progress tracks.
+    - **Workouts:** Displays live completed vs planned sessions, consistency %, streak weeks, and 4-week compliance history `BarChart`.
+    - **Empty State:** Clean empty state when no historical data exists for a metric yet.
+- **Home Screen Integration (`apps/mobile/src/app/(app)/index.tsx`):**
+  - Connected the 3 remaining Home Screen MetricCards to `useProgressSummary()`:
+    - `Workouts`: Shows live completed vs planned sessions, adherence %, streak, and 4-week compliance sparkline.
+    - `Body Weight`: Shows current weight, 30-day delta, and 10-point weight sparkline.
+    - `Training Volume`: Shows weekly volume in kg, leading muscle group, and weekly volume sparkline.
+
+

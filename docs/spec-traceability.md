@@ -26,7 +26,7 @@
 | **§29–32** | AI Food Recognition: Camera/upload, multi-food detection, portion estimation, nutrition calculation, confidence warning | **Deferred** | Phase 6 | Explicitly reserved for Phase 6 per prompt instructions ("DO NOT Build AI Food Recognition"). |
 | **§33–38 (l)** | AI Workout Planner & Programs: Programs model (`program_id, user_id, program_name, goal, frequency, duration, status`), Program Exercises (`id, program_id, day, exercise_id, sets, rep_min, rep_max, target_rir, rest_seconds, order`), pre-filled workout generation | **Built** | `apps/api/prisma/schema.prisma`<br>`packages/shared/src/program.ts`<br>`apps/api/src/programs/`<br>`apps/mobile/src/features/program/`<br>`apps/mobile/src/app/(app)/train.tsx`<br>`apps/mobile/src/app/(app)/index.tsx`<br>`apps/mobile/src/features/workout/active-workout-store.ts` | Migration M-C applied adding `programs` and `program_exercises` tables to PostgreSQL with `ProgramStatus` enum. Shared schemas implemented in `packages/shared/src/program.ts`. 6 evidence-based starter templates defined. RuleEngine implemented with equipment compatibility and avoid-list substitution. Complete Programs API built and verified: `GET /programs`, `GET /programs/current`, `GET /programs/templates`, `POST /programs`, `GET /programs/:id`, `POST /programs/:id/activate`, `POST /programs/:id/start-day/:day`. Mobile integration: `use-program-queries.ts`, `active-workout-store.ts` (`startFromWorkout`), Train screen "Today's Session" hero card and "My Program" day list, and Home screen "Next workout" hero card all wired to live program data with start/resume capabilities. |
 | **§39–43** | AI Coach: Chat interface, suggested questions, context retrieval architecture, safety & medical disclaimer | **Deferred** | `apps/mobile/src/app/(app)/coach.tsx` | Phase 6. Screen has UI shell; backend/LLM is Phase 6. |
-| **§44–49 (k)** | Progress Tracking: Body weight log & history, Per-exercise strength view (best weight, best reps, volume, history, chart), Estimated 1RM (labelled estimate), Volume breakdowns (exercise, muscle group, workout, week, month), Consistency (% planned vs completed) | **Partial** (UI) / **Missing** (Backend) | `apps/mobile/src/app/metric/[id].tsx`<br>`apps/api/prisma/schema.prisma` | Metric detail screen exists but runs entirely on hardcoded fixture arrays (`METRIC_CONFIGS`). No `BodyProgress` model in Prisma. No endpoint for body weight logs, per-exercise strength history, estimated 1RM, volume aggregation, or consistency percentage. |
+| **§44–49 (k)** | Progress Tracking: Body weight log & history, Per-exercise strength view (best weight, best reps, volume, history, chart), Estimated 1RM (labelled estimate), Volume breakdowns (exercise, muscle group, workout, week, month), Consistency (% planned vs completed) | **Built** | `apps/mobile/src/app/metric/[id].tsx`<br>`apps/mobile/src/features/progress/`<br>`apps/api/src/progress/`<br>`apps/api/prisma/schema.prisma`<br>`packages/shared/src/progress.ts` | Complete end-to-end integration (Slices PRG0–PRG2): Migration M-E (`body_weight_logs`, `exercise_personal_records`), shared schemas with Epley estimated 1RM formula, backend ProgressModule (6 endpoints), TanStack query hooks in `apps/mobile/src/features/progress/`, and live metric detail screens with interactive log sheet and sparklines/charts. |
 | **§50–57** | AI Analytics: Metrics calculation, Structured Analytics Data, Category insights, Data sufficiency check ("Not enough data yet") | **Deferred** / **Partial** | `apps/mobile/src/components/ui/insight-card.tsx` | Phase 6. Mobile insight card primitive is built. Analytics generation is Phase 6. Empty state ("Not enough data yet") needed for Insights tab. |
 | **§58–61** | Architecture (AI context, Planner, Analytics pipelines) | **Architectural Reference** | N/A | Reference specifications for Phase 6. |
 | **§62 (m)** | Database Structure (15 tables) | **Partial** | `apps/api/prisma/schema.prisma` | Full inventory detailed in Section 2 below. 7 out of 15 tables exist; 8 are missing. |
@@ -51,23 +51,30 @@
 6. `WorkoutExercise` (mapped to `workout_exercises`)
 7. `WorkoutSet` (mapped to `workout_sets`)
 8. `RefreshToken` (mapped to `refresh_tokens`)
+9. `PasswordResetToken` (mapped to `password_reset_tokens`)
+10. `Program` (mapped to `programs` — Migration M-C)
+11. `ProgramExercise` (mapped to `program_exercises` — Migration M-C)
+12. `Food` (mapped to `foods` — Migration M-D)
+13. `FoodLog` (mapped to `food_logs` — Migration M-D)
+14. `BodyWeightLog` (mapped to `body_weight_logs` — Migration M-E)
+15. `ExercisePersonalRecord` (mapped to `exercise_personal_records` — Migration M-E)
 
 ### 2.2 Spec §62 Table Audit & Missing Fields
 
 | §62 Spec Table | Existing Prisma Model? | Missing / Non-Conforming Fields |
 | :--- | :---: | :--- |
-| **Users** | `User` (Yes) | Missing: `age` (has nullable `dateOfBirth`), `gender`, `height`, `weight`, `target_weight`, `workout_duration`. (Goal and experience are placed on `UserPreferences`). |
-| **User Equipment** | `UserEquipment` (Yes) | Enum `Equipment` has only 8 items instead of all 12 spec equipment items. |
-| **User Preferences** | `UserPreferences` (Yes) | Has `avoidExercises`. Missing: `preferred_equipment`, `preferred_exercises`, `dietary_preferences`. |
-| **Exercises** | `Exercise` (Yes) | Conforming (Migration M-B added `alternative_exercises` array). |
-| **Workouts** | `Workout` (Yes) | Conforming (Migration M-B added `status` enum, `program_id`, and `notes`). |
-| **Workout Exercises** | `WorkoutExercise` (Yes) | Matches spec (`order` is represented as `position`). |
-| **Workout Sets** | `WorkoutSet` (Yes) | Conforming (Migration M-B added `rpe`, `rest_time`, `notes`, `rir_unknown`). |
-| **Programs** | **MISSING** | Entire model missing: `program_id, user_id, program_name, goal, frequency, duration, created_at, status`. |
-| **Program Exercises** | **MISSING** | Entire model missing: `id, program_id, day, exercise_id, sets, rep_min, rep_max, target_rir, rest_seconds, order`. |
-| **Foods** | **MISSING** | Entire model missing: `food_id, name, serving_size, calories, protein, carbs, fat, source`. |
-| **Food Logs** | **MISSING** | Entire model missing: `food_log_id, user_id, food_id, quantity, meal_type, meal_time, calories, protein, carbs, fat, source`. |
-| **Body Progress** | **MISSING** | Entire model missing: `progress_id, user_id, date, weight, body_fat, notes`. |
+| **Users** | `User` (Yes) | Conforming (stores dateOfBirth, gender, height, weight, targetWeight, workoutDuration, etc.). |
+| **User Equipment** | `UserEquipment` (Yes) | Conforming (all 12 canonical equipment items supported). |
+| **User Preferences** | `UserPreferences` (Yes) | Conforming (stores preferredEquipment, preferredExercises, dietaryPreferences, avoidExercises, notification flags). |
+| **Exercises** | `Exercise` (Yes) | Conforming (includes alternativeExercises, muscle groups, equipment, movement patterns). |
+| **Workouts** | `Workout` (Yes) | Conforming (includes status enum, programId, notes, soft-delete). |
+| **Workout Exercises** | `WorkoutExercise` (Yes) | Conforming (order represented as position, soft-delete). |
+| **Workout Sets** | `WorkoutSet` (Yes) | Conforming (includes weight, reps, rir, rirUnknown, rpe, restTime, notes, soft-delete). |
+| **Programs** | `Program` (Yes) | Conforming (Migration M-C: program_id, user_id, program_name, goal, frequency, duration, status, created_at). |
+| **Program Exercises** | `ProgramExercise` (Yes) | Conforming (Migration M-C: id, program_id, day, exercise_id, sets, rep_min, rep_max, target_rir, rest_seconds, order). |
+| **Foods** | `Food` (Yes) | Conforming (Migration M-D: food_id, name, serving_size, calories, protein, carbs, fat, source). |
+| **Food Logs** | `FoodLog` (Yes) | Conforming (Migration M-D: food_log_id, user_id, food_id, quantity, meal_type, meal_time, calories, protein, carbs, fat, source). |
+| **Body Progress** | `BodyWeightLog` & `ExercisePersonalRecord` (Yes) | Conforming (Migration M-E: weight tracking, body fat, notes, plus per-exercise PR tracking). |
 | **AI Conversations** | **MISSING** | Phase 6 (`conversation_id, user_id, title, created_at, updated_at`). |
 | **AI Messages** | **MISSING** | Phase 6 (`message_id, conversation_id, role, content, timestamp`). |
 | **AI Insights** | **MISSING** | Phase 6 (`insight_id, user_id, category, title, observation, evidence, possible_factors, recommendation, confidence, created_at`). |
@@ -134,10 +141,10 @@
 
 | Screen / Flow | Mock / Fixture Elements | Backend Status |
 | :--- | :--- | :--- |
-| **Home (`(app)/index.tsx`)** | - Next Workout hero card is connected to live `useCurrentProgram()` and `activeWorkoutStore` with "No workout scheduled" fallback.<br>- Calories MetricCard is connected to live `useDailyNutritionSummary(today)`.<br>- Workouts MetricCard (3 done of 4, sparkline).<br>- Body Weight MetricCard (72.4 kg, sparkline [73.5, 73.1, ...]).<br>- Training Volume MetricCard (14,250 kg, sparkline).<br>- InsightCard ("Upper body volume on track..."). | Workout card is live (Phase 3). Calories card is live (Phase 4). Other metrics aggregation endpoints pending Phase 5. |
+| **Home (`(app)/index.tsx`)** | - Next Workout hero card is connected to live `useCurrentProgram()` and `activeWorkoutStore` with "No workout scheduled" fallback.<br>- Calories MetricCard is connected to live `useDailyNutritionSummary(today)`.<br>- Workouts, Body Weight, and Training Volume MetricCards connected to live `useProgressSummary()`.<br>- InsightCard ("Upper body volume on track..."). | **100% Real Backend Integration** for all 4 metric cards and next workout card. |
 | **Train (`(app)/train.tsx`)** | - "Today's Session" hero card is connected to live `useCurrentProgram()`, `useWorkoutHistory()`, and in-progress store.<br>- "My Program" section renders live program days with exercise summaries and tap-to-start action.<br>- "History" renders live completed workouts from `GET /workouts`.<br>- Planner insight card is static. | Exercise search, Workout History, and Program Days run on real backend API data. |
 | **Food (`(app)/food.tsx`)** | - 7-day rolling week strip with date selection.<br>- Live daily calorie and macro progress vs user targets.<br>- Live meal groups (Breakfast, Lunch, Dinner, Snacks) with food items.<br>- Interactive Add Food Sheet (Catalog search with portion multiplier & custom food entry) and Delete Entry sheet with offline sync queue. | **100% Real Backend & Offline Integration** (Phase 4 Slices N0–N2). All fixtures replaced with live API and SQLite offline queue. |
-| **Metric Detail (`metric/[id].tsx`)** | - `METRIC_CONFIGS` dictionary hardcodes all values, date ranges ("Oct 5–11, 2026"), and chart series for Weight, Calories, Volume, and Workouts.<br>- Add log button opens sheet that only closes without saving. | Migration M-E (`body_weight_logs`, `exercise_personal_records`) and shared schemas complete (Slice PRG0). Backend API (Slice PRG1) & mobile integration (Slice PRG2) underway. |
+| **Metric Detail (`metric/[id].tsx`)** | - Weight: Live 30-day weight history LineChart + current/target weight + interactive Log Weight bottom sheet with offline queuing.<br>- Calories: Live daily calories + target + macro ratio BarChart.<br>- Volume: Live total volume + weekly/monthly BarChart + muscle group breakdown.<br>- Workouts: Live monthly adherence % + active streak + 4-week compliance BarChart. | **100% Real Backend Integration** (Phase 5 Slices PRG0–PRG2). All 4 metric detail views run on live backend queries with dynamic charts and sparklines. |
 | **You / Profile (`(app)/you.tsx`)** | - Subtitle hardcoded "BUILD MUSCLE · INTERMEDIATE".<br>- Goals subtitle hardcoded "Hypertrophy · 2,200 kcal".<br>- Equipment subtitle hardcoded "Barbell, Dumbbells, Cables, Bench".<br>- Edit sheets for Units and Days mutate local component state only, never calling backend. | Only user name and email read from `authStore.user`. Preferences are not saved back to API. |
 | **Coach (`(app)/coach.tsx`)** | - Hardcoded conversation mock. | Phase 6 feature. |
 
