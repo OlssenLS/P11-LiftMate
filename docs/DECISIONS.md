@@ -82,7 +82,20 @@ Format: date — decision — reason.
   - Interactive edit sheets with server-side mutations for Profile Details, Goals & Targets, Training Schedule, Equipment, Training Preferences (with `ExercisePicker`), Notification Settings (4 toggles), Units (`kg` / `lb`), and Change Password.
   - Body Metrics displays live user height, weight, body fat %, target weight, gender, duration, location with an "Add" button/label on null values.
 
+## 2026-10-11 — Phase 2 Slice W0 (Migration M-B & Workout Schemas)
 
-
-
-
+- **Migration M-B (`20261011140000_migration_m_b`):**
+  - Added enum `WorkoutStatus` (`in_progress`, `completed`, `cancelled`).
+  - Added `alternative_exercises` (`TEXT[]` default `ARRAY[]::TEXT[]`) on `exercises` table.
+  - Renamed `workouts.note` to `workouts.notes` preserving all existing note rows.
+  - Added `workouts.status` (default `'completed'` for existing rows) and nullable `workouts.program_id`.
+  - Added index on `workouts(user_id, status)`.
+  - Added `workout_sets.rir_unknown` (`BOOLEAN` default `false`).
+  - Added `workout_sets.rpe` (`DECIMAL(3,1)` nullable, backend storage only, never exposed in active logging UI).
+  - Added `workout_sets.rest_time` (`INTEGER` nullable seconds duration selected for that set's timer).
+  - Added `workout_sets.notes` (`TEXT` nullable set notes).
+- **RIR Representation (WORKOUT_UX.md §5.1):**
+  - RIR is stored as an integer 0–5 (with 5 representing `5+`) and a boolean `rir_unknown` flag for explicit "Unknown" selections.
+  - Both "Unknown" and unrecorded RIR values are excluded from average RIR calculations.
+- **Set Rest Duration (WORKOUT_UX.md §6.1):**
+  - `rest_time` on `workout_sets` records the duration in seconds selected for that set's rest timer.

@@ -98,6 +98,12 @@ enum FitnessGoal {
   body_recomposition
 }
 
+enum WorkoutStatus {
+  in_progress
+  completed
+  cancelled
+}
+
 model User {
   id           String     @id @default(uuid()) @db.Uuid
   email        String     @unique
@@ -192,6 +198,7 @@ model Exercise {
   difficulty         Difficulty
   instructions       String?
   externalId         String?         @unique @map("external_id")
+  alternativeExercises String[]      @default([]) @map("alternative_exercises")
 
   workoutExercises WorkoutExercise[]
 
@@ -205,12 +212,14 @@ model Exercise {
 }
 
 model Workout {
-  id          String    @id @default(uuid()) @db.Uuid
-  userId      String    @map("user_id") @db.Uuid
+  id          String        @id @default(uuid()) @db.Uuid
+  userId      String        @map("user_id") @db.Uuid
   name        String?
-  note        String?
-  startedAt   DateTime  @map("started_at")
-  completedAt DateTime? @map("completed_at")
+  notes       String?       @map("notes")
+  status      WorkoutStatus @default(completed) @map("status")
+  programId   String?       @map("program_id") @db.Uuid
+  startedAt   DateTime      @map("started_at")
+  completedAt DateTime?     @map("completed_at")
 
   user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   exercises WorkoutExercise[]
@@ -221,6 +230,7 @@ model Workout {
 
   @@index([userId])
   @@index([userId, startedAt])
+  @@index([userId, status])
   @@map("workouts")
 }
 
@@ -253,6 +263,10 @@ model WorkoutSet {
   weightUnit        WeightUnit @default(kg) @map("weight_unit")
   reps              Int
   rir               Int?
+  rirUnknown        Boolean    @default(false) @map("rir_unknown")
+  rpe               Decimal?   @db.Decimal(3, 1)
+  restTime          Int?       @map("rest_time")
+  notes             String?    @map("notes")
   completed         Boolean    @default(false)
 
   workoutExercise WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)

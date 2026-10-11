@@ -6,6 +6,7 @@ import {
   MuscleGroup,
   SetType,
   WeightUnit,
+  WorkoutStatus,
 } from "./enums.js";
 
 /**
@@ -34,6 +35,7 @@ export const exerciseSchema = z.object({
   difficulty: Difficulty,
   instructions: z.string().nullable().optional(),
   externalId: z.string().nullable().optional(),
+  alternativeExercises: z.array(uuid).default([]),
 });
 export type Exercise = z.infer<typeof exerciseSchema>;
 
@@ -60,6 +62,10 @@ export const workoutSetInputSchema = z.object({
   weightUnit: WeightUnit.default("kg"),
   reps: z.number().int().min(0).max(10000),
   rir: z.number().int().min(0).max(50).nullable().optional(),
+  rirUnknown: z.boolean().default(false).optional(),
+  rpe: z.number().min(0).max(10).nullable().optional(),
+  restTime: z.number().int().min(0).nullable().optional(),
+  notes: z.string().max(1000).nullable().optional(),
   completed: z.boolean().default(false),
 });
 export type WorkoutSetInput = z.infer<typeof workoutSetInputSchema>;
@@ -91,7 +97,10 @@ export type WorkoutExerciseInput = z.infer<typeof workoutExerciseInputSchema>;
 export const createWorkoutSchema = z.object({
   id: uuid,
   name: z.string().min(1).max(120).nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
   note: z.string().max(2000).nullable().optional(),
+  status: WorkoutStatus.default("completed").optional(),
+  programId: uuid.nullable().optional(),
   startedAt: z.coerce.date(),
   completedAt: z.coerce.date().nullable().optional(),
   exercises: z.array(workoutExerciseInputSchema).default([]),
@@ -100,7 +109,10 @@ export type CreateWorkoutInput = z.infer<typeof createWorkoutSchema>;
 
 export const updateWorkoutSchema = z.object({
   name: z.string().min(1).max(120).nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
   note: z.string().max(2000).nullable().optional(),
+  status: WorkoutStatus.optional(),
+  programId: uuid.nullable().optional(),
   completedAt: z.coerce.date().nullable().optional(),
 });
 export type UpdateWorkoutInput = z.infer<typeof updateWorkoutSchema>;
@@ -134,7 +146,10 @@ export const workoutSchema = z.object({
   id: uuid,
   userId: uuid,
   name: z.string().nullable(),
-  note: z.string().nullable(),
+  notes: z.string().nullable().optional(),
+  note: z.string().nullable().optional(),
+  status: WorkoutStatus,
+  programId: uuid.nullable().optional(),
   startedAt: z.coerce.date(),
   completedAt: z.coerce.date().nullable(),
   exercises: z.array(workoutExerciseSchema).default([]),
@@ -143,6 +158,20 @@ export const workoutSchema = z.object({
   deletedAt: z.coerce.date().nullable(),
 });
 export type Workout = z.infer<typeof workoutSchema>;
+
+/** Per-exercise performance delta compared with previous completed session. */
+export const exercisePerformanceDeltaSchema = z.object({
+  exerciseId: uuid,
+  exerciseName: z.string(),
+  currentBestWeight: z.number().nullable(),
+  currentBestReps: z.number().nullable(),
+  previousBestWeight: z.number().nullable(),
+  previousBestReps: z.number().nullable(),
+  deltaWeight: z.number().nullable(),
+  deltaReps: z.number().nullable(),
+  displayText: z.string(),
+});
+export type ExercisePerformanceDelta = z.infer<typeof exercisePerformanceDeltaSchema>;
 
 /** Compact summary returned after completing / for history lists. */
 export const workoutSummarySchema = z.object({
@@ -156,5 +185,6 @@ export const workoutSummarySchema = z.object({
   totalWorkingSets: z.number().int(),
   totalVolume: z.number(),
   volumeChangeVsPrevious: z.number().nullable(),
+  exerciseDeltas: z.array(exercisePerformanceDeltaSchema).default([]),
 });
 export type WorkoutSummary = z.infer<typeof workoutSummarySchema>;

@@ -59,10 +59,10 @@
 | **Users** | `User` (Yes) | Missing: `age` (has nullable `dateOfBirth`), `gender`, `height`, `weight`, `target_weight`, `workout_duration`. (Goal and experience are placed on `UserPreferences`). |
 | **User Equipment** | `UserEquipment` (Yes) | Enum `Equipment` has only 8 items instead of all 12 spec equipment items. |
 | **User Preferences** | `UserPreferences` (Yes) | Has `avoidExercises`. Missing: `preferred_equipment`, `preferred_exercises`, `dietary_preferences`. |
-| **Exercises** | `Exercise` (Yes) | Missing: `alternative_exercises` (string array / relation). |
-| **Workouts** | `Workout` (Yes) | Missing: `program_id` (foreign key to Programs), `status` enum (`in_progress`, `completed`, `cancelled`). Schema has `note` (singular); spec has `notes`. |
+| **Exercises** | `Exercise` (Yes) | Conforming (Migration M-B added `alternative_exercises` array). |
+| **Workouts** | `Workout` (Yes) | Conforming (Migration M-B added `status` enum, `program_id`, and `notes`). |
 | **Workout Exercises** | `WorkoutExercise` (Yes) | Matches spec (`order` is represented as `position`). |
-| **Workout Sets** | `WorkoutSet` (Yes) | Missing: `rpe` (nullable per spec §62), `rest_time` (seconds), `notes`. |
+| **Workout Sets** | `WorkoutSet` (Yes) | Conforming (Migration M-B added `rpe`, `rest_time`, `notes`, `rir_unknown`). |
 | **Programs** | **MISSING** | Entire model missing: `program_id, user_id, program_name, goal, frequency, duration, created_at, status`. |
 | **Program Exercises** | **MISSING** | Entire model missing: `id, program_id, day, exercise_id, sets, rep_min, rep_max, target_rir, rest_seconds, order`. |
 | **Foods** | **MISSING** | Entire model missing: `food_id, name, serving_size, calories, protein, carbs, fat, source`. |

@@ -15,6 +15,7 @@ export function toExercise(row: PrismaExercise): Exercise {
     difficulty: row.difficulty,
     instructions: row.instructions,
     externalId: row.externalId,
+    alternativeExercises: row.alternativeExercises ?? [],
   };
 }
 

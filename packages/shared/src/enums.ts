@@ -85,3 +85,10 @@ export const FitnessGoal = z.enum([
   "body_recomposition",
 ]);
 export type FitnessGoal = z.infer<typeof FitnessGoal>;
+
+export const WorkoutStatus = z.enum([
+  "in_progress",
+  "completed",
+  "cancelled",
+]);
+export type WorkoutStatus = z.infer<typeof WorkoutStatus>;
