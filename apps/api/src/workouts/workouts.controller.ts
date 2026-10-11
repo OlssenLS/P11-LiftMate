@@ -22,6 +22,7 @@ import {
   type UpsertWorkoutExerciseInput,
   type UpsertWorkoutSetInput,
   type Workout,
+  type WorkoutStatus,
   type WorkoutSummary,
 } from '@liftmate/shared';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
@@ -36,8 +37,18 @@ export class WorkoutsController {
   constructor(private readonly workouts: WorkoutsService) {}
 
   @Get()
-  list(@CurrentUser() user: AuthUser): Promise<Workout[]> {
-    return this.workouts.list(user.id);
+  list(
+    @CurrentUser() user: AuthUser,
+    @Query('status') status?: WorkoutStatus,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ): Promise<Workout[]> {
+    return this.workouts.list(
+      user.id,
+      status,
+      limit ? parseInt(limit, 10) : 50,
+      offset ? parseInt(offset, 10) : 0,
+    );
   }
 
   /** "Previous session" for an exercise: GET /workouts/previous?exerciseId=&exclude= */
@@ -48,6 +59,22 @@ export class WorkoutsController {
     @Query('exclude') exclude?: string,
   ): Promise<Workout | null> {
     return this.workouts.previousSession(user.id, exerciseId, exclude || undefined);
+  }
+
+  /** Recent sessions for an exercise (for Exercise History sheet): GET /workouts/exercise-history?exerciseId=&limit=5 */
+  @Get('exercise-history')
+  exerciseHistory(
+    @CurrentUser() user: AuthUser,
+    @Query('exerciseId', ParseUUIDPipe) exerciseId: string,
+    @Query('limit') limit?: string,
+    @Query('exclude') exclude?: string,
+  ): Promise<Workout[]> {
+    return this.workouts.exerciseHistory(
+      user.id,
+      exerciseId,
+      limit ? parseInt(limit, 10) : 5,
+      exclude || undefined,
+    );
   }
 
   @Post()

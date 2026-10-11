@@ -99,3 +99,17 @@ Format: date — decision — reason.
   - Both "Unknown" and unrecorded RIR values are excluded from average RIR calculations.
 - **Set Rest Duration (WORKOUT_UX.md §6.1):**
   - `rest_time` on `workout_sets` records the duration in seconds selected for that set's rest timer.
+
+## 2026-10-11 — Phase 2 Slice W1 (Backend Workout API & Metrics)
+
+- **Workout History & Status Filtering:**
+  - `GET /workouts` supports `status` query filter (`in_progress`, `completed`, `cancelled`) alongside `limit` and `offset` pagination, allowing the client to query completed history without fixture mocks.
+- **Exercise History Query (`GET /workouts/exercise-history`):**
+  - Added dedicated endpoint to fetch recent completed workouts containing a specific exercise (up to 20 sessions, default 5) to back the Exercise History bottom sheet.
+- **Deterministic Workout Summary Performance Deltas (WORKOUT_UX.md §9.2):**
+  - Extended `WorkoutsService.summary` to compute per-exercise progress comparisons:
+    - Identifies heaviest completed working set in current session vs heaviest completed working set in previous session.
+    - Generates strict factual strings: `+X kg compared with previous session` (or negative delta), `+X rep(s) at Y kg`, `No change`, or `First time logged`.
+    - Computes `volumePercentageChangeVsPrevious` against previous completed workout.
+- **Mobile Workout Query Hooks:**
+  - Added `useWorkoutHistory`, `useWorkoutDetail`, `usePreviousSession`, `useExerciseHistory`, and `useDeleteWorkout` in `apps/mobile/src/features/workout/use-workout-queries.ts`.

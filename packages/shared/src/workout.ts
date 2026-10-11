@@ -169,6 +169,7 @@ export const exercisePerformanceDeltaSchema = z.object({
   previousBestReps: z.number().nullable(),
   deltaWeight: z.number().nullable(),
   deltaReps: z.number().nullable(),
+  weightUnit: WeightUnit.default("kg"),
   displayText: z.string(),
 });
 export type ExercisePerformanceDelta = z.infer<typeof exercisePerformanceDeltaSchema>;
@@ -185,6 +186,7 @@ export const workoutSummarySchema = z.object({
   totalWorkingSets: z.number().int(),
   totalVolume: z.number(),
   volumeChangeVsPrevious: z.number().nullable(),
+  volumePercentageChangeVsPrevious: z.number().nullable().optional(),
   exerciseDeltas: z.array(exercisePerformanceDeltaSchema).default([]),
 });
 export type WorkoutSummary = z.infer<typeof workoutSummarySchema>;

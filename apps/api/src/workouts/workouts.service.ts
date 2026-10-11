@@ -8,7 +8,10 @@ import {
   type UpsertWorkoutExerciseInput,
   type UpsertWorkoutSetInput,
   type Workout,
+  type WorkoutSet,
+  type WorkoutStatus,
   type WorkoutSummary,
+  type ExercisePerformanceDelta,
   type MetricSet,
 } from '@liftmate/shared';
 import type { Prisma } from '@prisma/client';
@@ -182,9 +185,18 @@ export class WorkoutsService {
   }
 
   /** List the user's non-deleted workouts, most recent first. */
-  async list(userId: string, limit = 50, offset = 0): Promise<Workout[]> {
+  async list(
+    userId: string,
+    status?: WorkoutStatus,
+    limit = 50,
+    offset = 0,
+  ): Promise<Workout[]> {
     const rows = await this.prisma.workout.findMany({
-      where: { userId, deletedAt: null },
+      where: {
+        userId,
+        deletedAt: null,
+        status: status ? status : undefined,
+      },
       include: workoutInclude,
       orderBy: { startedAt: 'desc' },
       take: limit,
@@ -325,30 +337,44 @@ export class WorkoutsService {
   }
 
   /**
-   * The user's most recent *completed* workout that contains the given
-   * exercise, excluding `excludeWorkoutId` (the current session). Used to show
-   * "previous session" per exercise.
+   * Recent completed workouts that contain the given exercise.
+   * Used for exercise history sheets (up to limit sessions).
+   */
+  async exerciseHistory(
+    userId: string,
+    exerciseId: string,
+    limit = 5,
+    excludeWorkoutId?: string,
+  ): Promise<Workout[]> {
+    const rows = await this.prisma.workout.findMany({
+      where: {
+        userId,
+        deletedAt: null,
+        status: 'completed',
+        id: excludeWorkoutId ? { not: excludeWorkoutId } : undefined,
+        exercises: { some: { exerciseId, deletedAt: null } },
+      },
+      include: workoutInclude,
+      orderBy: { completedAt: 'desc' },
+      take: Math.min(Math.max(1, limit), 20),
+    });
+    return rows.map(toWorkout);
+  }
+
+  /**
+   * The user's most recent completed workout that contains the given
+   * exercise, excluding excludeWorkoutId. Used to show "previous session" per exercise.
    */
   async previousSession(
     userId: string,
     exerciseId: string,
     excludeWorkoutId?: string,
   ): Promise<Workout | null> {
-    const row = await this.prisma.workout.findFirst({
-      where: {
-        userId,
-        deletedAt: null,
-        completedAt: { not: null },
-        id: excludeWorkoutId ? { not: excludeWorkoutId } : undefined,
-        exercises: { some: { exerciseId, deletedAt: null } },
-      },
-      include: workoutInclude,
-      orderBy: { completedAt: 'desc' },
-    });
-    return row ? toWorkout(row) : null;
+    const history = await this.exerciseHistory(userId, exerciseId, 1, excludeWorkoutId);
+    return history[0] ?? null;
   }
 
-  /** Deterministic summary for a completed/active workout (brief §4, §6). */
+  /** Deterministic summary for a completed/active workout (brief §4, §6, WORKOUT_UX.md §9.2). */
   async summary(userId: string, id: string): Promise<WorkoutSummary> {
     const workout = await this.getById(userId, id);
     const sets = metricSetsOf(workout);
@@ -361,19 +387,118 @@ export class WorkoutsService {
         )
       : null;
 
-    // Compare against the user's previous completed workout before this one.
-    const prev = await this.prisma.workout.findFirst({
-      where: {
-        userId,
-        deletedAt: null,
-        completedAt: { not: null },
-        id: { not: id },
-        startedAt: { lt: workout.startedAt },
-      },
-      include: workoutInclude,
-      orderBy: { startedAt: 'desc' },
-    });
+    // Compare against previous completed workout with same name or same programId if present
+    let prev = workout.name
+      ? await this.prisma.workout.findFirst({
+          where: {
+            userId,
+            deletedAt: null,
+            status: 'completed',
+            id: { not: id },
+            name: workout.name,
+            startedAt: { lt: workout.startedAt },
+          },
+          include: workoutInclude,
+          orderBy: { startedAt: 'desc' },
+        })
+      : null;
+
+    if (!prev) {
+      prev = await this.prisma.workout.findFirst({
+        where: {
+          userId,
+          deletedAt: null,
+          status: 'completed',
+          id: { not: id },
+          startedAt: { lt: workout.startedAt },
+        },
+        include: workoutInclude,
+        orderBy: { startedAt: 'desc' },
+      });
+    }
+
     const prevVolume = prev ? computeVolume(metricSetsOf(toWorkout(prev))) : null;
+    const volumeChangeVsPrevious =
+      prevVolume === null ? null : roundTo(totalVolume - prevVolume, 1);
+    const volumePercentageChangeVsPrevious =
+      prevVolume !== null && prevVolume > 0
+        ? roundTo(((totalVolume - prevVolume) / prevVolume) * 100, 1)
+        : null;
+
+    // Performance section per exercise (WORKOUT_UX.md §9.2)
+    const exerciseDeltas: ExercisePerformanceDelta[] = [];
+    for (const we of workout.exercises) {
+      const currentWorkingSets = we.sets.filter(
+        (s) => s.setType === 'working' && s.completed,
+      );
+
+      const currentBest = currentWorkingSets.reduce<WorkoutSet | null>((best, s) => {
+        if (!best) return s;
+        if (s.weight > best.weight) return s;
+        if (s.weight === best.weight && s.reps > best.reps) return s;
+        return best;
+      }, null);
+
+      const unit = currentBest?.weightUnit ?? 'kg';
+      const prevSession = await this.previousSession(userId, we.exerciseId, id);
+      const prevExercise = prevSession?.exercises.find((e) => e.exerciseId === we.exerciseId);
+      const prevWorkingSets = (prevExercise?.sets ?? []).filter(
+        (s) => s.setType === 'working' && s.completed,
+      );
+
+      const prevBest = prevWorkingSets.reduce<WorkoutSet | null>((best, s) => {
+        if (!best) return s;
+        if (s.weight > best.weight) return s;
+        if (s.weight === best.weight && s.reps > best.reps) return s;
+        return best;
+      }, null);
+
+      let displayText: string;
+      let deltaWeight: number | null = null;
+      let deltaReps: number | null = null;
+
+      if (!prevBest) {
+        displayText = 'First time logged';
+      } else if (!currentBest) {
+        displayText = 'No working sets completed';
+      } else {
+        const currW = currentBest.weight;
+        const prevW = prevBest.weight;
+        const currR = currentBest.reps;
+        const prevR = prevBest.reps;
+
+        if (currW > prevW) {
+          deltaWeight = roundTo(currW - prevW, 1);
+          displayText = `+${deltaWeight} ${unit} compared with previous session`;
+        } else if (currW < prevW) {
+          deltaWeight = roundTo(currW - prevW, 1);
+          displayText = `${deltaWeight} ${unit} compared with previous session`;
+        } else {
+          deltaWeight = 0;
+          deltaReps = currR - prevR;
+          if (deltaReps > 0) {
+            displayText = `+${deltaReps} rep${deltaReps > 1 ? 's' : ''} at ${currW} ${unit}`;
+          } else if (deltaReps < 0) {
+            displayText = `${deltaReps} rep${Math.abs(deltaReps) > 1 ? 's' : ''} at ${currW} ${unit}`;
+          } else {
+            displayText = 'No change';
+          }
+        }
+      }
+
+      exerciseDeltas.push({
+        exerciseId: we.exerciseId,
+        exerciseName: we.exercise?.name ?? 'Exercise',
+        currentBestWeight: currentBest ? currentBest.weight : null,
+        currentBestReps: currentBest ? currentBest.reps : null,
+        previousBestWeight: prevBest ? prevBest.weight : null,
+        previousBestReps: prevBest ? prevBest.reps : null,
+        deltaWeight,
+        deltaReps,
+        weightUnit: unit,
+        displayText,
+      });
+    }
 
     return {
       id: workout.id,
@@ -385,8 +510,9 @@ export class WorkoutsService {
       totalSets: workout.exercises.reduce((n, we) => n + we.sets.length, 0),
       totalWorkingSets: countWorkingSets(sets, { includeIncomplete: false }),
       totalVolume: roundTo(totalVolume, 1),
-      volumeChangeVsPrevious: prevVolume === null ? null : roundTo(totalVolume - prevVolume, 1),
-      exerciseDeltas: [],
+      volumeChangeVsPrevious,
+      volumePercentageChangeVsPrevious,
+      exerciseDeltas,
     };
   }
 

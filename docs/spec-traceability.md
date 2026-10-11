@@ -86,12 +86,13 @@
   - `GET /exercises` (search by query, muscle, equipment, difficulty, pagination)
   - `GET /exercises/:id`
 - **Workouts Controller (`/workouts`)**:
-  - `GET /workouts` (list user workouts)
+  - `GET /workouts` (list user workouts with `status`, `limit`, `offset` filters)
   - `GET /workouts/previous?exerciseId=&exclude=` (previous session lookup)
+  - `GET /workouts/exercise-history?exerciseId=&limit=&exclude=` (recent sessions for exercise history sheet)
   - `POST /workouts` (create workout with exercises & sets)
   - `GET /workouts/:id` (fetch workout detail)
-  - `GET /workouts/:id/summary` (fetch workout summary metrics)
-  - `PATCH /workouts/:id` (update workout name/note/completedAt)
+  - `GET /workouts/:id/summary` (fetch workout summary metrics and per-exercise deltas)
+  - `PATCH /workouts/:id` (update workout name/notes/status/completedAt)
   - `DELETE /workouts/:id` (soft-delete workout)
   - `POST /workouts/:id/exercises` (upsert workout exercise)
   - `DELETE /workouts/:id/exercises/:exerciseRowId`
