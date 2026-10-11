@@ -11,6 +11,7 @@ import { ExercisesModule } from './exercises/exercises.module.js';
 import { WorkoutsModule } from './workouts/workouts.module.js';
 import { ProgramsModule } from './programs/programs.module.js';
 import { NutritionModule } from './nutrition/nutrition.module.js';
+import { ProgressModule } from './progress/progress.module.js';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { NutritionModule } from './nutrition/nutrition.module.js';
     WorkoutsModule,
     ProgramsModule,
     NutritionModule,
+    ProgressModule,
   ],
   controllers: [AppController],
   providers: [AppService],

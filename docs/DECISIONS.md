@@ -306,3 +306,30 @@ Format: date — decision — reason.
   - Exported `VolumeProgressSummarySchema`, `ConsistencyProgressSummarySchema`, and `ProgressOverviewSchema`.
 - **Automated Verification:**
   - Added `apps/api/src/common/migration-m-e.spec.ts` verifying Epley 1RM formula, `body_weight_logs` CRUD with soft-deletes, and `exercise_personal_records` upsert operations.
+
+## 2026-10-11 — Phase 5 Slice PRG1 (Backend Progress API & Metrics Calculation Service)
+
+- **Progress API (`apps/api/src/progress/`):**
+  - `GET /progress/weight`:
+    - Retrieves body weight logs ordered chronologically.
+    - Computes `currentWeightKg`, `startWeightKg`, `targetWeightKg`, `changeThisMonthKg` (comparison vs 30-day baseline), history list, and 10-point sparkline.
+    - Supports low-data empty state without fake numbers when user has not logged weight yet.
+  - `POST /progress/weight`:
+    - Validated by `createBodyWeightLogSchema` via `ZodValidationPipe`.
+    - Upserts weight log and updates `user.weightKg` atomically within a Prisma transaction.
+  - `GET /progress/strength/:exerciseId`:
+    - Calculates per-exercise strength progression from completed workouts and working sets.
+    - Computes all-time best weight, best reps, and max estimated 1RM using Epley formula.
+    - Returns session progression history.
+  - `GET /progress/volume?range=week|month`:
+    - Sums `weight * reps` across all completed sets for the requested period.
+    - Groups volume by primary muscle group (`primaryMuscle`) with percentage distribution.
+    - Generates timeline volume data points and sparkline series.
+  - `GET /progress/consistency`:
+    - Compares completed workouts against planned weekly frequency from active program or user preferences.
+    - Computes adherence percentage, streak of consecutive compliant weeks, and 4-week history breakdown.
+  - `GET /progress/summary`:
+    - Aggregates weight, volume, consistency, and top exercise PRs in a single request for high-performance Home screen hydration.
+- **Automated Verification:**
+  - Added 14 unit tests across `progress.service.spec.ts` and `progress.controller.spec.ts` (137/137 tests passing in backend suite).
+

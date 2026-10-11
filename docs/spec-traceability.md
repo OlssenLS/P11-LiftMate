@@ -115,12 +115,18 @@
   - `POST /food-logs` (create/upsert food log entry with offline client UUID)
   - `PATCH /food-logs/:id` (update food log entry)
   - `DELETE /food-logs/:id` (soft-delete food log entry)
+- **Progress Controller (`/progress`)**:
+  - `GET /progress/summary` (aggregated weight, volume, consistency, and top PRs)
+  - `GET /progress/weight` (weight tracking history, start/target weight, 30-day delta)
+  - `POST /progress/weight` (log body weight measurement with client UUID)
+  - `GET /progress/strength/:exerciseId` (best weight, best reps, max estimated 1RM via Epley, history)
+  - `GET /progress/volume?range=week|month` (total volume, muscle group distribution, timeline)
+  - `GET /progress/consistency` (adherence %, streak, 4-week compliance breakdown)
 - **App Controller (`/`)**:
   - `GET /` (health / greeting)
 
 ### 2.4 Missing API Endpoints per Spec
 - **Auth**: `POST /auth/forgot-password`, `POST /auth/reset-password` (§3.3)
-- **Progress**: `GET /progress/weight`, `POST /progress/weight`, `GET /progress/strength/:exerciseId`, `GET /progress/volume`, `GET /progress/consistency` (§44–49)
 
 ---
 

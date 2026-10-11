@@ -30,7 +30,7 @@ export type BodyWeightLog = z.infer<typeof bodyWeightLogSchema>;
 export const createBodyWeightLogSchema = z.object({
   id: uuid.optional(),
   weightKg: z.number().min(20).max(500),
-  loggedAt: z.coerce.date().default(() => new Date()),
+  loggedAt: z.coerce.date().optional(),
   notes: z.string().trim().max(500).nullable().optional(),
 });
 export type CreateBodyWeightLogInput = z.infer<typeof createBodyWeightLogSchema>;
