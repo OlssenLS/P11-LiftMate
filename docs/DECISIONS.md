@@ -225,8 +225,23 @@ Format: date — decision — reason.
 - **Home Screen (`apps/mobile/src/app/(app)/index.tsx`):**
   - "Next workout" hero card: Connected to live active program data and live in-progress state, launching pre-filled workout or falling back to "Create Workout".
 
+## 2026-10-11 — Phase 4 Slice N0 (Migration M-D, Shared Nutrition Schemas & Seeds)
 
-
-
-
-
+- **Migration M-D (`20261011170000_migration_m_d`):**
+  - Added enum `MealType` (`breakfast`, `lunch`, `dinner`, `snack`).
+  - Added enum `FoodSource` (`verified`, `custom`, `tkpi`, `open_food_facts`).
+  - Added `foods` table:
+    - Primary key `id` (UUID), `name`, `serving_size`, `serving_unit`, `serving_weight_g`, `calories`, `protein`, `carbs`, `fat`, `source`, `barcode`, `external_id`, `created_at`, `updated_at`, `deleted_at`.
+    - Indexes on `name`, `source`, `deleted_at`, unique constraints on `barcode` and `external_id`.
+  - Added `food_logs` table:
+    - Primary key `id` (UUID, client-assignable for offline idempotent sync), `user_id`, `food_id` (nullable with `ON DELETE SET NULL`), `food_name`, `serving_size`, `quantity`, `meal_type`, `logged_at`, `calories`, `protein`, `carbs`, `fat`, `source`, `notes`, `created_at`, `updated_at`, `deleted_at`.
+    - Foreign key to `users(id)` with `ON DELETE CASCADE`.
+    - Indexes on `user_id`, `(user_id, logged_at)`, `(user_id, meal_type)`, `food_id`, `deleted_at`.
+- **Shared Nutrition Types & Zod Schemas (`@liftmate/shared`):**
+  - Exported `MealType` and `FoodSource` enum schemas.
+  - Exported `FoodSchema`, `CreateFoodSchema`, `FoodLogSchema`, `CreateFoodLogSchema`, `UpdateFoodLogSchema`.
+  - Exported `DailyNutritionSummarySchema`, `MealGroupSchema`, `MacroNutrientsSchema`.
+- **Starter Food Seeds (`apps/api/prisma/seed.ts`):**
+  - Seeded 28 staples covering Indonesian staples (TKPI: Nasi Putih, Nasi Merah, Tempe Goreng, Tempe Kukus, Tahu Putih, Tahu Goreng, Ikan Kembung, Ubi Jalar, Bayam) and core fitness staples (Dada Ayam, Paha Ayam, Telur Rebus, Putih Telur, Daging Sapi Cincang, Salmon, Oatmeal, Roti Gandum, Pisang, Apel, Kentang, Brokoli, Susu Full Cream, Susu Low Fat, Greek Yogurt, Whey Protein, Selai Kacang, Minyak Zaitun, Alpukat).
+- **Automated Verification:**
+  - Added `apps/api/src/common/migration-m-d.spec.ts` testing PostgreSQL enum constraints, model CRUD, food logging, updates, and soft deletes.

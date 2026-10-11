@@ -110,6 +110,20 @@ enum ProgramStatus {
   archived
 }
 
+enum MealType {
+  breakfast
+  lunch
+  dinner
+  snack
+}
+
+enum FoodSource {
+  verified
+  custom
+  tkpi
+  open_food_facts
+}
+
 model User {
   id           String     @id @default(uuid()) @db.Uuid
   email        String     @unique
@@ -133,6 +147,7 @@ model User {
   preferences         UserPreferences?
   workouts            Workout[]
   programs            Program[]
+  foodLogs            FoodLog[]
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
 
@@ -370,5 +385,63 @@ model ProgramExercise {
   @@index([exerciseId])
   @@map("program_exercises")
 }
+
+model Food {
+  id             String     @id @default(uuid()) @db.Uuid
+  name           String
+  servingSize    String     @map("serving_size")
+  servingUnit    String     @default("g") @map("serving_unit")
+  servingWeightG Float?     @map("serving_weight_g")
+  calories       Decimal    @db.Decimal(7, 2)
+  protein        Decimal    @db.Decimal(7, 2)
+  carbs          Decimal    @db.Decimal(7, 2)
+  fat            Decimal    @db.Decimal(7, 2)
+  source         FoodSource @default(verified)
+  barcode        String?    @unique
+  externalId     String?    @unique @map("external_id")
+
+  foodLogs FoodLog[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index([name])
+  @@index([source])
+  @@index([deletedAt])
+  @@map("foods")
+}
+
+model FoodLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  foodId      String?  @map("food_id") @db.Uuid
+  foodName    String   @map("food_name")
+  servingSize String   @map("serving_size")
+  quantity    Decimal  @default(1.0) @db.Decimal(5, 2)
+  mealType    MealType @map("meal_type")
+  loggedAt    DateTime @map("logged_at")
+  calories    Decimal  @db.Decimal(7, 2)
+  protein     Decimal  @db.Decimal(7, 2)
+  carbs       Decimal  @db.Decimal(7, 2)
+  fat         Decimal  @db.Decimal(7, 2)
+  source      String   @default("database")
+  notes       String?
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  food Food? @relation(fields: [foodId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index([userId])
+  @@index([userId, loggedAt])
+  @@index([userId, mealType])
+  @@index([foodId])
+  @@index([deletedAt])
+  @@map("food_logs")
+}
+
 
 

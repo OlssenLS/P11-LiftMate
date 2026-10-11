@@ -100,3 +100,20 @@ export const ProgramStatus = z.enum([
 ]);
 export type ProgramStatus = z.infer<typeof ProgramStatus>;
 
+export const MealType = z.enum([
+  "breakfast",
+  "lunch",
+  "dinner",
+  "snack",
+]);
+export type MealType = z.infer<typeof MealType>;
+
+export const FoodSource = z.enum([
+  "verified",
+  "custom",
+  "tkpi",
+  "open_food_facts",
+]);
+export type FoodSource = z.infer<typeof FoodSource>;
+
+
