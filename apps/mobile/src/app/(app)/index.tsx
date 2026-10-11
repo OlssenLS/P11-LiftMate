@@ -34,12 +34,68 @@ import { useAuthStore } from '@/stores/auth-store';
 
 import { USE_FIXTURES } from '@/config/env';
 import { HOME_FIXTURES } from '@/dev/fixtures';
+import { useCurrentProgram, useStartProgramDay } from '@/features/program/use-program-queries';
+import { useWorkoutHistory } from '@/features/workout/use-workout-queries';
+import { useActiveWorkoutStore } from '@/features/workout/active-workout-store';
 
 export default function HomeScreen() {
   const { colors, radius, layout, type, floatingShadow, icons, touchTarget } = useTokens();
   const bottomScrollPadding = useTabScrollPadding();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+
+  const { data: historyWorkouts } = useWorkoutHistory('completed');
+  const { data: currentProgram } = useCurrentProgram();
+  const { mutateAsync: startProgramDay, isPending: isStartingDay } = useStartProgramDay();
+  const activeWorkout = useActiveWorkoutStore((s) => s.workout);
+  const startFromWorkout = useActiveWorkoutStore((s) => s.startFromWorkout);
+  const startWorkout = useActiveWorkoutStore((s) => s.startWorkout);
+
+  const programDays = useMemo(() => {
+    if (!currentProgram?.programExercises || currentProgram.programExercises.length === 0) return [];
+    const dayMap = new Map<number, { day: number; dayName: string; exercises: typeof currentProgram.programExercises }>();
+    for (const pe of currentProgram.programExercises) {
+      const existing = dayMap.get(pe.day);
+      if (existing) {
+        existing.exercises.push(pe);
+      } else {
+        dayMap.set(pe.day, {
+          day: pe.day,
+          dayName: pe.dayName || `Day ${pe.day}`,
+          exercises: [pe],
+        });
+      }
+    }
+    return Array.from(dayMap.values()).sort((a, b) => a.day - b.day);
+  }, [currentProgram]);
+
+  const todayDay = useMemo(() => {
+    if (programDays.length === 0) return null;
+    const completedCount = historyWorkouts?.length ?? 0;
+    const nextIdx = completedCount % programDays.length;
+    return programDays[nextIdx] || programDays[0];
+  }, [programDays, historyWorkouts]);
+
+  const handleStartDay = async (dayNumber: number) => {
+    pressLight();
+    if (activeWorkout && activeWorkout.status === 'in_progress') {
+      router.push('/workout/active');
+      return;
+    }
+    if (!currentProgram) {
+      await startWorkout();
+      router.push('/workout/active');
+      return;
+    }
+    try {
+      const workout = await startProgramDay({ programId: currentProgram.id, day: dayNumber });
+      await startFromWorkout(workout);
+      router.push('/workout/active');
+    } catch {
+      await startWorkout(`${currentProgram.name} - Day ${dayNumber}`);
+      router.push('/workout/active');
+    }
+  };
 
   const [insightDismissed, setInsightDismissed] = useState(false);
 
@@ -176,6 +232,71 @@ export default function HomeScreen() {
                       pressLight();
                       router.push('/workout/active');
                     }}
+                  />
+                </View>
+              </>
+            ) : activeWorkout && activeWorkout.status === 'in_progress' ? (
+              <>
+                <View style={styles.heroHeader}>
+                  <Text
+                    style={[
+                      type.eyebrow,
+                      { color: 'rgba(255, 255, 255, 0.70)', letterSpacing: 0.6 },
+                    ]}
+                  >
+                    IN PROGRESS
+                  </Text>
+                  <Text
+                    style={[
+                      type.title,
+                      { color: '#FFFFFF', marginTop: 4, marginBottom: 4 },
+                    ]}
+                  >
+                    {activeWorkout.name || 'Active Workout'}
+                  </Text>
+                  <Text style={[type.secondary, { color: 'rgba(255, 255, 255, 0.75)' }]}>
+                    {`${activeWorkout.exercises.length} exercises logged`}
+                  </Text>
+                </View>
+
+                <View style={{ marginTop: 20 }}>
+                  <PrimaryButton
+                    label="Resume Workout"
+                    onPress={() => {
+                      pressLight();
+                      router.push('/workout/active');
+                    }}
+                  />
+                </View>
+              </>
+            ) : todayDay ? (
+              <>
+                <View style={styles.heroHeader}>
+                  <Text
+                    style={[
+                      type.eyebrow,
+                      { color: 'rgba(255, 255, 255, 0.70)', letterSpacing: 0.6 },
+                    ]}
+                  >
+                    {`PROGRAM · DAY ${todayDay.day}`}
+                  </Text>
+                  <Text
+                    style={[
+                      type.title,
+                      { color: '#FFFFFF', marginTop: 4, marginBottom: 4 },
+                    ]}
+                  >
+                    {todayDay.dayName}
+                  </Text>
+                  <Text style={[type.secondary, { color: 'rgba(255, 255, 255, 0.75)' }]}>
+                    {`${todayDay.exercises.length} exercises · ~${currentProgram?.duration === '30_45' ? '40' : '50'} min`}
+                  </Text>
+                </View>
+
+                <View style={{ marginTop: 20 }}>
+                  <PrimaryButton
+                    label={isStartingDay ? 'Starting...' : 'Start Workout'}
+                    onPress={() => handleStartDay(todayDay.day)}
                   />
                 </View>
               </>

@@ -210,6 +210,22 @@ Format: date — decision — reason.
 - **Onboarding Integration:**
   - `OnboardingService.complete` triggers `ProgramsService.assignRecommendedProgram` upon onboarding completion so a personalized program is immediately ready.
 
+## 2026-10-11 — Phase 3 Slice PR2 (Mobile Program Integration)
+
+- **Active Workout Store (`apps/mobile/src/features/workout/active-workout-store.ts`):**
+  - Added optional `programId` to `ActiveWorkout` state and idempotent `enqueueWorkout` payload.
+  - Implemented `startFromWorkout(workout: Workout)`: hydrates active workout state from pre-filled backend program workout with all exercises, sets, target reps, target RIR, and rest seconds. Persists snapshot to SQLite and enqueues sync op.
+- **Program Queries (`apps/mobile/src/features/program/use-program-queries.ts`):**
+  - `useCurrentProgram`: queries `GET /programs/current` for the user's active program.
+  - `useProgramTemplates`: queries `GET /programs/templates` for starter templates.
+  - `useStartProgramDay`: mutation calling `POST /programs/:id/start-day/:day` and invalidating cache.
+- **Train Screen (`apps/mobile/src/app/(app)/train.tsx`):**
+  - "Today's Session" hero card: Connected to live active program data. Renders `IN PROGRESS` card if session active, next scheduled program day (`PROGRAM · DAY X`, day name, exercise count, duration estimate) with "Start Workout" action, or "No workout scheduled" with "Create Workout" fallback.
+  - "My Program" section: Renders live program day list with exercises summary and tap-to-start action; renders `EmptyState` when no program is assigned.
+- **Home Screen (`apps/mobile/src/app/(app)/index.tsx`):**
+  - "Next workout" hero card: Connected to live active program data and live in-progress state, launching pre-filled workout or falling back to "Create Workout".
+
+
 
 
 

@@ -11,7 +11,7 @@
  * All ids are client-generated UUIDs; the server upserts by id so replaying the
  * queue never duplicates (brief §4 rules 12–14, WORKOUT_UX.md §11).
  */
-import type { Exercise, SetType, WeightUnit, WorkoutStatus } from '@liftmate/shared';
+import type { Exercise, SetType, WeightUnit, Workout, WorkoutStatus } from '@liftmate/shared';
 import { create } from 'zustand';
 
 import {
@@ -52,6 +52,7 @@ export interface ActiveWorkout {
   notes: string | null;
   note?: string | null;
   status: WorkoutStatus;
+  programId?: string | null;
   startedAt: string; // ISO
   completedAt: string | null;
   exercises: ActiveExercise[];
@@ -62,6 +63,7 @@ interface ActiveWorkoutState {
   hydrated: boolean;
   hydrate: () => Promise<void>;
   startWorkout: (name?: string) => Promise<void>;
+  startFromWorkout: (workout: Workout) => Promise<void>;
   renameWorkout: (name: string) => Promise<void>;
   updateWorkoutNotes: (notes: string | null) => Promise<void>;
   addExercise: (exercise: Pick<Exercise, 'id' | 'name'> & { primaryMuscle?: string; equipment?: string }) => Promise<void>;
@@ -97,6 +99,7 @@ function enqueueWorkout(workout: ActiveWorkout): Promise<void> {
       notes: workout.notes ?? workout.note ?? null,
       note: workout.notes ?? workout.note ?? null,
       status: workout.status ?? 'in_progress',
+      programId: workout.programId ?? null,
       startedAt: workout.startedAt,
       completedAt: workout.completedAt,
       exercises: workout.exercises.map((e) => ({
@@ -143,6 +146,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
       notes: null,
       note: null,
       status: 'in_progress',
+      programId: null,
       startedAt: new Date().toISOString(),
       completedAt: null,
       exercises: [],
@@ -150,6 +154,46 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
     set({ workout });
     await persist(workout);
     await enqueueWorkout(workout);
+  },
+
+  startFromWorkout: async (workout: Workout) => {
+    const active: ActiveWorkout = {
+      id: workout.id,
+      name: workout.name ?? null,
+      notes: workout.notes ?? null,
+      note: workout.notes ?? null,
+      status: 'in_progress',
+      programId: workout.programId ?? null,
+      startedAt:
+        typeof workout.startedAt === 'string'
+          ? workout.startedAt
+          : new Date(workout.startedAt).toISOString(),
+      completedAt: null,
+      exercises: workout.exercises.map((e, eIdx) => ({
+        id: e.id,
+        exerciseId: e.exerciseId,
+        name: e.exercise?.name ?? 'Exercise',
+        primaryMuscle: e.exercise?.primaryMuscle,
+        equipment: e.exercise?.equipment,
+        position: e.position ?? eIdx + 1,
+        sets: e.sets.map((s, sIdx) => ({
+          id: s.id,
+          position: s.position ?? sIdx + 1,
+          setType: s.setType ?? 'working',
+          weight: Number(s.weight ?? 0),
+          weightUnit: s.weightUnit ?? 'kg',
+          reps: s.reps ?? 10,
+          rir: s.rir ?? null,
+          rirUnknown: s.rirUnknown ?? false,
+          restTime: s.restTime ?? null,
+          notes: s.notes ?? null,
+          completed: s.completed ?? false,
+        })),
+      })),
+    };
+    set({ workout: active });
+    await persist(active);
+    await enqueueWorkout(active);
   },
 
   renameWorkout: async (name: string) => {
