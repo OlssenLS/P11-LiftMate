@@ -98,3 +98,20 @@ export function useDeleteWorkout() {
     },
   });
 }
+
+/** Update a workout's name or notes. */
+export function useUpdateWorkout() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...patch }: { id: string; name?: string | null; notes?: string | null }) => {
+      const res = await api.patch(`/workouts/${id}`, patch);
+      return res.data as Workout;
+    },
+    onSuccess: (updated) => {
+      void queryClient.invalidateQueries({ queryKey: ['workouts'] });
+      void queryClient.invalidateQueries({ queryKey: ['workout', updated.id] });
+      void queryClient.invalidateQueries({ queryKey: ['workout-summary', updated.id] });
+    },
+  });
+}
+

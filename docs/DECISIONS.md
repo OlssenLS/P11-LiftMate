@@ -146,3 +146,24 @@ Format: date — decision — reason.
 - **React Compiler & External Store Purity:**
   - Clock ticks for elapsed duration utilize `useSyncExternalStore` external store subscription, avoiding impure calls or cascading `setState` in `useEffect`.
 
+## 2026-10-11 — Phase 2 Slice W3 (Summary Screen, History List & History Detail)
+
+- **Workout Summary Screen (WORKOUT_UX.md §9.2):**
+  - Surface hero card (radius 28, hairline border, light background, no dark card) with total volume in `metricHero`, volume percentage change vs previous session (or factual "First time logging this workout"), and micro-stats for Duration, Exercises, and Working Sets.
+  - Performance section renders factual per-exercise deltas from `useWorkoutSummary` without praise or causal claims.
+  - Editable workout name and notes via modal bottom sheets, with local override state avoiding impure `useEffect` cascades.
+  - Sticky "Save workout" button commits pending name/note edits via `PATCH /workouts/:id`, removes local SQLite active workout state via `discardWorkout()`, invalidates query cache, and returns to `/(app)`.
+- **Workout History List in Train Screen (WORKOUT_UX.md §10.1):**
+  - Connected `apps/mobile/src/app/(app)/train.tsx` to live TanStack query `useWorkoutHistory('completed')`.
+  - Grouped workouts by date headings with `sectionTitle` / uppercase eyebrow date strings.
+  - Renders each session in a `ListRowCard` displaying workout name, `X min · Y exercises`, and clock icon.
+  - Tapping a session navigates to `/workout/[id]`.
+  - Empty state renders `EmptyState` with "No workouts yet" and primary action "Start a workout".
+- **Workout History Detail Screen (WORKOUT_UX.md §10.2):**
+  - Implemented dynamic route `apps/mobile/src/app/workout/[id].tsx` with `presentation: 'card'`.
+  - `DetailHeader` with back button, workout name, and More menu sheet triggering "Delete workout" with confirmation dialog.
+  - Subtitle displays formatted date and duration.
+  - Surface stats card displays Total Volume (computed via shared `computeVolume`), Exercises count, and Working sets.
+  - Read-only exercise cards display set rows (`weight × reps · RIR`), warmup badges (`W`), and set notes.
+
+

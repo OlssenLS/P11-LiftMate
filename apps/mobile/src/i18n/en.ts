@@ -506,6 +506,15 @@ export const en = {
     customRestTitle: 'Custom rest duration',
     minutes: 'Minutes',
     seconds: 'Seconds',
+    deleteWorkout: 'Delete workout',
+    deleteWorkoutConfirmTitle: 'Delete workout?',
+    deleteWorkoutConfirmBody: 'This workout and all recorded sets will be permanently deleted. This cannot be undone.',
+    noWorkoutsYet: 'No workouts yet',
+    noWorkoutsDescription: 'Completed workout sessions will appear here with performance summaries.',
+    startWorkoutAction: 'Start a workout',
+    firstTimeLogging: 'First time logging this workout',
+    vsPreviousWorkout: '{change} vs previous workout',
+    workoutDetailTitle: 'Workout details',
   },
 } as const;
 

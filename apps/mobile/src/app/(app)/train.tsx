@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Clock, Dumbbell, Search, Sparkles } from 'lucide-react-native';
 
 import {
@@ -17,6 +17,7 @@ import {
 import { USE_FIXTURES } from '@/config/env';
 import { TRAIN_FIXTURES } from '@/dev/fixtures';
 import { ExercisePicker } from '@/features/workout/exercise-picker';
+import { useWorkoutHistory } from '@/features/workout/use-workout-queries';
 import { useTokens } from '@/hooks/use-tokens';
 import { useTabScrollPadding } from '@/hooks/use-tab-scroll-padding';
 import { t } from '@/i18n';
@@ -27,6 +28,26 @@ export default function TrainScreen() {
   const bottomScrollPadding = useTabScrollPadding();
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  const { data: historyWorkouts, isLoading: isHistoryLoading } = useWorkoutHistory('completed');
+
+  const groupedHistory = useMemo(() => {
+    if (!historyWorkouts || historyWorkouts.length === 0) return [];
+    const groups: { dateHeading: string; workouts: typeof historyWorkouts }[] = [];
+    for (const w of historyWorkouts) {
+      const heading = new Date(w.startedAt).toLocaleDateString(undefined, {
+        month: 'long',
+        day: 'numeric',
+      });
+      const existing = groups.find((g) => g.dateHeading === heading);
+      if (existing) {
+        existing.workouts.push(w);
+      } else {
+        groups.push({ dateHeading: heading, workouts: [w] });
+      }
+    }
+    return groups;
+  }, [historyWorkouts]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -227,7 +248,7 @@ export default function TrainScreen() {
           )}
         </View>
 
-        {/* Section: History (DESIGN.md §7.5) */}
+        {/* Section: History (DESIGN.md §7.5 & WORKOUT_UX.md §10.1) */}
         <SectionHeader title="History" />
         <View style={styles.cardWrapper}>
           {USE_FIXTURES ? (
@@ -249,10 +270,61 @@ export default function TrainScreen() {
                 />
               ))}
             </ListGroup>
+          ) : isHistoryLoading ? (
+            <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+              <ActivityIndicator color={colors.accent} />
+            </View>
+          ) : groupedHistory.length > 0 ? (
+            <View style={{ gap: 16 }}>
+              {groupedHistory.map((group) => (
+                <View key={group.dateHeading} style={{ gap: 8 }}>
+                  <Text style={[type.eyebrow, { color: colors.inkMutedText, letterSpacing: 0.8 }]}>
+                    {group.dateHeading.toUpperCase()}
+                  </Text>
+                  <ListGroup>
+                    {group.workouts.map((w) => {
+                      const durationMins =
+                        w.startedAt && w.completedAt
+                          ? Math.max(
+                              1,
+                              Math.round(
+                                (new Date(w.completedAt).getTime() - new Date(w.startedAt).getTime()) /
+                                  60000
+                              )
+                            )
+                          : null;
+                      const exCount = w.exercises?.length ?? 0;
+                      const subtitle = durationMins
+                        ? `${durationMins} min · ${exCount} ${exCount === 1 ? 'exercise' : 'exercises'}`
+                        : `${exCount} ${exCount === 1 ? 'exercise' : 'exercises'}`;
+
+                      return (
+                        <ListRowCard
+                          key={w.id}
+                          label={w.name || 'Workout'}
+                          subtitle={subtitle}
+                          icon={
+                            <Clock
+                              size={icons.cardLabelSize}
+                              color={colors.accentText}
+                              strokeWidth={icons.strokeWidth}
+                            />
+                          }
+                          onPress={() => {
+                            pressLight();
+                            router.push({ pathname: '/workout/[id]', params: { id: w.id } });
+                          }}
+                        />
+                      );
+                    })}
+                  </ListGroup>
+                </View>
+              ))}
+            </View>
           ) : (
             <EmptyState
-              title="No Workout History"
-              description="Completed workout sessions will appear here with performance summaries."
+              title={t('workout.noWorkoutsYet')}
+              description={t('workout.noWorkoutsDescription')}
               icon={
                 <Clock
                   size={40}
@@ -260,7 +332,7 @@ export default function TrainScreen() {
                   strokeWidth={icons.strokeWidth}
                 />
               }
-              actionText="Start First Workout"
+              actionText={t('workout.startWorkoutAction')}
               onAction={() => {
                 pressLight();
                 router.push('/workout/active');
