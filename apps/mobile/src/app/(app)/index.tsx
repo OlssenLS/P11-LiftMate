@@ -37,6 +37,7 @@ import { HOME_FIXTURES } from '@/dev/fixtures';
 import { useCurrentProgram, useStartProgramDay } from '@/features/program/use-program-queries';
 import { useWorkoutHistory } from '@/features/workout/use-workout-queries';
 import { useActiveWorkoutStore } from '@/features/workout/active-workout-store';
+import { useDailyNutritionSummary } from '@/features/nutrition';
 
 export default function HomeScreen() {
   const { colors, radius, layout, type, floatingShadow, icons, touchTarget } = useTokens();
@@ -50,6 +51,9 @@ export default function HomeScreen() {
   const activeWorkout = useActiveWorkoutStore((s) => s.workout);
   const startFromWorkout = useActiveWorkoutStore((s) => s.startFromWorkout);
   const startWorkout = useActiveWorkoutStore((s) => s.startWorkout);
+
+  const todayDateStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const { data: nutritionSummary } = useDailyNutritionSummary(todayDateStr);
 
   const programDays = useMemo(() => {
     if (!currentProgram?.programExercises || currentProgram.programExercises.length === 0) return [];
@@ -353,9 +357,21 @@ export default function HomeScreen() {
               />
             }
             timestamp="Today"
-            value={USE_FIXTURES ? HOME_FIXTURES.metrics.calories.value : '--'}
+            value={
+              nutritionSummary
+                ? Math.round(nutritionSummary.totals.calories).toLocaleString()
+                : USE_FIXTURES
+                ? HOME_FIXTURES.metrics.calories.value
+                : '--'
+            }
             unit="kcal"
-            sublabel={USE_FIXTURES ? HOME_FIXTURES.metrics.calories.sublabel : 'No data logged'}
+            sublabel={
+              nutritionSummary
+                ? `of ${nutritionSummary.targets.calories.toLocaleString()} kcal budget · ${nutritionSummary.remaining.calories.toLocaleString()} kcal left`
+                : USE_FIXTURES
+                ? HOME_FIXTURES.metrics.calories.sublabel
+                : 'No meals logged'
+            }
             sparklineData={USE_FIXTURES ? [...HOME_FIXTURES.metrics.calories.sparkline] : undefined}
             onPress={() => router.push({ pathname: '/metric/[id]', params: { id: 'calories' } })}
           />

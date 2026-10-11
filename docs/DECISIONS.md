@@ -271,3 +271,22 @@ Format: date — decision — reason.
 - **Automated Verification:**
   - Added 19 unit tests across `foods.service.spec.ts`, `foods.controller.spec.ts`, `food-logs.service.spec.ts`, and `food-logs.controller.spec.ts` (120/120 tests passing in backend suite).
 
+## 2026-10-11 — Phase 4 Slice N2 (Mobile Nutrition Integration & Offline Logging)
+
+- **Mobile Nutrition Feature (`apps/mobile/src/features/nutrition/`):**
+  - Implemented `use-nutrition-queries.ts`:
+    - `useDailyNutritionSummary(date)`: Queries `GET /food-logs?date=${date}` for daily totals, targets, remaining macros, progress percentages, and grouped meals.
+    - `useFoodSearch(query, limit)`: Live search against `GET /foods/search?q=${query}&limit=${limit}` with a 5-minute stale cache.
+    - `useCreateFoodLog()`: Offline-first mutation generating client UUID via `newId()` (`expo-crypto`), enqueueing to SQLite `sync_queue` if offline or on network error, and updating TanStack Query cache.
+    - `useUpdateFoodLog()`: Calls `PATCH /food-logs/${id}` and invalidates nutrition queries.
+    - `useDeleteFoodLog()`: Calls `DELETE /food-logs/${id}` and invalidates nutrition queries.
+    - `useCreateFood()`: Calls `POST /foods` to store custom food catalog entries.
+- **Food Screen (`apps/mobile/src/app/(app)/food.tsx`):**
+  - **Dynamic Week Strip:** Replaced static days with 7-day rolling window centered on today with interactive date selection, active styling, and haptic feedback (`selectionTick()`).
+  - **Live Daily Summary:** Replaced mock fixtures with live `useDailyNutritionSummary(selectedDate)`. Displays calories consumed vs budget, remaining calories, and dynamic progress tracks for protein, carbs, and fat.
+  - **Live Meal Categories:** Groups logged foods into Breakfast, Lunch, Dinner, and Snacks sections with meal macro subtotals. Tapping any logged item opens an options sheet with logged macros and "Delete Entry" action.
+  - **Interactive Add Food Sheet:** Supports category selection chips (`Breakfast`, `Lunch`, `Dinner`, `Snacks`), dual-mode interface (`Catalog Search` with real-time API query & portion multiplier chips `0.5x`, `1x`, `1.5x`, `2x`, `3x`, and `Custom Food` entry for ad-hoc meals).
+- **Home Screen Integration (`apps/mobile/src/app/(app)/index.tsx`):**
+  - Connected the Home Screen "Calories" MetricCard to `useDailyNutritionSummary(todayDateStr)`, showing today's real logged calories and remaining budget.
+
+

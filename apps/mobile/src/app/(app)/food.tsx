@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import {
@@ -13,11 +15,13 @@ import {
   Flame,
   Moon,
   Plus,
+  Search,
   Utensils,
 } from 'lucide-react-native';
 
 import {
   Card,
+  Chip,
   CircleButton,
   EmptyState,
   LargeTitleHeader,
@@ -26,57 +30,218 @@ import {
   MetricCard,
   OfflineBanner,
   PrimaryButton,
+  SecondaryButton,
   SectionHeader,
   Sheet,
 } from '@/components/ui';
-import { USE_FIXTURES } from '@/config/env';
-import { FOOD_FIXTURES } from '@/dev/fixtures';
-import { useTokens } from '@/hooks/use-tokens';
+import {
+  useCreateFoodLog,
+  useDailyNutritionSummary,
+  useDeleteFoodLog,
+  useFoodSearch,
+} from '@/features/nutrition';
 import { useTabScrollPadding } from '@/hooks/use-tab-scroll-padding';
-import { selectionTick } from '@/lib/haptics';
+import { useTokens } from '@/hooks/use-tokens';
+import { notifySuccess, notifyWarning, pressLight, selectionTick } from '@/lib/haptics';
+import type { Food, FoodLog, MealType } from '@liftmate/shared';
 
-interface MealItem {
-  id: string;
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
+const MEAL_LABELS: Record<MealType, string> = {
+  breakfast: 'Breakfast',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
+  snack: 'Snacks',
+};
+
+function getRollingWeek(): { dateStr: string; label: string; dayNum: string; isToday: boolean }[] {
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+  const dayOfWeek = today.getDay();
+  const mondayDiff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayDiff);
+
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
+    days.push({
+      dateStr,
+      label: dayNames[d.getDay()],
+      dayNum: String(d.getDate()),
+      isToday: dateStr === todayStr,
+    });
+  }
+  return days;
 }
-
-const WEEK_DAYS = [
-  { key: 'mon', label: 'M', dayNum: '5' },
-  { key: 'tue', label: 'T', dayNum: '6' },
-  { key: 'wed', label: 'W', dayNum: '7' },
-  { key: 'thu', label: 'T', dayNum: '8' },
-  { key: 'fri', label: 'F', dayNum: '9' },
-  { key: 'sat', label: 'S', dayNum: '10' },
-  { key: 'sun', label: 'S', dayNum: '11' },
-];
 
 export default function FoodScreen() {
   const { colors, radius, layout, type, icons, touchTarget } = useTokens();
   const bottomScrollPadding = useTabScrollPadding();
   const router = useRouter();
 
-  const [selectedDayKey, setSelectedDayKey] = useState('wed');
-  const [activeMealCategory, setActiveMealCategory] = useState<string | null>(null);
-  const [editingItem, setEditingItem] = useState<MealItem | null>(null);
+  const weekDays = useMemo(() => getRollingWeek(), []);
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
 
-  const isSheetOpen = activeMealCategory !== null || editingItem !== null;
+  // Live queries & mutations
+  const { data: summary } = useDailyNutritionSummary(selectedDate);
+  const createFoodLog = useCreateFoodLog();
+  const deleteFoodLog = useDeleteFoodLog();
 
-  const handleCloseSheet = () => {
-    setActiveMealCategory(null);
+  // Add Food Sheet state
+  const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
+  const [addMealType, setAddMealType] = useState<MealType>('breakfast');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFood, setSelectedFood] = useState<Food | null>(null);
+  const [quantity, setQuantity] = useState(1.0);
+  const [isCustomMode, setIsCustomMode] = useState(false);
+
+  // Custom food fields
+  const [customName, setCustomName] = useState('');
+  const [customServing, setCustomServing] = useState('1 porsi (100g)');
+  const [customCalories, setCustomCalories] = useState('');
+  const [customProtein, setCustomProtein] = useState('');
+  const [customCarbs, setCustomCarbs] = useState('');
+  const [customFat, setCustomFat] = useState('');
+
+  // Edit / Delete Item Sheet state
+  const [editingItem, setEditingItem] = useState<FoodLog | null>(null);
+
+  // Catalog search query
+  const { data: searchResults, isLoading: isSearching } = useFoodSearch(searchQuery);
+
+  const handleOpenAdd = (mealType: MealType = 'lunch') => {
+    selectionTick();
+    setAddMealType(mealType);
+    setSelectedFood(null);
+    setSearchQuery('');
+    setQuantity(1.0);
+    setIsCustomMode(false);
+    setCustomName('');
+    setCustomCalories('');
+    setCustomProtein('');
+    setCustomCarbs('');
+    setCustomFat('');
+    setIsAddSheetOpen(true);
+  };
+
+  const handleCloseAddSheet = () => {
+    setIsAddSheetOpen(false);
+    setSelectedFood(null);
+  };
+
+  const handleLogFood = async () => {
+    if (selectedFood) {
+      pressLight();
+      const cal = Math.round(selectedFood.calories * quantity);
+      const p = Math.round(selectedFood.protein * quantity * 10) / 10;
+      const c = Math.round(selectedFood.carbs * quantity * 10) / 10;
+      const f = Math.round(selectedFood.fat * quantity * 10) / 10;
+
+      await createFoodLog.mutateAsync({
+        foodId: selectedFood.id,
+        foodName: selectedFood.name,
+        servingSize: selectedFood.servingSize,
+        quantity,
+        mealType: addMealType,
+        loggedAt: new Date(selectedDate),
+        calories: cal,
+        protein: p,
+        carbs: c,
+        fat: f,
+        source: selectedFood.source,
+      });
+
+      notifySuccess();
+      handleCloseAddSheet();
+    } else if (isCustomMode) {
+      const name = customName.trim();
+      const cal = Number.parseFloat(customCalories) || 0;
+      const p = Number.parseFloat(customProtein) || 0;
+      const c = Number.parseFloat(customCarbs) || 0;
+      const f = Number.parseFloat(customFat) || 0;
+
+      if (!name || cal <= 0) return;
+
+      pressLight();
+      await createFoodLog.mutateAsync({
+        foodName: name,
+        servingSize: customServing.trim() || '1 porsi',
+        quantity: 1,
+        mealType: addMealType,
+        loggedAt: new Date(selectedDate),
+        calories: cal,
+        protein: p,
+        carbs: c,
+        fat: f,
+        source: 'custom',
+      });
+
+      notifySuccess();
+      handleCloseAddSheet();
+    }
+  };
+
+  const handleDeleteItem = async () => {
+    if (!editingItem) return;
+    notifyWarning();
+    await deleteFoodLog.mutateAsync(editingItem.id);
     setEditingItem(null);
   };
 
-  const macros = USE_FIXTURES
-    ? FOOD_FIXTURES.macros
-    : [
-        { name: 'Protein', current: 0, target: 160, unit: 'g' },
-        { name: 'Carbs', current: 0, target: 240, unit: 'g' },
-        { name: 'Fat', current: 0, target: 70, unit: 'g' },
-      ];
+  const formattedDateLabel = useMemo(() => {
+    if (selectedDate === todayStr) return 'Today';
+    const parts = selectedDate.split('-');
+    if (parts.length === 3) {
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthIdx = Number.parseInt(parts[1], 10) - 1;
+      const day = Number.parseInt(parts[2], 10);
+      return `${monthNames[monthIdx]} ${day}`;
+    }
+    return selectedDate;
+  }, [selectedDate, todayStr]);
+
+  const totalLoggedItems = summary?.meals.reduce((sum, m) => sum + m.items.length, 0) ?? 0;
+
+  const macrosList = [
+    {
+      name: 'Protein',
+      current: Math.round(summary?.totals.protein ?? 0),
+      target: summary?.targets.protein ?? 150,
+      unit: 'g',
+      pct: summary?.progressPct.protein ?? 0,
+    },
+    {
+      name: 'Carbs',
+      current: Math.round(summary?.totals.carbs ?? 0),
+      target: summary?.targets.carbs ?? 200,
+      unit: 'g',
+      pct: summary?.progressPct.carbs ?? 0,
+    },
+    {
+      name: 'Fat',
+      current: Math.round(summary?.totals.fat ?? 0),
+      target: summary?.targets.fat ?? 65,
+      unit: 'g',
+      pct: summary?.progressPct.fat ?? 0,
+    },
+  ];
+
+  const getMealIcon = (mealType: MealType) => {
+    switch (mealType) {
+      case 'breakfast':
+        return <Coffee size={icons.cardLabelSize} color={colors.accentText} strokeWidth={icons.strokeWidth} />;
+      case 'lunch':
+        return <Utensils size={icons.cardLabelSize} color={colors.accentText} strokeWidth={icons.strokeWidth} />;
+      case 'dinner':
+        return <Moon size={icons.cardLabelSize} color={colors.accentText} strokeWidth={icons.strokeWidth} />;
+      case 'snack':
+        return <Apple size={icons.cardLabelSize} color={colors.accentText} strokeWidth={icons.strokeWidth} />;
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -89,7 +254,7 @@ export default function FoodScreen() {
           },
         ]}
       >
-        {/* Large Title Header + Add Action (DESIGN.md §4 & §7.7) */}
+        {/* Large Title Header + Quick Add Action */}
         <LargeTitleHeader
           title="Food"
           trailing={
@@ -103,7 +268,7 @@ export default function FoodScreen() {
                 />
               }
               accessibilityLabel="Quick log food"
-              onPress={() => setActiveMealCategory('Lunch')}
+              onPress={() => handleOpenAdd('lunch')}
             />
           }
         />
@@ -121,18 +286,18 @@ export default function FoodScreen() {
               },
             ]}
           >
-            {WEEK_DAYS.map((day) => {
-              const isSelected = day.key === selectedDayKey;
+            {weekDays.map((day) => {
+              const isSelected = day.dateStr === selectedDate;
 
               return (
                 <Pressable
-                  key={day.key}
+                  key={day.dateStr}
                   accessibilityRole="button"
                   accessibilityState={{ selected: isSelected }}
-                  accessibilityLabel={`October ${day.dayNum}`}
+                  accessibilityLabel={`${day.label} ${day.dayNum}`}
                   onPress={() => {
                     selectionTick();
-                    setSelectedDayKey(day.key);
+                    setSelectedDate(day.dateStr);
                   }}
                   hitSlop={Math.max(0, (touchTarget.min - 44) / 2)}
                   style={styles.dayHitArea}
@@ -189,11 +354,14 @@ export default function FoodScreen() {
                 strokeWidth={icons.strokeWidth}
               />
             }
-            timestamp="Today"
-            value={USE_FIXTURES ? '1,840' : '--'}
+            timestamp={formattedDateLabel}
+            value={summary ? Math.round(summary.totals.calories).toLocaleString() : '--'}
             unit="kcal"
-            sublabel={USE_FIXTURES ? 'of 2,200 kcal budget' : 'No meals logged'}
-            sparklineData={USE_FIXTURES ? [1650, 1900, 1780, 2120, 1840] : undefined}
+            sublabel={
+              summary
+                ? `of ${summary.targets.calories.toLocaleString()} kcal budget · ${summary.remaining.calories.toLocaleString()} kcal left`
+                : 'Loading daily summary...'
+            }
             onPress={() =>
               router.push({
                 pathname: '/metric/[id]',
@@ -207,8 +375,8 @@ export default function FoodScreen() {
         <View style={[styles.cardWrapper, { marginTop: layout.cardGap }]}>
           <Card variant="surface" padding="lg">
             <View style={{ gap: 14 }}>
-              {macros.map((m) => {
-                const pct = m.target > 0 ? Math.min(100, Math.round((m.current / m.target) * 100)) : 0;
+              {macrosList.map((m) => {
+                const clampedPct = Math.min(100, Math.max(0, m.pct));
 
                 return (
                   <View key={m.name} style={{ gap: 6 }}>
@@ -235,7 +403,7 @@ export default function FoodScreen() {
                         style={[
                           styles.macroFill,
                           {
-                            width: `${pct}%`,
+                            width: `${clampedPct}%`,
                             backgroundColor: colors.accent,
                             borderRadius: radius.pill,
                           },
@@ -249,162 +417,58 @@ export default function FoodScreen() {
           </Card>
         </View>
 
-        {USE_FIXTURES ? (
-          <>
-            {/* Section: Breakfast (DESIGN.md §7.7) */}
-            <SectionHeader
-              title="Breakfast · 520 kcal"
-              actionText="+ Add"
-              onAction={() => setActiveMealCategory('Breakfast')}
-            />
-            <View style={styles.cardWrapper}>
-              <ListGroup>
-                <ListRowCard
-                  label="Oatmeal with Whey & Berries"
-                  subtitle="420 kcal · 32g P · 54g C · 8g F"
-                  icon={
-                    <Coffee
-                      size={icons.cardLabelSize}
-                      color={colors.accentText}
-                      strokeWidth={icons.strokeWidth}
-                    />
-                  }
-                  onPress={() =>
-                    setEditingItem({
-                      id: '1',
-                      name: 'Oatmeal with Whey & Berries',
-                      calories: 420,
-                      protein: 32,
-                      carbs: 54,
-                      fat: 8,
-                    })
-                  }
-                />
-                <ListRowCard
-                  label="Whole Milk Latte"
-                  subtitle="100 kcal · 6g P · 8g C · 5g F"
-                  icon={
-                    <Coffee
-                      size={icons.cardLabelSize}
-                      color={colors.accentText}
-                      strokeWidth={icons.strokeWidth}
-                    />
-                  }
-                  onPress={() =>
-                    setEditingItem({
-                      id: '2',
-                      name: 'Whole Milk Latte',
-                      calories: 100,
-                      protein: 6,
-                      carbs: 8,
-                      fat: 5,
-                    })
-                  }
-                />
-              </ListGroup>
-            </View>
-
-            {/* Section: Lunch (DESIGN.md §7.7) */}
-            <SectionHeader
-              title="Lunch · 680 kcal"
-              actionText="+ Add"
-              onAction={() => setActiveMealCategory('Lunch')}
-            />
-            <View style={styles.cardWrapper}>
-              <ListGroup>
-                <ListRowCard
-                  label="Grilled Chicken Rice Bowl"
-                  subtitle="680 kcal · 48g P · 72g C · 16g F"
-                  icon={
-                    <Utensils
-                      size={icons.cardLabelSize}
-                      color={colors.accentText}
-                      strokeWidth={icons.strokeWidth}
-                    />
-                  }
-                  onPress={() =>
-                    setEditingItem({
-                      id: '3',
-                      name: 'Grilled Chicken Rice Bowl',
-                      calories: 680,
-                      protein: 48,
-                      carbs: 72,
-                      fat: 16,
-                    })
-                  }
-                />
-              </ListGroup>
-            </View>
-
-            {/* Section: Dinner (DESIGN.md §7.7) */}
-            <SectionHeader
-              title="Dinner · 540 kcal"
-              actionText="+ Add"
-              onAction={() => setActiveMealCategory('Dinner')}
-            />
-            <View style={styles.cardWrapper}>
-              <ListGroup>
-                <ListRowCard
-                  label="Salmon Fillet with Sweet Potato"
-                  subtitle="540 kcal · 42g P · 45g C · 18g F"
-                  icon={
-                    <Moon
-                      size={icons.cardLabelSize}
-                      color={colors.accentText}
-                      strokeWidth={icons.strokeWidth}
-                    />
-                  }
-                  onPress={() =>
-                    setEditingItem({
-                      id: '4',
-                      name: 'Salmon Fillet with Sweet Potato',
-                      calories: 540,
-                      protein: 42,
-                      carbs: 45,
-                      fat: 18,
-                    })
-                  }
-                />
-              </ListGroup>
-            </View>
-
-            {/* Section: Snacks (DESIGN.md §7.7) */}
-            <SectionHeader
-              title="Snacks · 100 kcal"
-              actionText="+ Add"
-              onAction={() => setActiveMealCategory('Snacks')}
-            />
-            <View style={styles.cardWrapper}>
-              <ListGroup>
-                <ListRowCard
-                  label="Greek Yogurt Cup"
-                  subtitle="100 kcal · 14g P · 6g C · 1g F"
-                  icon={
-                    <Apple
-                      size={icons.cardLabelSize}
-                      color={colors.accentText}
-                      strokeWidth={icons.strokeWidth}
-                    />
-                  }
-                  onPress={() =>
-                    setEditingItem({
-                      id: '5',
-                      name: 'Greek Yogurt Cup',
-                      calories: 100,
-                      protein: 14,
-                      carbs: 6,
-                      fat: 1,
-                    })
-                  }
-                />
-              </ListGroup>
-            </View>
-          </>
+        {/* Meal Sections or Empty State */}
+        {totalLoggedItems > 0 ? (
+          summary?.meals.map((meal) => (
+            <React.Fragment key={meal.mealType}>
+              <SectionHeader
+                title={`${meal.name} · ${Math.round(meal.totals.calories)} kcal`}
+                actionText="+ Add"
+                onAction={() => handleOpenAdd(meal.mealType)}
+              />
+              <View style={styles.cardWrapper}>
+                {meal.items.length > 0 ? (
+                  <ListGroup>
+                    {meal.items.map((item) => (
+                      <ListRowCard
+                        key={item.id}
+                        label={item.foodName}
+                        subtitle={`${Number(item.quantity) !== 1 ? `${item.quantity}x ` : ''}${item.servingSize} · ${Math.round(item.calories)} kcal · ${Math.round(item.protein)}g P · ${Math.round(item.carbs)}g C · ${Math.round(item.fat)}g F`}
+                        icon={getMealIcon(meal.mealType)}
+                        onPress={() => {
+                          selectionTick();
+                          setEditingItem(item);
+                        }}
+                      />
+                    ))}
+                  </ListGroup>
+                ) : (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Add ${meal.name}`}
+                    onPress={() => handleOpenAdd(meal.mealType)}
+                    style={[
+                      styles.emptyMealRow,
+                      {
+                        backgroundColor: colors.surface,
+                        borderRadius: radius.lg,
+                        borderColor: colors.hairline,
+                      },
+                    ]}
+                  >
+                    <Text style={[type.secondary, { color: colors.inkMutedText }]}>
+                      + Tap to log {meal.name.toLowerCase()}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            </React.Fragment>
+          ))
         ) : (
-          <View style={[styles.cardWrapper, { marginTop: layout.cardGap }]}>
+          <View style={[styles.cardWrapper, { marginTop: layout.cardGap * 2 }]}>
             <EmptyState
               title="No Food Logged"
-              description="Nutrition tracking and food database search will be active in Phase 4."
+              description="Start tracking your breakfast, lunch, dinner, or snacks to hit your daily macro targets."
               icon={
                 <Utensils
                   size={40}
@@ -413,34 +477,408 @@ export default function FoodScreen() {
                 />
               }
               actionText="+ Log Food"
-              onAction={() => setActiveMealCategory('Lunch')}
+              onAction={() => handleOpenAdd('breakfast')}
             />
           </View>
         )}
       </ScrollView>
 
-      {/* Add / Edit Meal Sheet (DESIGN.md §6.9 & §7.7) */}
+      {/* Add Food Interactive Sheet */}
       <Sheet
-        visible={isSheetOpen}
-        onClose={handleCloseSheet}
-        title={
-          editingItem
-            ? `Edit ${editingItem.name}`
-            : `Add to ${activeMealCategory ?? 'Meal'}`
-        }
+        visible={isAddSheetOpen}
+        onClose={handleCloseAddSheet}
+        title={`Add to ${MEAL_LABELS[addMealType]}`}
         mode="picker"
       >
         <View style={{ gap: 16, paddingVertical: 12 }}>
-          <Text style={[type.body, { color: colors.inkMutedText }]}>
-            {editingItem
-              ? `${editingItem.calories} kcal · ${editingItem.protein}g protein logged.`
-              : 'Log items by scanning nutrition labels, typing ingredients, or snapping an AI photo.'}
-          </Text>
-          <PrimaryButton
-            label={editingItem ? 'Save Changes' : 'Log Food'}
-            onPress={handleCloseSheet}
-          />
+          {/* Meal type selector chips */}
+          <View style={styles.chipsRow}>
+            {(['breakfast', 'lunch', 'dinner', 'snack'] as MealType[]).map((mt) => (
+              <Chip
+                key={mt}
+                label={MEAL_LABELS[mt]}
+                selected={addMealType === mt}
+                onPress={() => setAddMealType(mt)}
+              />
+            ))}
+          </View>
+
+          {/* Mode switch: Search vs Custom */}
+          <View style={styles.modeToggleRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: !isCustomMode }}
+              onPress={() => {
+                selectionTick();
+                setIsCustomMode(false);
+              }}
+              style={[
+                styles.modeTab,
+                {
+                  borderBottomColor: !isCustomMode ? colors.accent : 'transparent',
+                  borderBottomWidth: 2,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  type.cardLabel,
+                  { color: !isCustomMode ? colors.accent : colors.inkMutedText },
+                ]}
+              >
+                Catalog Search
+              </Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: isCustomMode }}
+              onPress={() => {
+                selectionTick();
+                setIsCustomMode(true);
+                setSelectedFood(null);
+              }}
+              style={[
+                styles.modeTab,
+                {
+                  borderBottomColor: isCustomMode ? colors.accent : 'transparent',
+                  borderBottomWidth: 2,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  type.cardLabel,
+                  { color: isCustomMode ? colors.accent : colors.inkMutedText },
+                ]}
+              >
+                Custom Food
+              </Text>
+            </Pressable>
+          </View>
+
+          {!isCustomMode ? (
+            /* Catalog Search Mode */
+            selectedFood ? (
+              /* Selected Food Details & Quantity Stepper */
+              <View style={{ gap: 14 }}>
+                <Card variant="surface" padding="md" style={{ backgroundColor: colors.surfaceMuted }}>
+                  <View style={{ gap: 6 }}>
+                    <Text style={[type.sectionTitle, { color: colors.ink }]}>
+                      {selectedFood.name}
+                    </Text>
+                    <Text style={[type.secondary, { color: colors.inkMutedText }]}>
+                      Base: {selectedFood.servingSize} · {selectedFood.calories} kcal
+                    </Text>
+                    <Text style={[type.caption, { color: colors.accentText }]}>
+                      {selectedFood.protein}g P · {selectedFood.carbs}g C · {selectedFood.fat}g F
+                    </Text>
+                  </View>
+                </Card>
+
+                {/* Portion Quantity Presets */}
+                <Text style={[type.eyebrow, { color: colors.inkMutedText }]}>
+                  SELECT PORTION
+                </Text>
+                <View style={styles.chipsRow}>
+                  {[0.5, 1.0, 1.5, 2.0, 3.0].map((q) => (
+                    <Chip
+                      key={q}
+                      label={`${q}x`}
+                      selected={quantity === q}
+                      onPress={() => setQuantity(q)}
+                    />
+                  ))}
+                </View>
+
+                {/* Computed Stats Card */}
+                <Card variant="surface" padding="md">
+                  <View style={styles.macroHeaderRow}>
+                    <Text style={[type.cardLabel, { color: colors.ink }]}>Total Calories</Text>
+                    <Text style={[type.sectionTitle, { color: colors.accent }]}>
+                      {Math.round(selectedFood.calories * quantity)} kcal
+                    </Text>
+                  </View>
+                  <View style={[styles.macroHeaderRow, { marginTop: 8 }]}>
+                    <Text style={[type.secondary, { color: colors.inkMutedText }]}>
+                      {Math.round(selectedFood.protein * quantity * 10) / 10}g Protein
+                    </Text>
+                    <Text style={[type.secondary, { color: colors.inkMutedText }]}>
+                      {Math.round(selectedFood.carbs * quantity * 10) / 10}g Carbs
+                    </Text>
+                    <Text style={[type.secondary, { color: colors.inkMutedText }]}>
+                      {Math.round(selectedFood.fat * quantity * 10) / 10}g Fat
+                    </Text>
+                  </View>
+                </Card>
+
+                <View style={{ gap: 10, marginTop: 8 }}>
+                  <PrimaryButton
+                    label={`Log Food (${Math.round(selectedFood.calories * quantity)} kcal)`}
+                    onPress={handleLogFood}
+                  />
+                  <SecondaryButton
+                    label="Choose Different Food"
+                    onPress={() => setSelectedFood(null)}
+                  />
+                </View>
+              </View>
+            ) : (
+              /* Search Input & Results List */
+              <View style={{ gap: 12 }}>
+                <View
+                  style={[
+                    styles.searchInputContainer,
+                    {
+                      backgroundColor: colors.surfaceMuted,
+                      borderRadius: radius.md,
+                      borderColor: colors.hairline,
+                    },
+                  ]}
+                >
+                  <Search size={18} color={colors.inkMuted} strokeWidth={2} />
+                  <TextInput
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholder="Search food (e.g., Dada Ayam, Nasi)..."
+                    placeholderTextColor={colors.inkMutedText}
+                    style={[
+                      styles.searchInput,
+                      type.body,
+                      { color: colors.ink },
+                    ]}
+                    autoCorrect={false}
+                    clearButtonMode="while-editing"
+                  />
+                </View>
+
+                {isSearching ? (
+                  <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+                    <ActivityIndicator size="small" color={colors.accent} />
+                  </View>
+                ) : (
+                  <View style={{ gap: 8 }}>
+                    {(searchResults ?? []).map((food) => (
+                      <Pressable
+                        key={food.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${food.name}, ${food.calories} calories`}
+                        onPress={() => {
+                          selectionTick();
+                          setSelectedFood(food);
+                          setQuantity(1.0);
+                        }}
+                        style={[
+                          styles.searchResultRow,
+                          {
+                            backgroundColor: colors.surface,
+                            borderRadius: radius.md,
+                            borderColor: colors.hairline,
+                          },
+                        ]}
+                      >
+                        <View style={{ flex: 1, gap: 2 }}>
+                          <Text style={[type.cardLabel, { color: colors.ink }]}>
+                            {food.name}
+                          </Text>
+                          <Text style={[type.caption, { color: colors.inkMutedText }]}>
+                            {food.servingSize} · {food.protein}g P · {food.carbs}g C · {food.fat}g F
+                          </Text>
+                        </View>
+                        <Text style={[type.cardLabel, { color: colors.accentText }]}>
+                          {food.calories} kcal
+                        </Text>
+                      </Pressable>
+                    ))}
+                    {(searchResults ?? []).length === 0 && (
+                      <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                        <Text style={[type.secondary, { color: colors.inkMutedText }]}>
+                          No items found. Try a different search or use Custom Food.
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            )
+          ) : (
+            /* Custom Food Entry Mode */
+            <View style={{ gap: 12 }}>
+              <View style={{ gap: 4 }}>
+                <Text style={[type.caption, { color: colors.inkMutedText }]}>FOOD NAME</Text>
+                <TextInput
+                  value={customName}
+                  onChangeText={setCustomName}
+                  placeholder="e.g. Nasi Goreng Spesial"
+                  placeholderTextColor={colors.inkMutedText}
+                  style={[
+                    styles.formInput,
+                    type.body,
+                    {
+                      backgroundColor: colors.surfaceMuted,
+                      borderRadius: radius.md,
+                      color: colors.ink,
+                      borderColor: colors.hairline,
+                    },
+                  ]}
+                />
+              </View>
+
+              <View style={{ gap: 4 }}>
+                <Text style={[type.caption, { color: colors.inkMutedText }]}>SERVING SIZE</Text>
+                <TextInput
+                  value={customServing}
+                  onChangeText={setCustomServing}
+                  placeholder="1 porsi (100g)"
+                  placeholderTextColor={colors.inkMutedText}
+                  style={[
+                    styles.formInput,
+                    type.body,
+                    {
+                      backgroundColor: colors.surfaceMuted,
+                      borderRadius: radius.md,
+                      color: colors.ink,
+                      borderColor: colors.hairline,
+                    },
+                  ]}
+                />
+              </View>
+
+              <View style={styles.formRow}>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={[type.caption, { color: colors.inkMutedText }]}>CALORIES</Text>
+                  <TextInput
+                    value={customCalories}
+                    onChangeText={setCustomCalories}
+                    placeholder="kcal"
+                    keyboardType="numeric"
+                    placeholderTextColor={colors.inkMutedText}
+                    style={[
+                      styles.formInput,
+                      type.body,
+                      {
+                        backgroundColor: colors.surfaceMuted,
+                        borderRadius: radius.md,
+                        color: colors.ink,
+                        borderColor: colors.hairline,
+                      },
+                    ]}
+                  />
+                </View>
+
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={[type.caption, { color: colors.inkMutedText }]}>PROTEIN (g)</Text>
+                  <TextInput
+                    value={customProtein}
+                    onChangeText={setCustomProtein}
+                    placeholder="g"
+                    keyboardType="numeric"
+                    placeholderTextColor={colors.inkMutedText}
+                    style={[
+                      styles.formInput,
+                      type.body,
+                      {
+                        backgroundColor: colors.surfaceMuted,
+                        borderRadius: radius.md,
+                        color: colors.ink,
+                        borderColor: colors.hairline,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.formRow}>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={[type.caption, { color: colors.inkMutedText }]}>CARBS (g)</Text>
+                  <TextInput
+                    value={customCarbs}
+                    onChangeText={setCustomCarbs}
+                    placeholder="g"
+                    keyboardType="numeric"
+                    placeholderTextColor={colors.inkMutedText}
+                    style={[
+                      styles.formInput,
+                      type.body,
+                      {
+                        backgroundColor: colors.surfaceMuted,
+                        borderRadius: radius.md,
+                        color: colors.ink,
+                        borderColor: colors.hairline,
+                      },
+                    ]}
+                  />
+                </View>
+
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={[type.caption, { color: colors.inkMutedText }]}>FAT (g)</Text>
+                  <TextInput
+                    value={customFat}
+                    onChangeText={setCustomFat}
+                    placeholder="g"
+                    keyboardType="numeric"
+                    placeholderTextColor={colors.inkMutedText}
+                    style={[
+                      styles.formInput,
+                      type.body,
+                      {
+                        backgroundColor: colors.surfaceMuted,
+                        borderRadius: radius.md,
+                        color: colors.ink,
+                        borderColor: colors.hairline,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+
+              <View style={{ marginTop: 10 }}>
+                <PrimaryButton
+                  label={`Log Custom Food to ${MEAL_LABELS[addMealType]}`}
+                  onPress={handleLogFood}
+                />
+              </View>
+            </View>
+          )}
         </View>
+      </Sheet>
+
+      {/* Edit / Delete Logged Item Sheet */}
+      <Sheet
+        visible={editingItem !== null}
+        onClose={() => setEditingItem(null)}
+        title={editingItem ? `Logged Item: ${editingItem.foodName}` : 'Meal Item'}
+        mode="edit"
+      >
+        {editingItem && (
+          <View style={{ gap: 16, paddingVertical: 12 }}>
+            <Card variant="surface" padding="md" style={{ backgroundColor: colors.surfaceMuted }}>
+              <View style={{ gap: 6 }}>
+                <Text style={[type.sectionTitle, { color: colors.ink }]}>
+                  {editingItem.foodName}
+                </Text>
+                <Text style={[type.secondary, { color: colors.inkMutedText }]}>
+                  {Number(editingItem.quantity) !== 1 ? `${editingItem.quantity}x ` : ''}
+                  {editingItem.servingSize} · {Math.round(editingItem.calories)} kcal
+                </Text>
+                <Text style={[type.cardLabel, { color: colors.accentText }]}>
+                  {Math.round(editingItem.protein)}g Protein · {Math.round(editingItem.carbs)}g Carbs · {Math.round(editingItem.fat)}g Fat
+                </Text>
+              </View>
+            </Card>
+
+            <View style={{ gap: 10, marginTop: 10 }}>
+              <SecondaryButton
+                label="Delete Entry"
+                onPress={handleDeleteItem}
+              />
+              <PrimaryButton
+                label="Done"
+                onPress={() => setEditingItem(null)}
+              />
+            </View>
+          </View>
+        )}
       </Sheet>
     </View>
   );
@@ -491,5 +929,56 @@ const styles = StyleSheet.create({
   },
   macroFill: {
     height: '100%',
+  },
+  emptyMealRow: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  modeToggleRow: {
+    flexDirection: 'row',
+    gap: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  modeTab: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  searchInput: {
+    flex: 1,
+    padding: 0,
+  },
+  searchResultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  formRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  formInput: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: StyleSheet.hairlineWidth,
   },
 });

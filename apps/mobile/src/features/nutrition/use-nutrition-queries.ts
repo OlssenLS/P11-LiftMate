@@ -1,0 +1,167 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type {
+  CreateFoodInput,
+  CreateFoodLogInput,
+  DailyNutritionSummary,
+  Food,
+  FoodLog,
+  UpdateFoodLogInput,
+} from '@liftmate/shared';
+
+import { api } from '@/lib/api-client';
+import { enqueueOp } from '@/lib/db';
+import { getIsOffline } from '@/lib/network';
+import { newId } from '@/lib/uuid';
+
+/**
+ * Fetch daily nutrition summary including totals, targets, progress %, and grouped meal items.
+ */
+export function useDailyNutritionSummary(date: string) {
+  return useQuery<DailyNutritionSummary>({
+    queryKey: ['nutrition', 'daily', date],
+    queryFn: async () => {
+      const res = await api.get(`/food-logs?date=${date}`);
+      return res.data as DailyNutritionSummary;
+    },
+  });
+}
+
+/**
+ * Search the food catalog (verified staples and user custom entries).
+ */
+export function useFoodSearch(query: string, limit = 20) {
+  return useQuery<Food[]>({
+    queryKey: ['foods', 'search', query, limit],
+    queryFn: async () => {
+      const trimmed = query.trim();
+      const res = await api.get(
+        `/foods/search?q=${encodeURIComponent(trimmed)}&limit=${limit}`,
+      );
+      return res.data as Food[];
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
+  });
+}
+
+/**
+ * Log a food item with client UUID and offline queuing fallback.
+ */
+export function useCreateFoodLog() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: CreateFoodLogInput): Promise<FoodLog> => {
+      const id = input.id ?? newId();
+      const payload: CreateFoodLogInput = {
+        ...input,
+        id,
+      };
+
+      if (getIsOffline()) {
+        await enqueueOp({
+          id,
+          method: 'POST',
+          path: '/food-logs',
+          body: payload,
+          createdAt: Date.now(),
+        });
+
+        // Return optimistic food log entry
+        return {
+          id,
+          userId: 'offline-user',
+          foodId: payload.foodId ?? null,
+          foodName: payload.foodName,
+          servingSize: payload.servingSize,
+          quantity: payload.quantity,
+          mealType: payload.mealType,
+          loggedAt: payload.loggedAt ? new Date(payload.loggedAt) : new Date(),
+          calories: payload.calories,
+          protein: payload.protein,
+          carbs: payload.carbs,
+          fat: payload.fat,
+          source: payload.source ?? 'database',
+          notes: payload.notes ?? null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          deletedAt: null,
+        };
+      }
+
+      try {
+        const res = await api.post('/food-logs', payload);
+        return res.data as FoodLog;
+      } catch (err) {
+        // Enqueue on failure for background sync replay
+        await enqueueOp({
+          id,
+          method: 'POST',
+          path: '/food-logs',
+          body: payload,
+          createdAt: Date.now(),
+        });
+        throw err;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nutrition', 'daily'] });
+    },
+  });
+}
+
+/**
+ * Update a logged food entry.
+ */
+export function useUpdateFoodLog() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateFoodLogInput;
+    }): Promise<FoodLog> => {
+      const res = await api.patch(`/food-logs/${id}`, data);
+      return res.data as FoodLog;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nutrition', 'daily'] });
+    },
+  });
+}
+
+/**
+ * Soft-delete a food log entry.
+ */
+export function useDeleteFoodLog() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string): Promise<{ success: boolean }> => {
+      const res = await api.delete(`/food-logs/${id}`);
+      return res.data as { success: boolean };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nutrition', 'daily'] });
+    },
+  });
+}
+
+/**
+ * Create a new custom food item in catalog.
+ */
+export function useCreateFood() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: CreateFoodInput): Promise<Food> => {
+      const res = await api.post('/foods', input);
+      return res.data as Food;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['foods', 'search'] });
+    },
+  });
+}
