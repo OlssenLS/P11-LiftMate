@@ -148,6 +148,8 @@ model User {
   workouts            Workout[]
   programs            Program[]
   foodLogs            FoodLog[]
+  bodyWeightLogs      BodyWeightLog[]
+  personalRecords     ExercisePersonalRecord[]
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
 
@@ -224,6 +226,7 @@ model Exercise {
 
   workoutExercises WorkoutExercise[]
   programExercises ProgramExercise[]
+  personalRecords  ExercisePersonalRecord[]
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -293,7 +296,8 @@ model WorkoutSet {
   notes             String?    @map("notes")
   completed         Boolean    @default(false)
 
-  workoutExercise WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+  workoutExercise WorkoutExercise          @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+  personalRecords ExercisePersonalRecord[]
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -443,5 +447,42 @@ model FoodLog {
   @@map("food_logs")
 }
 
+model BodyWeightLog {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  weightKg  Decimal   @map("weight_kg") @db.Decimal(5, 2)
+  loggedAt  DateTime  @map("logged_at")
+  notes     String?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([userId, loggedAt])
+  @@index([deletedAt])
+  @@map("body_weight_logs")
+}
+
+model ExercisePersonalRecord {
+  id              String      @id @default(uuid()) @db.Uuid
+  userId          String      @map("user_id") @db.Uuid
+  exerciseId      String      @map("exercise_id") @db.Uuid
+  maxWeight       Decimal     @map("max_weight") @db.Decimal(7, 2)
+  maxReps         Int         @map("max_reps")
+  maxEstimated1Rm Decimal     @map("max_estimated_1rm") @db.Decimal(7, 2)
+  achievedAt      DateTime    @map("achieved_at")
+  workoutSetId    String?     @map("workout_set_id") @db.Uuid
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise   Exercise    @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  workoutSet WorkoutSet? @relation(fields: [workoutSetId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, exerciseId])
+  @@index([userId])
+  @@index([exerciseId])
+  @@map("exercise_personal_records")
+}

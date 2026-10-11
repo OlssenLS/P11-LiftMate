@@ -289,4 +289,20 @@ Format: date — decision — reason.
 - **Home Screen Integration (`apps/mobile/src/app/(app)/index.tsx`):**
   - Connected the Home Screen "Calories" MetricCard to `useDailyNutritionSummary(todayDateStr)`, showing today's real logged calories and remaining budget.
 
+## 2026-10-11 — Phase 5 Slice PRG0 (Migration M-E & Shared Progress Schemas)
 
+- **Migration M-E (`20261011190000_migration_m_e`):**
+  - Added `body_weight_logs` table:
+    - Primary key `id` (UUID), `user_id` (UUID FK to `users`), `weight_kg` (`DECIMAL(5,2)`), `logged_at` (TIMESTAMP), `notes` (TEXT), `created_at`, `updated_at`, `deleted_at`.
+    - Indexes on `user_id`, `(user_id, logged_at)`, `deleted_at`.
+  - Added `exercise_personal_records` table:
+    - Primary key `id` (UUID), `user_id` (UUID FK), `exercise_id` (UUID FK), `max_weight` (`DECIMAL(7,2)`), `max_reps` (INT), `max_estimated_1rm` (`DECIMAL(7,2)`), `achieved_at` (TIMESTAMP), `workout_set_id` (UUID nullable FK with `ON DELETE SET NULL`), `created_at`, `updated_at`.
+    - Unique constraint on `(user_id, exercise_id)` for idempotent PR tracking and quick indexing.
+- **Deterministic 1RM Calculation (LIFTMATE_AGENT_BRIEF §8):**
+  - Implemented `calculateEstimated1RM(weightKg, reps)` using the Epley formula: `weightKg * (1 + reps / 30)` for working sets, rounded to 1 decimal place, returning raw weight when reps = 1.
+- **Shared Schemas (`packages/shared/src/progress.ts`):**
+  - Exported `BodyWeightLogSchema`, `CreateBodyWeightLogSchema`, `WeightProgressSummarySchema`.
+  - Exported `ExercisePersonalRecordSchema`, `ExerciseStrengthProgressSchema`.
+  - Exported `VolumeProgressSummarySchema`, `ConsistencyProgressSummarySchema`, and `ProgressOverviewSchema`.
+- **Automated Verification:**
+  - Added `apps/api/src/common/migration-m-e.spec.ts` verifying Epley 1RM formula, `body_weight_logs` CRUD with soft-deletes, and `exercise_personal_records` upsert operations.
