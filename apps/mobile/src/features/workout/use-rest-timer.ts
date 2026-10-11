@@ -24,6 +24,7 @@ export interface RestTimerState {
   running: boolean;
   start: (seconds: number) => void;
   stop: () => void;
+  adjust: (deltaSeconds: number) => void;
 }
 
 type NotificationsModule = typeof import('expo-notifications');
@@ -174,6 +175,24 @@ export function useRestTimer(): RestTimerState {
     [clearTick, cancelNotification],
   );
 
+  const adjust = useCallback(
+    (deltaSeconds: number) => {
+      if (endAtRef.current == null) return;
+      const newEndAt = Math.max(Date.now(), endAtRef.current + deltaSeconds * 1000);
+      endAtRef.current = newEndAt;
+      const left = Math.max(0, Math.round((newEndAt - Date.now()) / 1000));
+      setRemaining(left);
+      setDuration((d) => Math.max(left, d + deltaSeconds));
+      void cancelNotification();
+      if (left > 0) {
+        void scheduleFinishNotification(left).then((id) => {
+          notificationIdRef.current = id;
+        });
+      }
+    },
+    [cancelNotification],
+  );
+
   // Clean up on unmount.
   useEffect(() => {
     return () => {
@@ -182,5 +201,5 @@ export function useRestTimer(): RestTimerState {
     };
   }, [clearTick, cancelNotification]);
 
-  return { remaining, duration, running, start, stop };
+  return { remaining, duration, running, start, stop, adjust };
 }

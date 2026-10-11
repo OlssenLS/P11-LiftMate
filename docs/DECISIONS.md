@@ -113,3 +113,36 @@ Format: date — decision — reason.
     - Computes `volumePercentageChangeVsPrevious` against previous completed workout.
 - **Mobile Workout Query Hooks:**
   - Added `useWorkoutHistory`, `useWorkoutDetail`, `usePreviousSession`, `useExerciseHistory`, and `useDeleteWorkout` in `apps/mobile/src/features/workout/use-workout-queries.ts`.
+
+## 2026-10-11 — Phase 2 Slice W2 (Active Workout 6-Column UI & Live Logging)
+
+- **6-Column Compact Row Layout (WORKOUT_UX.md §4.1):**
+  - Set (44dp), Prev (48dp), Weight (48dp), Reps (48dp), RIR (46dp), Done (44dp).
+  - Total row width is 278dp, fitting a 360dp phone (304dp inner width) with room to spare without clipping or horizontal scrolling.
+  - Prev chip auto-fills previous session values into weight and rep inputs on tap.
+- **Stacked Fallback Layout (WORKOUT_UX.md §4.2):**
+  - Activates when `width < 360` or `fontScale >= 1.15`, stacking Set/Done header on row 1 and Weight/Reps/RIR inputs on row 2.
+- **Surface StatsCard (WORKOUT_UX.md §3.2):**
+  - Replaced former dark Live Volume card with a single surface card (`colors.surface`, radius 28, hairline border, 0 elevation) displaying Total Volume (kg), Completed Working Sets / Total Working Sets, and live Duration.
+- **Header & Session Navigation (WORKOUT_UX.md §3.1, §3.3, §3.4):**
+  - Minimize button displays non-modal "Your progress is saved" sheet before navigating back.
+  - Title tap opens rename sheet; notes pill opens notes sheet.
+  - Three-dot menu provides "Discard workout" with destructive confirmation sheet.
+- **Rest Timer Controls (WORKOUT_UX.md §6.1, §6.2):**
+  - Idle state renders a rest timer chip showing target duration (e.g. `2:00 Rest`), opening a duration picker sheet with presets (60s, 90s, 120s, 180s) and custom mm:ss inputs.
+  - Active state renders a persistent bottom bar with animated MM:SS countdown, -15s and +15s delta adjustments, and a Skip button.
+  - Completing a set auto-starts the timer for the set's configured rest duration.
+- **RIR Picker Sheet (WORKOUT_UX.md §5.1):**
+  - Tapping RIR chip opens a bottom sheet with 0, 1, 2, 3, 4, 5+ pills and an "Unknown" pill.
+  - RPE is never exposed in logging UI.
+- **Set Options & Undo Deletion (WORKOUT_UX.md §4.3):**
+  - Set options sheet supports toggling Working / Warmup set type, adding set notes, and deleting the set.
+  - Set deletion displays an animated 4-second Undo snackbar restoring the set and its values.
+- **Exercise Actions & Exercise History Sheet (WORKOUT_UX.md §7.1, §7.2):**
+  - Exercise action menu allows viewing history, replacing the exercise, or removing the exercise.
+  - History sheet pulls past sessions via `useExerciseHistory` displaying completed sets and Epley Est. 1RM.
+- **Finish Workout Incomplete Sets Confirmation (WORKOUT_UX.md §8.1):**
+  - Tapping "Finish workout" with unchecked sets prompts confirmation to discard incomplete sets.
+- **React Compiler & External Store Purity:**
+  - Clock ticks for elapsed duration utilize `useSyncExternalStore` external store subscription, avoiding impure calls or cascading `setState` in `useEffect`.
+

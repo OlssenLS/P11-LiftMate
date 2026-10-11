@@ -9,9 +9,9 @@
  * 3. enqueues an idempotent API op (client-UUID keyed) to sync when online.
  *
  * All ids are client-generated UUIDs; the server upserts by id so replaying the
- * queue never duplicates (brief §4 rules 12–14).
+ * queue never duplicates (brief §4 rules 12–14, WORKOUT_UX.md §11).
  */
-import type { Exercise, SetType, WeightUnit } from '@liftmate/shared';
+import type { Exercise, SetType, WeightUnit, WorkoutStatus } from '@liftmate/shared';
 import { create } from 'zustand';
 
 import {
@@ -30,6 +30,9 @@ export interface ActiveSet {
   weightUnit: WeightUnit;
   reps: number;
   rir: number | null;
+  rirUnknown?: boolean;
+  restTime?: number | null;
+  notes?: string | null;
   completed: boolean;
 }
 
@@ -37,6 +40,8 @@ export interface ActiveExercise {
   id: string;
   exerciseId: string;
   name: string;
+  primaryMuscle?: string;
+  equipment?: string;
   position: number;
   sets: ActiveSet[];
 }
@@ -44,7 +49,9 @@ export interface ActiveExercise {
 export interface ActiveWorkout {
   id: string;
   name: string | null;
-  note: string | null;
+  notes: string | null;
+  note?: string | null;
+  status: WorkoutStatus;
   startedAt: string; // ISO
   completedAt: string | null;
   exercises: ActiveExercise[];
@@ -55,13 +62,19 @@ interface ActiveWorkoutState {
   hydrated: boolean;
   hydrate: () => Promise<void>;
   startWorkout: (name?: string) => Promise<void>;
-  addExercise: (exercise: Pick<Exercise, 'id' | 'name'>) => Promise<void>;
+  renameWorkout: (name: string) => Promise<void>;
+  updateWorkoutNotes: (notes: string | null) => Promise<void>;
+  addExercise: (exercise: Pick<Exercise, 'id' | 'name'> & { primaryMuscle?: string; equipment?: string }) => Promise<void>;
+  replaceExercise: (
+    workoutExerciseId: string,
+    newExercise: Pick<Exercise, 'id' | 'name'> & { primaryMuscle?: string; equipment?: string },
+  ) => Promise<void>;
   removeExercise: (workoutExerciseId: string) => Promise<void>;
   addSet: (workoutExerciseId: string, weightUnit: WeightUnit) => Promise<void>;
   updateSet: (
     workoutExerciseId: string,
     setId: string,
-    patch: Partial<Pick<ActiveSet, 'weight' | 'reps' | 'rir' | 'setType' | 'completed'>>,
+    patch: Partial<Pick<ActiveSet, 'weight' | 'reps' | 'rir' | 'rirUnknown' | 'setType' | 'completed' | 'notes' | 'restTime'>>,
   ) => Promise<void>;
   removeSet: (workoutExerciseId: string, setId: string) => Promise<void>;
   finishWorkout: () => Promise<ActiveWorkout | null>;
@@ -81,7 +94,9 @@ function enqueueWorkout(workout: ActiveWorkout): Promise<void> {
     body: {
       id: workout.id,
       name: workout.name,
-      note: workout.note,
+      notes: workout.notes ?? workout.note ?? null,
+      note: workout.notes ?? workout.note ?? null,
+      status: workout.status ?? 'in_progress',
       startedAt: workout.startedAt,
       completedAt: workout.completedAt,
       exercises: workout.exercises.map((e) => ({
@@ -95,7 +110,10 @@ function enqueueWorkout(workout: ActiveWorkout): Promise<void> {
           weight: s.weight,
           weightUnit: s.weightUnit,
           reps: s.reps,
-          rir: s.rir,
+          rir: s.rir ?? null,
+          rirUnknown: s.rirUnknown ?? false,
+          restTime: s.restTime ?? null,
+          notes: s.notes ?? null,
           completed: s.completed,
         })),
       })),
@@ -110,6 +128,11 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
 
   hydrate: async () => {
     const saved = await loadActiveWorkout<ActiveWorkout>();
+    if (saved) {
+      // Normalize legacy field `note` -> `notes`
+      saved.notes = saved.notes ?? saved.note ?? null;
+      saved.status = saved.status ?? 'in_progress';
+    }
     set({ workout: saved, hydrated: true });
   },
 
@@ -117,7 +140,9 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
     const workout: ActiveWorkout = {
       id: newId(),
       name: name ?? null,
+      notes: null,
       note: null,
+      status: 'in_progress',
       startedAt: new Date().toISOString(),
       completedAt: null,
       exercises: [],
@@ -125,6 +150,24 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
     set({ workout });
     await persist(workout);
     await enqueueWorkout(workout);
+  },
+
+  renameWorkout: async (name: string) => {
+    const current = get().workout;
+    if (!current) return;
+    const next: ActiveWorkout = { ...current, name };
+    set({ workout: next });
+    await persist(next);
+    await enqueueWorkout(next);
+  },
+
+  updateWorkoutNotes: async (notes: string | null) => {
+    const current = get().workout;
+    if (!current) return;
+    const next: ActiveWorkout = { ...current, notes, note: notes };
+    set({ workout: next });
+    await persist(next);
+    await enqueueWorkout(next);
   },
 
   addExercise: async (exercise) => {
@@ -138,10 +181,34 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
           id: newId(),
           exerciseId: exercise.id,
           name: exercise.name,
+          primaryMuscle: exercise.primaryMuscle,
+          equipment: exercise.equipment,
           position: current.exercises.length,
           sets: [],
         },
       ],
+    };
+    set({ workout: next });
+    await persist(next);
+    await enqueueWorkout(next);
+  },
+
+  replaceExercise: async (workoutExerciseId, newExercise) => {
+    const current = get().workout;
+    if (!current) return;
+    const next: ActiveWorkout = {
+      ...current,
+      exercises: current.exercises.map((e) =>
+        e.id === workoutExerciseId
+          ? {
+              ...e,
+              exerciseId: newExercise.id,
+              name: newExercise.name,
+              primaryMuscle: newExercise.primaryMuscle,
+              equipment: newExercise.equipment,
+            }
+          : e,
+      ),
     };
     set({ workout: next });
     await persist(next);
@@ -175,7 +242,6 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
       ...current,
       exercises: current.exercises.map((e) => {
         if (e.id !== workoutExerciseId) return e;
-        // Prefill from the last set for faster logging.
         const last = e.sets[e.sets.length - 1];
         return {
           ...e,
@@ -184,11 +250,14 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
             {
               id: newId(),
               position: e.sets.length,
-              setType: 'working',
+              setType: last?.setType ?? 'working',
               weight: last?.weight ?? 0,
               weightUnit,
               reps: last?.reps ?? 0,
               rir: last?.rir ?? null,
+              rirUnknown: last?.rirUnknown ?? false,
+              notes: null,
+              restTime: last?.restTime ?? null,
               completed: false,
             },
           ],
@@ -247,7 +316,11 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
   finishWorkout: async () => {
     const current = get().workout;
     if (!current) return null;
-    const finished: ActiveWorkout = { ...current, completedAt: new Date().toISOString() };
+    const finished: ActiveWorkout = {
+      ...current,
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+    };
     set({ workout: finished });
     await persist(finished);
     await enqueueWorkout(finished);
