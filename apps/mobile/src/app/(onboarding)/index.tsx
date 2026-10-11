@@ -1,14 +1,23 @@
 import {
   Difficulty,
+  DIETARY_PREFERENCES,
   Equipment,
   FitnessGoal,
-  onboardingBasicsSchema,
+  Gender,
+  TrainingLocation,
+  WorkoutDuration,
+  onboardingAboutYouSchema,
   onboardingEquipmentSchema,
   onboardingGoalSchema,
   onboardingNutritionSchema,
+  onboardingPreferencesSchema,
   onboardingSchema,
   onboardingTrainingSchema,
+  onboardingYourBodySchema,
+  calculateNutritionTargets,
+  deriveAgeFromDateOfBirth,
   type OnboardingInput,
+  type Exercise,
 } from '@liftmate/shared';
 import { isAxiosError } from 'axios';
 import {
@@ -17,6 +26,7 @@ import {
   Dumbbell,
   Flame,
   Heart,
+  Plus,
   Scale,
   Sparkles,
   Target,
@@ -24,6 +34,7 @@ import {
   TrendingUp,
   Trophy,
   Utensils,
+  X,
   Zap,
 } from 'lucide-react-native';
 import { useState } from 'react';
@@ -31,6 +42,7 @@ import { Controller, useForm, type Path } from 'react-hook-form';
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -50,7 +62,9 @@ import {
   PrimaryButton,
   SecondaryButton,
   SelectCard,
+  SegmentedControl,
 } from '@/components/ui';
+import { ExercisePicker } from '@/features/workout/exercise-picker';
 import { useCompleteOnboarding } from '@/features/onboarding/use-complete-onboarding';
 import { useTokens } from '@/hooks/use-tokens';
 import { t } from '@/i18n';
@@ -59,25 +73,38 @@ import { notifyError, notifySuccess, pressLight, selectionTick } from '@/lib/hap
 type FormValues = {
   displayName: string;
   dateOfBirth: string;
-  weightUnit: OnboardingInput['weightUnit'];
+  gender: OnboardingInput['gender'] | '';
   timezone: string;
+  heightCm: string;
+  weightKg: string;
+  bodyFatPct: string;
+  targetWeightKg: string;
+  weightUnit: OnboardingInput['weightUnit'];
   primaryGoal: OnboardingInput['primaryGoal'] | '';
   secondaryGoal: OnboardingInput['secondaryGoal'] | '';
   experienceLevel: OnboardingInput['experienceLevel'] | '';
   weeklyFrequency: string;
+  workoutDuration: OnboardingInput['workoutDuration'] | '';
+  trainingLocation: OnboardingInput['trainingLocation'] | '';
   equipment: OnboardingInput['equipment'];
+  preferredEquipment: OnboardingInput['preferredEquipment'];
+  preferredExercises: string[];
+  avoidExercises: string[];
   targetCalories: string;
   targetProtein: string;
   targetCarbs: string;
   targetFat: string;
+  dietaryPreferences: string[];
 };
 
 const FORM_STEP_FIELDS: Path<FormValues>[][] = [
-  ['displayName', 'dateOfBirth', 'weightUnit', 'timezone'],
-  ['primaryGoal'],
-  ['experienceLevel', 'weeklyFrequency'],
+  ['displayName', 'dateOfBirth', 'gender', 'timezone'],
+  ['heightCm', 'weightKg', 'bodyFatPct', 'targetWeightKg', 'weightUnit'],
+  ['primaryGoal', 'secondaryGoal'],
+  ['experienceLevel', 'weeklyFrequency', 'workoutDuration', 'trainingLocation'],
   ['equipment'],
-  ['targetCalories', 'targetProtein', 'targetCarbs', 'targetFat'],
+  ['preferredEquipment', 'preferredExercises', 'avoidExercises'],
+  ['targetCalories', 'targetProtein', 'targetCarbs', 'targetFat', 'dietaryPreferences'],
 ];
 
 const TOTAL_FORM_STEPS = FORM_STEP_FIELDS.length;
@@ -94,54 +121,44 @@ const NUTRITION_ERROR_KEYS = {
 } as const;
 
 const STEP_SCHEMAS = [
-  onboardingBasicsSchema,
+  onboardingAboutYouSchema,
+  onboardingYourBodySchema,
   onboardingGoalSchema,
   onboardingTrainingSchema,
   onboardingEquipmentSchema,
+  onboardingPreferencesSchema,
   onboardingNutritionSchema,
 ];
 
 function toPayload(values: FormValues): OnboardingInput {
   return {
-    displayName: values.displayName,
+    displayName: values.displayName.trim(),
     dateOfBirth: new Date(values.dateOfBirth),
-    weightUnit: values.weightUnit,
+    gender: (values.gender || 'prefer_not_to_say') as OnboardingInput['gender'],
     timezone: values.timezone,
-    primaryGoal: values.primaryGoal as OnboardingInput['primaryGoal'],
+    heightCm: Number(values.heightCm) || 170,
+    weightKg: Number(values.weightKg) || 70,
+    bodyFatPct: values.bodyFatPct ? Number(values.bodyFatPct) : null,
+    targetWeightKg: values.targetWeightKg ? Number(values.targetWeightKg) : null,
+    weightUnit: values.weightUnit,
+    primaryGoal: (values.primaryGoal || 'general_fitness') as OnboardingInput['primaryGoal'],
     secondaryGoal: values.secondaryGoal
       ? (values.secondaryGoal as OnboardingInput['secondaryGoal'])
       : null,
-    experienceLevel: values.experienceLevel as OnboardingInput['experienceLevel'],
-    weeklyFrequency: Number(values.weeklyFrequency),
-    equipment: values.equipment,
-    targetCalories: Number(values.targetCalories),
-    targetProtein: Number(values.targetProtein),
-    targetCarbs: Number(values.targetCarbs),
-    targetFat: Number(values.targetFat),
+    experienceLevel: (values.experienceLevel || 'beginner') as OnboardingInput['experienceLevel'],
+    weeklyFrequency: Number(values.weeklyFrequency) || 3,
+    workoutDuration: (values.workoutDuration || '45_60') as OnboardingInput['workoutDuration'],
+    trainingLocation: (values.trainingLocation || 'commercial_gym') as OnboardingInput['trainingLocation'],
+    equipment: values.equipment.length > 0 ? values.equipment : ['bodyweight'],
+    preferredEquipment: values.preferredEquipment ?? [],
+    preferredExercises: values.preferredExercises ?? [],
+    avoidExercises: values.avoidExercises ?? [],
+    targetCalories: Number(values.targetCalories) || 2000,
+    targetProtein: Number(values.targetProtein) || 140,
+    targetCarbs: Number(values.targetCarbs) || 200,
+    targetFat: Number(values.targetFat) || 65,
+    dietaryPreferences: values.dietaryPreferences ?? [],
   };
-}
-
-/**
- * Rough starting macros from the primary goal, so a user can tap
- * "Estimate for me" and get sensible, editable numbers.
- */
-function estimateTargets(goal: FormValues['primaryGoal']): {
-  targetCalories: string;
-  targetProtein: string;
-  targetCarbs: string;
-  targetFat: string;
-} {
-  switch (goal) {
-    case 'lose_fat':
-      return { targetCalories: '1900', targetProtein: '150', targetCarbs: '160', targetFat: '60' };
-    case 'build_muscle':
-      return { targetCalories: '2600', targetProtein: '170', targetCarbs: '300', targetFat: '80' };
-    case 'gain_strength':
-      return { targetCalories: '2700', targetProtein: '160', targetCarbs: '320', targetFat: '85' };
-    case 'general_fitness':
-    default:
-      return { targetCalories: '2200', targetProtein: '130', targetCarbs: '230', targetFat: '70' };
-  }
 }
 
 function describeSubmitError(err: unknown): string {
@@ -186,10 +203,12 @@ const SATELLITE_ICONS = [
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const { colors, spacing, radius, type, floatingShadow } = useTokens();
-  // step 0 = Welcome screen; steps 1..5 = wizard steps
+  // step 0 = Welcome screen; steps 1..7 = wizard steps
   const [step, setStep] = useState(0);
   const [selectedDays, setSelectedDays] = useState<string[]>(['mon', 'wed', 'fri']);
   const [formError, setFormError] = useState<string | null>(null);
+  const [exercisePickerTarget, setExercisePickerTarget] = useState<'preferred' | 'avoid' | null>(null);
+  const [calcMode, setCalcMode] = useState<'auto' | 'manual'>('auto');
   const complete = useCompleteOnboarding();
 
   const { control, trigger, getValues, setValue, setError, clearErrors, watch } =
@@ -198,17 +217,28 @@ export default function OnboardingScreen() {
       defaultValues: {
         displayName: '',
         dateOfBirth: '',
-        weightUnit: 'kg',
+        gender: '',
         timezone: 'Asia/Jakarta',
+        heightCm: '',
+        weightKg: '',
+        bodyFatPct: '',
+        targetWeightKg: '',
+        weightUnit: 'kg',
         primaryGoal: '',
         secondaryGoal: '',
         experienceLevel: '',
         weeklyFrequency: '3',
+        workoutDuration: '',
+        trainingLocation: '',
         equipment: [],
+        preferredEquipment: [],
+        preferredExercises: [],
+        avoidExercises: [],
         targetCalories: '',
         targetProtein: '',
         targetCarbs: '',
         targetFat: '',
+        dietaryPreferences: [],
       },
     });
 
@@ -228,6 +258,33 @@ export default function OnboardingScreen() {
     return false;
   };
 
+  const applyMifflinEstimate = () => {
+    const values = getValues();
+    const dob = values.dateOfBirth ? new Date(values.dateOfBirth) : new Date('1998-01-01');
+    const age = deriveAgeFromDateOfBirth(dob);
+    const weight = Number(values.weightKg) || 70;
+    const height = Number(values.heightCm) || 170;
+    const gender = (values.gender || 'prefer_not_to_say') as Gender;
+    const weeklyFreq = Math.max(2, Math.min(6, Number(values.weeklyFrequency) || 3));
+    const goal = (values.primaryGoal || 'general_fitness') as FitnessGoal;
+
+    const res = calculateNutritionTargets({
+      gender,
+      weightKg: weight,
+      heightCm: height,
+      age,
+      weeklyFrequency: weeklyFreq,
+      primaryGoal: goal,
+    });
+
+    setValue('targetCalories', String(res.targetCalories), { shouldValidate: true });
+    setValue('targetProtein', String(res.targetProtein), { shouldValidate: true });
+    setValue('targetCarbs', String(res.targetCarbs), { shouldValidate: true });
+    setValue('targetFat', String(res.targetFat), { shouldValidate: true });
+    clearErrors(['targetCalories', 'targetProtein', 'targetCarbs', 'targetFat']);
+    pressLight();
+  };
+
   const next = async () => {
     setFormError(null);
     const formIndex = step - 1;
@@ -239,7 +296,13 @@ export default function OnboardingScreen() {
       }
     }
     pressLight();
-    setStep((s) => Math.min(TOTAL_FORM_STEPS, s + 1));
+    const nextStep = Math.min(TOTAL_FORM_STEPS, step + 1);
+    setStep(nextStep);
+
+    // If moving to step 7 (nutrition) and targets aren't populated yet, compute estimate
+    if (nextStep === 7 && !getValues('targetCalories')) {
+      applyMifflinEstimate();
+    }
   };
 
   const submit = async () => {
@@ -269,44 +332,100 @@ export default function OnboardingScreen() {
     setStep((s) => Math.max(0, s - 1));
   };
 
-  const applyEstimate = () => {
-    const est = estimateTargets(getValues('primaryGoal'));
-    setValue('targetCalories', est.targetCalories, { shouldValidate: true });
-    setValue('targetProtein', est.targetProtein, { shouldValidate: true });
-    setValue('targetCarbs', est.targetCarbs, { shouldValidate: true });
-    setValue('targetFat', est.targetFat, { shouldValidate: true });
-    clearErrors(['targetCalories', 'targetProtein', 'targetCarbs', 'targetFat']);
-    pressLight();
-  };
-
   const handleDaysChange = (days: string[]) => {
     setSelectedDays(days);
-    const count = Math.max(1, Math.min(7, days.length || 1));
+    const count = Math.max(2, Math.min(6, days.length || 2));
     setValue('weeklyFrequency', String(count), { shouldValidate: true });
   };
 
+  const toggleEquipment = (item: Equipment) => {
+    const current = getValues('equipment');
+    const updated = current.includes(item)
+      ? current.filter((x) => x !== item)
+      : [...current, item];
+    setValue('equipment', updated, { shouldValidate: true });
+  };
+
+  const togglePreferredEquipment = (item: Equipment) => {
+    const current = getValues('preferredEquipment') ?? [];
+    const updated = current.includes(item)
+      ? current.filter((x) => x !== item)
+      : [...current, item];
+    setValue('preferredEquipment', updated, { shouldValidate: true });
+  };
+
+  const toggleDietaryPreference = (pref: string) => {
+    const current = getValues('dietaryPreferences') ?? [];
+    if (pref === 'none') {
+      setValue('dietaryPreferences', current.includes('none') ? [] : ['none'], {
+        shouldValidate: true,
+      });
+      return;
+    }
+    const filtered = current.filter((x) => x !== 'none');
+    const updated = filtered.includes(pref)
+      ? filtered.filter((x) => x !== pref)
+      : [...filtered, pref];
+    setValue('dietaryPreferences', updated, { shouldValidate: true });
+  };
+
+  const handleSelectExercise = (exercise: Exercise) => {
+    if (exercisePickerTarget === 'preferred') {
+      const current = getValues('preferredExercises') ?? [];
+      if (!current.includes(exercise.name)) {
+        setValue('preferredExercises', [...current, exercise.name], { shouldValidate: true });
+      }
+    } else if (exercisePickerTarget === 'avoid') {
+      const current = getValues('avoidExercises') ?? [];
+      if (!current.includes(exercise.name)) {
+        setValue('avoidExercises', [...current, exercise.name], { shouldValidate: true });
+      }
+    }
+    setExercisePickerTarget(null);
+  };
+
+  const removeExercise = (target: 'preferred' | 'avoid', name: string) => {
+    if (target === 'preferred') {
+      const current = getValues('preferredExercises') ?? [];
+      setValue(
+        'preferredExercises',
+        current.filter((x) => x !== name),
+        { shouldValidate: true }
+      );
+    } else {
+      const current = getValues('avoidExercises') ?? [];
+      setValue(
+        'avoidExercises',
+        current.filter((x) => x !== name),
+        { shouldValidate: true }
+      );
+    }
+    pressLight();
+  };
+
   const selectedEquipment = watch('equipment');
+  const preferredEquipment = watch('preferredEquipment') ?? [];
+  const preferredExercises = watch('preferredExercises') ?? [];
+  const avoidExercises = watch('avoidExercises') ?? [];
+  const dietaryPreferences = watch('dietaryPreferences') ?? [];
   const primaryGoal = watch('primaryGoal');
   const secondaryGoal = watch('secondaryGoal');
   const experienceLevel = watch('experienceLevel');
+  const gender = watch('gender');
   const weightUnit = watch('weightUnit');
   const timezone = watch('timezone');
+  const workoutDuration = watch('workoutDuration');
+  const trainingLocation = watch('trainingLocation');
 
   const titles = [
-    { title: t('onboarding.basicsTitle'), subtitle: t('onboarding.basicsSubtitle') },
+    { title: t('onboarding.aboutTitle'), subtitle: t('onboarding.aboutSubtitle') },
+    { title: t('onboarding.bodyTitle'), subtitle: t('onboarding.bodySubtitle') },
     { title: t('onboarding.goalTitle'), subtitle: t('onboarding.goalSubtitle') },
     { title: t('onboarding.trainingTitle'), subtitle: t('onboarding.trainingSubtitle') },
     { title: t('onboarding.equipmentTitle'), subtitle: t('onboarding.equipmentSubtitle') },
+    { title: t('onboarding.preferencesTitle'), subtitle: t('onboarding.preferencesSubtitle') },
     { title: t('onboarding.nutritionTitle'), subtitle: t('onboarding.nutritionSubtitle') },
   ];
-
-  const toggleEquipment = (value: OnboardingInput['equipment'][number]) => {
-    const current = getValues('equipment');
-    const nextValue = current.includes(value)
-      ? current.filter((e) => e !== value)
-      : [...current, value];
-    setValue('equipment', nextValue, { shouldValidate: true });
-  };
 
   const nutritionMeta = [
     {
@@ -340,11 +459,8 @@ export default function OnboardingScreen() {
   // -------------------------------------------------------------------------
   if (step === 0) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.accentSoft }]}>
-        {/* Coloured band with status bar */}
-        <View style={{ height: Math.max(insets.top, 24) + 24 }} />
-
-        {/* White sheet with top radius 32 filling the rest */}
+      <View style={[styles.container, { backgroundColor: colors.accent }]}>
+        <View style={{ height: insets.top }} />
         <View
           style={[
             styles.welcomeSheet,
@@ -366,7 +482,6 @@ export default function OnboardingScreen() {
             showsVerticalScrollIndicator={false}
           >
             <View style={{ gap: spacing.xxl }}>
-              {/* Hero: loose cluster of 10–14 LiftMate icons around the app mark */}
               <View style={styles.clusterContainer}>
                 {SATELLITE_ICONS.map((item, idx) => (
                   <View
@@ -388,7 +503,6 @@ export default function OnboardingScreen() {
                     <item.Icon size={item.size} color={colors.accentText} strokeWidth={2} />
                   </View>
                 ))}
-                {/* Central app icon badge */}
                 <View
                   style={[
                     styles.centerCircle,
@@ -406,7 +520,6 @@ export default function OnboardingScreen() {
                 </View>
               </View>
 
-              {/* Text: left-aligned title bold, then 1–2 muted body paragraphs */}
               <View style={{ gap: spacing.md }}>
                 <Text style={[type.largeTitle, { color: colors.ink }]}>
                   {t('onboarding.welcomeTitle')}
@@ -420,7 +533,6 @@ export default function OnboardingScreen() {
               </View>
             </View>
 
-            {/* Bottom: full-width PrimaryButton 24dp above bottom inset */}
             <View style={{ paddingTop: spacing.xxl }}>
               <PrimaryButton
                 label={t('onboarding.welcomeStart')}
@@ -437,7 +549,7 @@ export default function OnboardingScreen() {
   }
 
   // -------------------------------------------------------------------------
-  // Steps 1..5: Onboarding Wizard Steps (DESIGN.md §7.10)
+  // Steps 1..7: Onboarding Wizard Steps
   // -------------------------------------------------------------------------
   const formIndex = step - 1;
 
@@ -447,7 +559,7 @@ export default function OnboardingScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Step Header: CircleButton back on top left, slim progress bar on top right */}
+        {/* Step Header */}
         <View
           style={[
             styles.stepHeader,
@@ -507,7 +619,7 @@ export default function OnboardingScreen() {
             exiting={FadeOut.duration(120)}
             style={{ gap: spacing.lg }}
           >
-            {/* Step 1: Basics */}
+            {/* Step 1: About you (§4.1) */}
             {step === 1 ? (
               <View style={{ gap: spacing.lg }}>
                 <Controller
@@ -515,11 +627,12 @@ export default function OnboardingScreen() {
                   name="displayName"
                   render={({ field, fieldState }) => (
                     <Input
-                      label={t('auth.displayName')}
+                      label={t('onboarding.name')}
+                      placeholder={t('onboarding.namePlaceholder')}
                       value={field.value}
                       onChangeText={field.onChange}
                       onBlur={field.onBlur}
-                      error={fieldState.error ? t('onboarding.errors.required') : undefined}
+                      error={fieldState.error ? t('onboarding.errors.nameRequired') : undefined}
                     />
                   )}
                 />
@@ -540,18 +653,16 @@ export default function OnboardingScreen() {
 
                 <View style={{ gap: spacing.xs }}>
                   <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
-                    {t('onboarding.weightUnit')}
+                    {t('onboarding.gender')}
                   </Text>
-                  <View style={styles.chipRow}>
-                    {(['kg', 'lb'] as const).map((unit) => (
-                      <Chip
-                        key={unit}
-                        label={unit.toUpperCase()}
-                        selected={weightUnit === unit}
-                        onPress={() => {
-                          selectionTick();
-                          setValue('weightUnit', unit, { shouldValidate: true });
-                        }}
+                  <View style={{ gap: spacing.sm }}>
+                    {Gender.options.map((g) => (
+                      <SelectCard
+                        key={g}
+                        title={t(`onboarding.genders.${g}`)}
+                        description={t(`onboarding.genderDescriptions.${g}`)}
+                        selected={gender === g}
+                        onPress={() => setValue('gender', g, { shouldValidate: true })}
                       />
                     ))}
                   </View>
@@ -581,8 +692,97 @@ export default function OnboardingScreen() {
               </View>
             ) : null}
 
-            {/* Step 2: Goal */}
+            {/* Step 2: Your body (§5, §5.1) */}
             {step === 2 ? (
+              <View style={{ gap: spacing.lg }}>
+                <Controller
+                  control={control}
+                  name="heightCm"
+                  render={({ field, fieldState }) => (
+                    <Input
+                      label={t('onboarding.height')}
+                      placeholder={t('onboarding.heightPlaceholder')}
+                      keyboardType="numeric"
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      onBlur={field.onBlur}
+                      error={fieldState.error ? t('onboarding.errors.heightRange') : undefined}
+                    />
+                  )}
+                />
+                <Text style={[type.secondary, { color: colors.inkMutedText, marginTop: -spacing.sm }]}>
+                  {t('onboarding.heightHint')}
+                </Text>
+
+                <Controller
+                  control={control}
+                  name="weightKg"
+                  render={({ field, fieldState }) => (
+                    <Input
+                      label={t('onboarding.weight')}
+                      placeholder={t('onboarding.weightPlaceholder')}
+                      keyboardType="numeric"
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      onBlur={field.onBlur}
+                      error={fieldState.error ? t('onboarding.errors.weightRange') : undefined}
+                    />
+                  )}
+                />
+
+                <Controller
+                  control={control}
+                  name="bodyFatPct"
+                  render={({ field }) => (
+                    <Input
+                      label={t('onboarding.bodyFat')}
+                      placeholder={t('onboarding.bodyFatPlaceholder')}
+                      keyboardType="numeric"
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      onBlur={field.onBlur}
+                    />
+                  )}
+                />
+
+                <Controller
+                  control={control}
+                  name="targetWeightKg"
+                  render={({ field }) => (
+                    <Input
+                      label={t('onboarding.targetWeight')}
+                      placeholder={t('onboarding.targetWeightPlaceholder')}
+                      keyboardType="numeric"
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      onBlur={field.onBlur}
+                    />
+                  )}
+                />
+
+                <View style={{ gap: spacing.xs }}>
+                  <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
+                    {t('onboarding.weightUnit')}
+                  </Text>
+                  <View style={styles.chipRow}>
+                    {(['kg', 'lb'] as const).map((unit) => (
+                      <Chip
+                        key={unit}
+                        label={unit.toUpperCase()}
+                        selected={weightUnit === unit}
+                        onPress={() => {
+                          selectionTick();
+                          setValue('weightUnit', unit, { shouldValidate: true });
+                        }}
+                      />
+                    ))}
+                  </View>
+                </View>
+              </View>
+            ) : null}
+
+            {/* Step 3: Goals (§5.1) */}
+            {step === 3 ? (
               <View style={{ gap: spacing.lg }}>
                 <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
                   {t('onboarding.primaryGoal')}
@@ -620,8 +820,8 @@ export default function OnboardingScreen() {
               </View>
             ) : null}
 
-            {/* Step 3: Training Profile & Schedule */}
-            {step === 3 ? (
+            {/* Step 4: Training Profile (§6) */}
+            {step === 4 ? (
               <View style={{ gap: spacing.lg }}>
                 <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
                   {t('onboarding.experience')}
@@ -638,7 +838,7 @@ export default function OnboardingScreen() {
                   ))}
                 </View>
 
-                {/* Training Schedule via DaySelector (DESIGN.md §7.10 & §6.10) */}
+                {/* Training Schedule via DaySelector (2-6 days) */}
                 <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
                   <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
                     {t('onboarding.trainingDaysTitle')}
@@ -648,14 +848,51 @@ export default function OnboardingScreen() {
                     onChange={handleDaysChange}
                   />
                   <Text style={[type.secondary, { color: colors.inkMutedText }]}>
-                    {t('onboarding.trainingDaysCount', { count: selectedDays.length || 1 })}
+                    {t('onboarding.trainingDaysCount', { count: selectedDays.length || 2 })}
                   </Text>
+                </View>
+
+                {/* Workout Duration */}
+                <View style={{ gap: spacing.xs, marginTop: spacing.md }}>
+                  <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
+                    {t('onboarding.durationTitle')}
+                  </Text>
+                  <View style={styles.chipWrap}>
+                    {WorkoutDuration.options.map((d) => (
+                      <Chip
+                        key={d}
+                        label={t(`onboarding.durations.${d}`)}
+                        selected={workoutDuration === d}
+                        onPress={() => {
+                          selectionTick();
+                          setValue('workoutDuration', d, { shouldValidate: true });
+                        }}
+                      />
+                    ))}
+                  </View>
+                </View>
+
+                {/* Training Location */}
+                <View style={{ gap: spacing.xs, marginTop: spacing.md }}>
+                  <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
+                    {t('onboarding.locationTitle')}
+                  </Text>
+                  <View style={{ gap: spacing.sm }}>
+                    {TrainingLocation.options.map((loc) => (
+                      <SelectCard
+                        key={loc}
+                        title={t(`onboarding.locations.${loc}`)}
+                        selected={trainingLocation === loc}
+                        onPress={() => setValue('trainingLocation', loc, { shouldValidate: true })}
+                      />
+                    ))}
+                  </View>
                 </View>
               </View>
             ) : null}
 
-            {/* Step 4: Equipment */}
-            {step === 3 ? null : step === 4 ? (
+            {/* Step 5: Equipment (§7 - All 12 items) */}
+            {step === 5 ? (
               <View style={{ gap: spacing.md }}>
                 <View style={styles.grid}>
                   {Equipment.options.map((item) => (
@@ -675,23 +912,155 @@ export default function OnboardingScreen() {
               </View>
             ) : null}
 
-            {/* Step 5: Nutrition */}
-            {step === 5 ? (
+            {/* Step 6: Training Preferences (§8) */}
+            {step === 6 ? (
               <View style={{ gap: spacing.lg }}>
-                <Text style={[type.secondary, { color: colors.inkMutedText }]}>
-                  {t('onboarding.nutritionHelp')}
-                </Text>
-
+                {/* Preferred Equipment */}
                 <View style={{ gap: spacing.xs }}>
-                  <SecondaryButton
-                    label={t('onboarding.estimate')}
-                    onPress={applyEstimate}
-                  />
-                  <Text style={[type.secondary, { color: colors.inkMutedText, textAlign: 'center' }]}>
-                    {t('onboarding.estimateHint')}
+                  <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
+                    {t('onboarding.preferredEquipmentLabel')}
                   </Text>
+                  <View style={styles.chipWrap}>
+                    {selectedEquipment.map((item) => (
+                      <Chip
+                        key={`pref-eq-${item}`}
+                        label={t(`onboarding.equipment.${item}`)}
+                        selected={preferredEquipment.includes(item)}
+                        onPress={() => togglePreferredEquipment(item)}
+                      />
+                    ))}
+                  </View>
                 </View>
 
+                {/* Preferred Exercises */}
+                <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
+                  <View style={styles.rowBetween}>
+                    <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
+                      {t('onboarding.preferredExercisesLabel')}
+                    </Text>
+                    <Pressable
+                      style={[styles.addButton, { backgroundColor: colors.accentSoft }]}
+                      onPress={() => setExercisePickerTarget('preferred')}
+                    >
+                      <Plus size={16} color={colors.accentText} />
+                      <Text style={[type.caption, { color: colors.accentText, fontWeight: '600' }]}>
+                        {t('onboarding.addExercise')}
+                      </Text>
+                    </Pressable>
+                  </View>
+                  <View style={styles.chipWrap}>
+                    {preferredExercises.length === 0 ? (
+                      <Text style={[type.secondary, { color: colors.inkMutedText }]}>
+                        {t('onboarding.noExercisesAdded')}
+                      </Text>
+                    ) : (
+                      preferredExercises.map((name) => (
+                        <View
+                          key={`pref-ex-${name}`}
+                          style={[
+                            styles.removableChip,
+                            { backgroundColor: colors.surface, borderColor: colors.accent },
+                          ]}
+                        >
+                          <Text style={[type.body, { color: colors.ink, fontSize: 14 }]}>{name}</Text>
+                          <Pressable
+                            hitSlop={8}
+                            onPress={() => removeExercise('preferred', name)}
+                          >
+                            <X size={14} color={colors.inkMutedText} />
+                          </Pressable>
+                        </View>
+                      ))
+                    )}
+                  </View>
+                </View>
+
+                {/* Exercises to Avoid */}
+                <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
+                  <View style={styles.rowBetween}>
+                    <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
+                      {t('onboarding.avoidExercisesLabel')}
+                    </Text>
+                    <Pressable
+                      style={[styles.addButton, { backgroundColor: colors.accentSoft }]}
+                      onPress={() => setExercisePickerTarget('avoid')}
+                    >
+                      <Plus size={16} color={colors.accentText} />
+                      <Text style={[type.caption, { color: colors.accentText, fontWeight: '600' }]}>
+                        {t('onboarding.addExercise')}
+                      </Text>
+                    </Pressable>
+                  </View>
+                  <View style={styles.chipWrap}>
+                    {avoidExercises.length === 0 ? (
+                      <Text style={[type.secondary, { color: colors.inkMutedText }]}>
+                        {t('onboarding.noExercisesAdded')}
+                      </Text>
+                    ) : (
+                      avoidExercises.map((name) => (
+                        <View
+                          key={`avoid-ex-${name}`}
+                          style={[
+                            styles.removableChip,
+                            { backgroundColor: colors.surface, borderColor: colors.danger },
+                          ]}
+                        >
+                          <Text style={[type.body, { color: colors.ink, fontSize: 14 }]}>{name}</Text>
+                          <Pressable
+                            hitSlop={8}
+                            onPress={() => removeExercise('avoid', name)}
+                          >
+                            <X size={14} color={colors.inkMutedText} />
+                          </Pressable>
+                        </View>
+                      ))
+                    )}
+                  </View>
+                </View>
+              </View>
+            ) : null}
+
+            {/* Step 7: Nutrition Profile (§9) */}
+            {step === 7 ? (
+              <View style={{ gap: spacing.lg }}>
+                {/* Method selector: Auto vs Manual */}
+                <View style={{ gap: spacing.xs }}>
+                  <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
+                    {t('onboarding.calculationMode')}
+                  </Text>
+                  <SegmentedControl
+                    options={[
+                      { label: t('onboarding.autoMode'), value: 'auto' },
+                      { label: t('onboarding.manualMode'), value: 'manual' },
+                    ]}
+                    value={calcMode}
+                    onChange={(val) => {
+                      setCalcMode(val);
+                      if (val === 'auto') applyMifflinEstimate();
+                    }}
+                  />
+                </View>
+
+                {/* Estimate Notice */}
+                <Text style={[type.secondary, { color: colors.inkMutedText }]}>
+                  {gender === 'other' || gender === 'prefer_not_to_say'
+                    ? t('onboarding.estimateMedianNotice')
+                    : t('onboarding.estimateNotice')}
+                </Text>
+
+                {calcMode === 'manual' ? (
+                  <View style={{ gap: spacing.xs }}>
+                    <SecondaryButton
+                      label={t('onboarding.estimate')}
+                      onPress={applyMifflinEstimate}
+                    />
+                    <Text style={[type.secondary, { color: colors.inkMutedText, textAlign: 'center' }]}>
+                      {t('onboarding.estimateHint')}
+                    </Text>
+                  </View>
+                ) : null}
+
+                {/* Nutrition Targets */}
                 {nutritionMeta.map((meta) => (
                   <Controller
                     key={meta.name}
@@ -710,6 +1079,23 @@ export default function OnboardingScreen() {
                     )}
                   />
                 ))}
+
+                {/* Dietary Preferences Chip List */}
+                <View style={{ gap: spacing.xs, marginTop: spacing.md }}>
+                  <Text style={[type.cardLabel, { color: colors.inkMutedText }]}>
+                    {t('onboarding.dietaryTitle')}
+                  </Text>
+                  <View style={styles.chipWrap}>
+                    {DIETARY_PREFERENCES.map((pref) => (
+                      <Chip
+                        key={`diet-${pref}`}
+                        label={t(`onboarding.dietary.${pref}`)}
+                        selected={dietaryPreferences.includes(pref)}
+                        onPress={() => toggleDietaryPreference(pref)}
+                      />
+                    ))}
+                  </View>
+                </View>
               </View>
             ) : null}
           </Animated.View>
@@ -719,7 +1105,7 @@ export default function OnboardingScreen() {
           ) : null}
         </ScrollView>
 
-        {/* Sticky footer: full-width PrimaryButton 24dp above inset */}
+        {/* Sticky footer */}
         <View
           style={[
             styles.footer,
@@ -739,6 +1125,15 @@ export default function OnboardingScreen() {
           />
         </View>
       </KeyboardAvoidingView>
+
+      {/* Exercise Picker Modal for Step 6 */}
+      {exercisePickerTarget ? (
+        <ExercisePicker
+          visible={Boolean(exercisePickerTarget)}
+          onClose={() => setExercisePickerTarget(null)}
+          onSelect={handleSelectExercise}
+        />
+      ) : null}
     </View>
   );
 }
@@ -752,17 +1147,18 @@ const styles = StyleSheet.create({
   },
   welcomeSheet: {
     flex: 1,
+    overflow: 'hidden',
   },
   welcomeContent: {
     flexGrow: 1,
     justifyContent: 'space-between',
   },
   clusterContainer: {
-    height: 220,
+    height: 190,
     width: '100%',
+    position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
   },
   satelliteCircle: {
     position: 'absolute',
@@ -780,16 +1176,14 @@ const styles = StyleSheet.create({
   stepHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
   progressContainer: {
     flex: 1,
-    alignItems: 'flex-end',
     gap: 6,
   },
   progressBarTrack: {
+    height: 6,
     width: '100%',
-    height: 4,
     overflow: 'hidden',
   },
   progressBarFill: {
@@ -810,14 +1204,34 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -6,
+    gap: 8,
   },
   gridItem: {
-    width: '33.333%',
-    paddingHorizontal: 6,
+    width: '48.5%',
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
     paddingVertical: 6,
+    borderRadius: 16,
+  },
+  removableChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
   },
   footer: {
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
 });

@@ -14,7 +14,7 @@ function toSharedDuration(d: PrismaWorkoutDuration | null | undefined): SharedWo
   return d;
 }
 
-function toPrismaDuration(d: SharedWorkoutDuration | null | undefined): PrismaWorkoutDuration | null | undefined {
+export function toPrismaDuration(d: SharedWorkoutDuration | null | undefined): PrismaWorkoutDuration | null | undefined {
   if (d === undefined) return undefined;
   if (d === null) return null;
   if (d === '30_45') return 'd30_45';

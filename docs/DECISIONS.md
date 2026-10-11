@@ -47,6 +47,27 @@ Format: date — decision — reason.
 - **WorkoutDuration Wire Format:** Stored as `lt30`, `30_45`, `45_60`, `60_90`, `gt90` in Postgres and exposed as string literals in Zod DTOs (`WorkoutDuration`), mapped internally in Prisma service layer to avoid schema identifier grammar constraints.
 - **UserPreferences Additions:** Added array columns (`preferred_equipment`, `preferred_exercises`, `avoid_exercises`, `dietary_preferences`) and boolean notification toggles (`notifications_workout_reminder`, `notifications_nutrition_reminder`, `notifications_progress_reminder`, `notifications_ai_insight`).
 
+## 2026-10-11 — Phase 1 Slice P3 (Onboarding Wizard §4.1–§9 & Exercise Seed)
+
+- **Starter Exercises Seed Across All 12 Equipment:** Seeded 43 canonical starter exercises covering all 12 equipment categories (`barbell`, `dumbbell`, `cable_machine`, `smith_machine`, `leg_press`, `hack_squat`, `pulldown_machine`, `chest_press`, `machines`, `pull_up_bar`, `resistance_bands`, `bodyweight`) with complete metadata (primary/secondary muscles, movement patterns, difficulty, instructions, external IDs) to enable exercise searching and preference picking.
+- **7-Step Onboarding Wizard (§4.1, §5, §5.1, §6, §7, §8, §9):** Split onboarding into 7 steps to prevent information overload and density:
+  - Step 1: "About you" (display name, date of birth, gender, timezone)
+  - Step 2: "Your body" (height in cm, weight in kg, optional body fat %, optional target weight, weight unit)
+  - Step 3: "Goals" (primary goal with 5 options, optional secondary goal)
+  - Step 4: "Training profile" (experience with 3 options, frequency 2–6 days/week, duration with 5 options, location with 4 options)
+  - Step 5: "Equipment" (all 12 items via interactive EquipmentCards)
+  - Step 6: "Training preferences" (preferred equipment chips, searchable preferred exercises tag list, searchable exercises to avoid tag list)
+  - Step 7: "Nutrition profile" (automatic vs manual calculation, Mifflin-St Jeor formula, macro targets, dietary preference chips)
+- **Mifflin-St Jeor Nutrition Calculation:**
+  - Standard formulas: Male constant `+5`, Female constant `-161`.
+  - Non-binary / Prefer not to say: uses midpoint constant `-78` (`(5 + (-161)) / 2`), labeled an estimate in the UI.
+  - Activity multipliers based on weekly training frequency (<=2 days: 1.375, 3–4 days: 1.55, 5–6 days: 1.725).
+  - Goal calorie adjustment: `lose_fat` -500 kcal, `build_muscle` +300 kcal, `gain_strength` +200 kcal, `body_recomposition` -100 kcal, `general_fitness` 0 kcal.
+  - Macro split: Protein 2.0 g/kg, Fat 0.9 g/kg, remainder carbohydrates (minimum 50 g).
+- **Height Unit in cm:** Height is recorded and displayed in `cm` for MVP regardless of weight unit selection to ensure consistency in metabolic calculations.
+- **Dietary Preference Chips:** Supported options: `None`, `Vegetarian`, `Vegan`, `Halal`, `Pescatarian`, `Gluten-free`, `Dairy-free`.
+- **Profile Null Handling ("Add"):** The "You" screen displays body metrics rows and renders an "Add" label for any unconfigured null fields.
+
 
 
 

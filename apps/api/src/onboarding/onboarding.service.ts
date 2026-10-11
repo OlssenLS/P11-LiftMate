@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { OnboardingInput, PublicUser } from '@liftmate/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { toPublicUser } from '../users/users.service.js';
+import { toPrismaDuration, toPublicUser } from '../users/users.service.js';
 
 @Injectable()
 export class OnboardingService {
@@ -14,6 +14,13 @@ export class OnboardingService {
         data: {
           displayName: input.displayName,
           dateOfBirth: input.dateOfBirth,
+          gender: input.gender,
+          heightCm: input.heightCm,
+          weightKg: input.weightKg,
+          bodyFatPct: input.bodyFatPct ?? null,
+          targetWeightKg: input.targetWeightKg ?? null,
+          workoutDuration: toPrismaDuration(input.workoutDuration),
+          trainingLocation: input.trainingLocation,
           weightUnit: input.weightUnit,
           timezone: input.timezone,
           onboardedAt: new Date(),
@@ -28,6 +35,10 @@ export class OnboardingService {
           secondaryGoal: input.secondaryGoal ?? null,
           experienceLevel: input.experienceLevel,
           weeklyFrequency: input.weeklyFrequency,
+          preferredEquipment: input.preferredEquipment ?? [],
+          preferredExercises: input.preferredExercises ?? [],
+          avoidExercises: input.avoidExercises ?? [],
+          dietaryPreferences: input.dietaryPreferences ?? [],
           targetCalories: input.targetCalories,
           targetProtein: input.targetProtein,
           targetCarbs: input.targetCarbs,
@@ -38,6 +49,10 @@ export class OnboardingService {
           secondaryGoal: input.secondaryGoal ?? null,
           experienceLevel: input.experienceLevel,
           weeklyFrequency: input.weeklyFrequency,
+          preferredEquipment: input.preferredEquipment ?? [],
+          preferredExercises: input.preferredExercises ?? [],
+          avoidExercises: input.avoidExercises ?? [],
+          dietaryPreferences: input.dietaryPreferences ?? [],
           targetCalories: input.targetCalories,
           targetProtein: input.targetProtein,
           targetCarbs: input.targetCarbs,

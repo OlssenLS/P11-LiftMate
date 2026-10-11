@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
+  Activity,
   Bell,
   Calendar,
+  Clock,
   Dumbbell,
   Info,
   LogOut,
+  MapPin,
   Scale,
   Shield,
   Target,
@@ -184,6 +187,90 @@ export default function YouScreen() {
                 />
               }
               onPress={() => handleOpenEdit('equipment')}
+            />
+          </ListGroup>
+        </View>
+
+        {/* Inset Group: Body Metrics */}
+        <SectionHeader title={t('you.bodyMetrics')} />
+        <View style={styles.cardWrapper}>
+          <ListGroup>
+            <ListRowCard
+              label={t('you.height')}
+              value={user?.heightCm ? `${user.heightCm} cm` : t('you.add')}
+              icon={
+                <Activity
+                  size={icons.cardLabelSize}
+                  color={colors.accentText}
+                  strokeWidth={icons.strokeWidth}
+                />
+              }
+            />
+            <ListRowCard
+              label={t('you.weight')}
+              value={user?.weightKg ? `${user.weightKg} ${user?.weightUnit ?? 'kg'}` : t('you.add')}
+              icon={
+                <Scale
+                  size={icons.cardLabelSize}
+                  color={colors.accentText}
+                  strokeWidth={icons.strokeWidth}
+                />
+              }
+            />
+            <ListRowCard
+              label={t('you.bodyFat')}
+              value={user?.bodyFatPct ? `${user.bodyFatPct}%` : t('you.add')}
+              icon={
+                <Activity
+                  size={icons.cardLabelSize}
+                  color={colors.accentText}
+                  strokeWidth={icons.strokeWidth}
+                />
+              }
+            />
+            <ListRowCard
+              label={t('you.targetWeight')}
+              value={user?.targetWeightKg ? `${user.targetWeightKg} ${user?.weightUnit ?? 'kg'}` : t('you.add')}
+              icon={
+                <Target
+                  size={icons.cardLabelSize}
+                  color={colors.accentText}
+                  strokeWidth={icons.strokeWidth}
+                />
+              }
+            />
+            <ListRowCard
+              label={t('you.gender')}
+              value={user?.gender ? t(`onboarding.genders.${user.gender}`) : t('you.add')}
+              icon={
+                <User
+                  size={icons.cardLabelSize}
+                  color={colors.accentText}
+                  strokeWidth={icons.strokeWidth}
+                />
+              }
+            />
+            <ListRowCard
+              label={t('you.workoutDuration')}
+              value={user?.workoutDuration ? t(`onboarding.durations.${user.workoutDuration}`) : t('you.add')}
+              icon={
+                <Clock
+                  size={icons.cardLabelSize}
+                  color={colors.accentText}
+                  strokeWidth={icons.strokeWidth}
+                />
+              }
+            />
+            <ListRowCard
+              label={t('you.trainingLocation')}
+              value={user?.trainingLocation ? t(`onboarding.locations.${user.trainingLocation}`) : t('you.add')}
+              icon={
+                <MapPin
+                  size={icons.cardLabelSize}
+                  color={colors.accentText}
+                  strokeWidth={icons.strokeWidth}
+                />
+              }
             />
           </ListGroup>
         </View>
