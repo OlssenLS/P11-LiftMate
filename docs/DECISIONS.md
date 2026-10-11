@@ -173,5 +173,17 @@ Format: date — decision — reason.
   - Applied migration `20261011150000_drop_position_unique_constraints` dropping `workout_sets_workout_exercise_id_position_key` and `workout_exercises_workout_id_position_key`, replacing them with non-unique indexes for ordering performance.
   - Enhanced `WorkoutsService.create` to atomically soft-delete sets or exercises that were removed on the client during bulk sync.
 
+## 2026-10-11 — Phase 3 Slice PR0 (Migration M-C & Shared Program Schemas)
+
+- **Migration M-C (`20261011160000_migration_m_c`):**
+  - Added enum `ProgramStatus` (`active`, `completed`, `archived`).
+  - Added `programs` table (`id`, `user_id`, `program_name`, `goal`, `frequency`, `duration`, `description`, `status`, `created_at`, `updated_at`, `deleted_at`) per Spec §62.
+  - Added `program_exercises` table (`id`, `program_id`, `day`, `day_name`, `exercise_id`, `sets`, `rep_min`, `rep_max`, `target_rir`, `rest_seconds`, `order`, `created_at`, `updated_at`, `deleted_at`) per Spec §62.
+  - Added foreign key from `workouts.program_id` to `programs.id` with `ON DELETE SET NULL`.
+  - Added relations between `User.programs`, `Exercise.programExercises`, and `Program.workouts`.
+- **Shared Schemas (`packages/shared/src/program.ts`):**
+  - Implemented `createProgramSchema`, `updateProgramSchema`, `programSchema`, `programExerciseInputSchema`, and `programExerciseSchema`.
+
+
 
 

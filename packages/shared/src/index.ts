@@ -5,3 +5,5 @@ export * from "./auth.js";
 export * from "./workout.js";
 export * from "./metrics.js";
 export * from "./nutrition-calc.js";
+export * from "./program.js";
+

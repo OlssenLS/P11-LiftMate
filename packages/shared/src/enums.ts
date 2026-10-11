@@ -92,3 +92,11 @@ export const WorkoutStatus = z.enum([
   "cancelled",
 ]);
 export type WorkoutStatus = z.infer<typeof WorkoutStatus>;
+
+export const ProgramStatus = z.enum([
+  "active",
+  "completed",
+  "archived",
+]);
+export type ProgramStatus = z.infer<typeof ProgramStatus>;
+

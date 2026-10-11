@@ -104,6 +104,12 @@ enum WorkoutStatus {
   cancelled
 }
 
+enum ProgramStatus {
+  active
+  completed
+  archived
+}
+
 model User {
   id           String     @id @default(uuid()) @db.Uuid
   email        String     @unique
@@ -126,6 +132,7 @@ model User {
   equipment           UserEquipment[]
   preferences         UserPreferences?
   workouts            Workout[]
+  programs            Program[]
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
 
@@ -201,6 +208,7 @@ model Exercise {
   alternativeExercises String[]      @default([]) @map("alternative_exercises")
 
   workoutExercises WorkoutExercise[]
+  programExercises ProgramExercise[]
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -222,6 +230,7 @@ model Workout {
   completedAt DateTime?     @map("completed_at")
 
   user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program   Program?          @relation(fields: [programId], references: [id], onDelete: SetNull)
   exercises WorkoutExercise[]
 
   createdAt DateTime  @default(now()) @map("created_at")
@@ -313,4 +322,53 @@ model PasswordResetToken {
   @@index([tokenHash])
   @@map("password_reset_tokens")
 }
+
+model Program {
+  id          String        @id @default(uuid()) @db.Uuid
+  userId      String?       @map("user_id") @db.Uuid
+  name        String        @map("program_name")
+  goal        FitnessGoal
+  frequency   Int
+  duration    String        @default("45_60")
+  description String?
+  status      ProgramStatus @default(active)
+
+  user             User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  programExercises ProgramExercise[]
+  workouts         Workout[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index([userId])
+  @@index([status])
+  @@map("programs")
+}
+
+model ProgramExercise {
+  id          String  @id @default(uuid()) @db.Uuid
+  programId   String  @map("program_id") @db.Uuid
+  day         Int
+  dayName     String? @map("day_name")
+  exerciseId  String  @map("exercise_id") @db.Uuid
+  sets        Int     @default(3)
+  repMin      Int     @default(8) @map("rep_min")
+  repMax      Int     @default(12) @map("rep_max")
+  targetRir   Int?    @map("target_rir")
+  restSeconds Int?    @map("rest_seconds")
+  order       Int     @default(0)
+
+  program  Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index([programId, day])
+  @@index([exerciseId])
+  @@map("program_exercises")
+}
+
 
