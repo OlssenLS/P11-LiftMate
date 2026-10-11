@@ -1,5 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import type { PublicUser, UpdateUserInput, WorkoutDuration as SharedWorkoutDuration } from '@liftmate/shared';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import type {
+  Equipment,
+  PublicUser,
+  UpdateUserInput,
+  UpdateUserPreferencesInput,
+  UserPreferences,
+  WorkoutDuration as SharedWorkoutDuration,
+} from '@liftmate/shared';
 import type { User, WorkoutDuration as PrismaWorkoutDuration } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -63,11 +70,19 @@ export class UsersService {
     return this.prisma.user.findFirst({ where: { id, deletedAt: null } });
   }
 
+  async getProfile(userId: string): Promise<PublicUser> {
+    const user = await this.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return toPublicUser(user);
+  }
+
   verifyPassword(password: string, passwordHash: string): Promise<boolean> {
     return bcrypt.compare(password, passwordHash);
   }
 
-  update(id: string, data: UpdateUserInput): Promise<User> {
+  async update(id: string, data: UpdateUserInput): Promise<User> {
     const { workoutDuration, ...rest } = data;
     const prismaData = {
       ...rest,
@@ -84,5 +99,59 @@ export class UsersService {
       where: { id },
       data: { passwordHash },
     });
+  }
+
+  async changePassword(userId: string, current: string, next: string): Promise<{ success: boolean }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    const match = await this.verifyPassword(current, user.passwordHash);
+    if (!match) {
+      throw new BadRequestException('Current password does not match');
+    }
+    await this.updatePassword(userId, next);
+    return { success: true };
+  }
+
+  async getPreferences(userId: string): Promise<UserPreferences | null> {
+    return this.prisma.userPreferences.findFirst({
+      where: { userId, deletedAt: null },
+    });
+  }
+
+  async updatePreferences(
+    userId: string,
+    data: UpdateUserPreferencesInput
+  ): Promise<UserPreferences> {
+    return this.prisma.userPreferences.upsert({
+      where: { userId },
+      create: {
+        userId,
+        ...data,
+      },
+      update: data,
+    });
+  }
+
+  async getEquipment(userId: string): Promise<Equipment[]> {
+    const rows = await this.prisma.userEquipment.findMany({
+      where: { userId, deletedAt: null },
+      select: { equipment: true },
+    });
+    return rows.map((r) => r.equipment as Equipment);
+  }
+
+  async updateEquipment(userId: string, equipment: Equipment[]): Promise<Equipment[]> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.userEquipment.deleteMany({ where: { userId } });
+      if (equipment.length > 0) {
+        await tx.userEquipment.createMany({
+          data: equipment.map((eq) => ({ userId, equipment: eq })),
+          skipDuplicates: true,
+        });
+      }
+    });
+    return equipment;
   }
 }

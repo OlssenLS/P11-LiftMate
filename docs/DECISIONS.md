@@ -68,6 +68,21 @@ Format: date — decision — reason.
 - **Dietary Preference Chips:** Supported options: `None`, `Vegetarian`, `Vegan`, `Halal`, `Pescatarian`, `Gluten-free`, `Dairy-free`.
 - **Profile Null Handling ("Add"):** The "You" screen displays body metrics rows and renders an "Add" label for any unconfigured null fields.
 
+## 2026-10-11 — Phase 1 Slice P4 (Profile & Settings §65, §66)
+
+- **Users Endpoints & Live Profile Persistence (§65, §66):**
+  - Implemented `UsersController` (`/users`) with authenticated routes protected by `JwtAccessGuard`:
+    - `GET /users/me` (retrieves current `PublicUser`)
+    - `PATCH /users/me` (updates user demographic fields and metrics)
+    - `GET /users/me/preferences` & `PATCH /users/me/preferences` (retrieves and updates `UserPreferences`)
+    - `GET /users/me/equipment` & `PUT /users/me/equipment` (retrieves and atomically syncs equipment array)
+    - `POST /users/me/change-password` (verifies current password against bcrypt hash, validates $\ge 8$ chars, and sets new hash)
+- **Profile Screen ("You") Interactive Sheets:**
+  - Connected `you.tsx` to live TanStack Query hooks (`useProfile`, `useUserPreferences`, `useUserEquipment`).
+  - Interactive edit sheets with server-side mutations for Profile Details, Goals & Targets, Training Schedule, Equipment, Training Preferences (with `ExercisePicker`), Notification Settings (4 toggles), Units (`kg` / `lb`), and Change Password.
+  - Body Metrics displays live user height, weight, body fat %, target weight, gender, duration, location with an "Add" button/label on null values.
+
+
 
 
 

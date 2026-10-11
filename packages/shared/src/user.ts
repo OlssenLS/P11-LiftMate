@@ -118,3 +118,15 @@ export const updateUserPreferencesSchema = z
   })
   .partial();
 export type UpdateUserPreferencesInput = z.infer<typeof updateUserPreferencesSchema>;
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: passwordSchema,
+});
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
+export const updateUserEquipmentSchema = z.object({
+  equipment: z.array(Equipment).min(1, "Select at least one equipment item"),
+});
+export type UpdateUserEquipmentInput = z.infer<typeof updateUserEquipmentSchema>;
+
