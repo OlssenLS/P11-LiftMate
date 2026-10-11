@@ -356,4 +356,45 @@ Format: date — decision — reason.
     - `Body Weight`: Shows current weight, 30-day delta, and 10-point weight sparkline.
     - `Training Volume`: Shows weekly volume in kg, leading muscle group, and weekly volume sparkline.
 
+## 2026-10-11 — Phase 6 Slice AI0 (Migration M-F & Shared AI Schemas)
+
+- **Migration M-F (`20261011210000_migration_m_f`):**
+  - Added enums:
+    - `AiMessageRole` (`user`, `assistant`, `system`).
+    - `AiInsightCategory` (`training_volume`, `progressive_overload`, `recovery_fatigue`, `nutrition_protein`, `consistency_streak`).
+    - `AiInsightConfidence` (`high`, `medium`, `low`, `insufficient`).
+  - Added `ai_conversations` table (`id`, `user_id`, `title`, `created_at`, `updated_at`, `deleted_at`).
+  - Added `ai_messages` table (`id`, `conversation_id`, `role`, `content`, `metadata`, `created_at`) with cascade delete from conversations.
+  - Added `ai_insights` table (`id`, `user_id`, `category`, `title`, `observation`, `evidence`, `possible_factors`, `recommendation`, `confidence`, `data_window_start`, `data_window_end`, `created_at`, `updated_at`, `deleted_at`).
+- **Shared Schemas (`packages/shared/src/ai.ts`):**
+  - Exported Zod schemas and TypeScript types: `AiMessageSchema`, `SendAiMessageSchema`, `AiConversationSchema`, `CreateAiConversationSchema`, `AiConversationDetailSchema`, `AiInsightSchema`, `SuggestedQuestionsResponseSchema`, `AiProviderGenerateOptions`, `AiProviderGenerateResult`.
+- **Automated Verification:**
+  - Added `apps/api/src/common/migration-m-f.spec.ts` verifying enum integrity, conversation/message cascade deletes, and insight soft-deletes.
+
+## 2026-10-11 — Phase 6 Slice AI1 (AI Provider, Coach Backend & Mobile Chat)
+
+- **AI Provider Abstraction (`apps/api/src/ai/provider/`):**
+  - Defined `AiProvider` interface with `generate({ system, messages, maxTokens?, temperature? })` per brief §8.
+  - Implemented `GeminiAiProvider`: calls Gemini REST API via native `fetch` when `GEMINI_API_KEY` or `AI_API_KEY` is present in configuration; provides a zero-network deterministic fallback responder for offline development and CI environments.
+  - Fallback strictly enforces §8 rules: mandatory safety notice on pain/injury, citations of real user context numbers, and disclaimers when data is insufficient.
+- **Server-Side AI Rate Limiting (`AiRateLimiterService`):**
+  - Enforces a daily request limit (50 requests/day per user) server-side per brief §4 rule 9. Returns `429 Too Many Requests` with reset information.
+- **Coach Context Retrieval Pipeline (`CoachContextService`):**
+  - Retrieves structured factual metrics only (never raw DB tables to LLM): user demographics, primary/secondary goals, equipment, daily nutrition targets, today's logged macros, active program, last 3 workouts (volume, sets, RIR), and top PRs.
+  - Injects strict system prompt forbidding hallucinations, medical diagnoses, or fabrications.
+- **Coach API Endpoints (`apps/api/src/ai/coach/`):**
+  - `GET /ai/coach/conversations`: Lists user conversations.
+  - `GET /ai/coach/active`: Fetches or creates the active user coaching conversation.
+  - `POST /ai/coach/conversations`: Creates custom conversation with optional initial message.
+  - `GET /ai/coach/conversations/:id`: Fetches conversation detail and messages.
+  - `POST /ai/coach/conversations/:id/messages`: Rate-limited message handler with conversational memory and context injection.
+  - `GET /ai/coach/suggested-questions`: Dynamic contextual questions based on user's recent training and food logs.
+- **Mobile AI Coach Chat Screen & Sheet (`apps/mobile/src/app/(app)/coach.tsx`):**
+  - Replaced temporary "Coming Soon" placeholder with live chat experience:
+    - Safety & medical disclaimer banner per §43.
+    - Dynamic suggested questions chips with one-tap sending.
+    - Real-time conversation thread with formatted timestamps, user vs coach bubble styling, and typing indicator.
+    - Text input with send button and rate-limit error banner.
+  - Connected Home screen InsightCard with "Ask AI Coach" shortcut.
+
 

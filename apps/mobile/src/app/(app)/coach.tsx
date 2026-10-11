@@ -1,191 +1,432 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState, useRef, useEffect } from 'react';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ArrowUp, Info, Sparkles } from 'lucide-react-native';
 
 import { Card, EmptyState, ScreenHeader } from '@/components/ui';
-import { USE_FIXTURES } from '@/config/env';
 import { useTokens } from '@/hooks/use-tokens';
-import { Sparkles } from 'lucide-react-native';
 import { t } from '@/i18n';
 import { selectionTick } from '@/lib/haptics';
+import {
+  useActiveCoachConversation,
+  useSendMessage,
+  useSuggestedQuestions,
+} from '@/features/coach';
 
 export function CoachSheetContent() {
   const { colors, radius, spacing, fontSize, fontWeight, icons } = useTokens();
-  const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
+  const [inputText, setInputText] = useState('');
+  const [errorText, setErrorText] = useState<string | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
-  if (!USE_FIXTURES) {
-    return (
-      <View style={{ paddingVertical: spacing.xl, paddingBottom: spacing.xxl }}>
-        <EmptyState
-          title="AI Coach Coming Soon"
-          description="Context-aware AI Coach is scheduled for Phase 6. Real workout, nutrition, and progress tracking must be active first."
-          icon={
-            <Sparkles
-              size={48}
-              color={colors.accent}
-              strokeWidth={icons.strokeWidth}
-            />
+  const { data: conversation, isLoading, isError, refetch } =
+    useActiveCoachConversation();
+  const { data: suggestedQuestionsData } = useSuggestedQuestions();
+  const sendMessageMutation = useSendMessage();
+
+  const messages = conversation?.messages || [];
+  const suggestions = suggestedQuestionsData?.suggestions || [];
+
+  // Auto scroll to bottom when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages.length, sendMessageMutation.isPending]);
+
+  const handleSend = (textToSend?: string) => {
+    const content = (textToSend || inputText).trim();
+    if (!content || !conversation?.id || sendMessageMutation.isPending) return;
+
+    selectionTick();
+    setInputText('');
+    setErrorText(null);
+
+    sendMessageMutation.mutate(
+      {
+        conversationId: conversation.id,
+        content,
+      },
+      {
+        onError: (err: any) => {
+          const status = err?.response?.status;
+          if (status === 429) {
+            setErrorText(t('coach.quotaExceeded'));
+          } else {
+            setErrorText(t('coach.errorRetry'));
           }
-        />
-      </View>
+        },
+      },
     );
-  }
-
-  const sampleQuestions = [
-    t('coach.q1'),
-    t('coach.q2'),
-    t('coach.q3'),
-  ];
+  };
 
   return (
-    <View style={{ gap: spacing.lg, paddingBottom: spacing.xxl }}>
-      {/* Hero Card for Coach */}
-      <Card variant="hero" padding="xl">
-        <View style={{ gap: spacing.sm }}>
-          <View style={styles.badgeRow}>
-            <View
-              style={[
-                styles.phaseBadge,
-                {
-                  backgroundColor: colors.surface,
-                },
-              ]}
-            >
-              <Text
-                style={{
-                  color: colors.ink,
-                  fontSize: fontSize.caption,
-                  fontWeight: fontWeight.bold,
-                  letterSpacing: 0.5,
-                }}
-              >
-                {t('coach.badge')}
-              </Text>
-            </View>
-          </View>
-
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: 1 }}
+    >
+      <View style={{ flex: 1, gap: spacing.md, paddingBottom: spacing.sm }}>
+        {/* Safety & Medical Disclaimer Banner (§43, §68) */}
+        <View
+          style={[
+            styles.disclaimerBanner,
+            {
+              backgroundColor: colors.surfaceMuted,
+              borderColor: colors.hairline,
+              borderRadius: radius.md,
+              padding: spacing.md,
+            },
+          ]}
+        >
+          <Info
+            size={18}
+            color={colors.inkMutedText}
+            strokeWidth={icons.strokeWidth}
+            style={{ marginTop: 2 }}
+          />
           <Text
             style={{
-              color: colors.surface,
-              fontSize: fontSize.title,
-              fontWeight: fontWeight.bold,
-              marginTop: spacing.xs,
-            }}
-          >
-            {t('coach.heroHeading')}
-          </Text>
-
-          <Text
-            style={{
-              color: colors.bg,
-              fontSize: fontSize.body,
-              lineHeight: 22,
-            }}
-          >
-            {t('coach.description')}
-          </Text>
-        </View>
-      </Card>
-
-      {/* Principle Card */}
-      <Card padding="lg">
-        <View style={{ gap: spacing.xs }}>
-          <Text
-            style={{
-              color: colors.accentText,
-              fontSize: fontSize.caption,
-              fontWeight: fontWeight.bold,
-              letterSpacing: 1,
-              textTransform: 'uppercase',
-            }}
-          >
-            {t('coach.architectureEyebrow')}
-          </Text>
-          <Text
-            style={{
-              color: colors.ink,
-              fontSize: fontSize.sectionTitle,
-              fontWeight: fontWeight.bold,
-            }}
-          >
-            {t('coach.architectureTitle')}
-          </Text>
-          <Text
-            style={{
+              flex: 1,
               color: colors.inkMutedText,
-              fontSize: fontSize.secondary,
-              lineHeight: 20,
-              marginTop: spacing.xs,
+              fontSize: fontSize.caption,
+              lineHeight: 18,
             }}
           >
-            {t('coach.architectureDescription')}
+            {t('coach.disclaimer')}
           </Text>
         </View>
-      </Card>
 
-      {/* Preview Questions */}
-      <Card padding="lg">
-        <View style={{ gap: spacing.md }}>
-          <Text
-            style={{
-              color: colors.ink,
-              fontSize: fontSize.body,
-              fontWeight: fontWeight.bold,
-            }}
-          >
-            {t('coach.previewQuestionsTitle')}
-          </Text>
-
-          <View style={{ gap: spacing.sm }}>
-            {sampleQuestions.map((q, idx) => {
-              const isSelected = selectedPrompt === q;
-              return (
+        {/* Suggested Questions (§39) */}
+        {suggestions.length > 0 ? (
+          <View style={{ gap: spacing.xs }}>
+            <Text
+              style={{
+                color: colors.accentText,
+                fontSize: fontSize.caption,
+                fontWeight: fontWeight.bold,
+                letterSpacing: 0.5,
+                textTransform: 'uppercase',
+                paddingHorizontal: spacing.xs,
+              }}
+            >
+              {t('coach.suggestedTitle')}
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.xs }}
+            >
+              {suggestions.map((q) => (
                 <Pressable
-                  key={idx}
+                  key={q.id}
                   accessibilityRole="button"
-                  onPress={() => {
-                    selectionTick();
-                    setSelectedPrompt(isSelected ? null : q);
-                  }}
+                  accessibilityLabel={q.prompt}
+                  disabled={sendMessageMutation.isPending}
+                  onPress={() => handleSend(q.prompt)}
                   style={({ pressed }) => [
-                    styles.promptCard,
+                    styles.suggestionPill,
                     {
-                      backgroundColor: isSelected ? colors.ink : colors.surface,
-                      borderColor: isSelected ? colors.ink : colors.hairline,
-                      borderRadius: radius.md,
-                      padding: spacing.md,
+                      backgroundColor: colors.surface,
+                      borderColor: colors.hairline,
+                      borderRadius: radius.pill,
+                      paddingHorizontal: spacing.md,
+                      paddingVertical: spacing.sm,
                     },
-                    pressed ? { opacity: 0.9 } : null,
+                    pressed ? { opacity: 0.8, backgroundColor: colors.surfaceMuted } : null,
                   ]}
                 >
+                  <Sparkles
+                    size={14}
+                    color={colors.accent}
+                    strokeWidth={icons.strokeWidth}
+                  />
                   <Text
                     style={{
-                      color: isSelected ? colors.surface : colors.ink,
-                      fontSize: fontSize.body,
+                      color: colors.ink,
+                      fontSize: fontSize.secondary,
                       fontWeight: fontWeight.medium,
-                      lineHeight: 20,
                     }}
                   >
-                    &quot;{q}&quot;
+                    {q.prompt}
                   </Text>
-                  {isSelected ? (
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
+        {/* Chat Thread */}
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.chatScroll}
+          contentContainerStyle={[styles.chatContent, { gap: spacing.md }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {isLoading ? (
+            <View style={{ paddingVertical: spacing.xxl, alignItems: 'center' }}>
+              <ActivityIndicator size="small" color={colors.accent} />
+            </View>
+          ) : isError ? (
+            <Pressable
+              onPress={() => refetch()}
+              style={{ paddingVertical: spacing.xl, alignItems: 'center' }}
+            >
+              <Text style={{ color: colors.danger, fontSize: fontSize.secondary }}>
+                {t('coach.unavailable')}
+              </Text>
+              <Text
+                style={{
+                  color: colors.accentText,
+                  fontSize: fontSize.caption,
+                  marginTop: spacing.xs,
+                  fontWeight: fontWeight.bold,
+                }}
+              >
+                Tap to reconnect
+              </Text>
+            </Pressable>
+          ) : messages.length === 0 ? (
+            <Card padding="xl">
+              <EmptyState
+                title={t('coach.emptyTitle')}
+                description={t('coach.emptyDescription')}
+                icon={
+                  <Sparkles
+                    size={40}
+                    color={colors.accent}
+                    strokeWidth={icons.strokeWidth}
+                  />
+                }
+              />
+            </Card>
+          ) : (
+            messages.map((m) => {
+              const isUser = m.role === 'user';
+              const formattedTime = new Date(m.createdAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+
+              if (isUser) {
+                return (
+                  <View key={m.id} style={styles.userBubbleContainer}>
+                    <View
+                      style={[
+                        styles.userBubble,
+                        {
+                          backgroundColor: colors.ink,
+                          borderRadius: radius.lg,
+                          padding: spacing.md,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          color: colors.surface,
+                          fontSize: fontSize.body,
+                          lineHeight: 22,
+                        }}
+                      >
+                        {m.content}
+                      </Text>
+                    </View>
                     <Text
                       style={{
-                        color: colors.bg,
+                        color: colors.inkMutedText,
                         fontSize: fontSize.caption,
+                        marginTop: 2,
+                        marginRight: spacing.xs,
+                      }}
+                    >
+                      {formattedTime}
+                    </Text>
+                  </View>
+                );
+              }
+
+              return (
+                <View key={m.id} style={styles.assistantBubbleContainer}>
+                  <View
+                    style={[
+                      styles.assistantBubble,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.hairline,
+                        borderRadius: radius.lg,
+                        padding: spacing.md,
+                      },
+                    ]}
+                  >
+                    <View style={styles.coachBadgeRow}>
+                      <Sparkles
+                        size={15}
+                        color={colors.accent}
+                        strokeWidth={icons.strokeWidth}
+                      />
+                      <Text
+                        style={{
+                          color: colors.accentText,
+                          fontSize: fontSize.caption,
+                          fontWeight: fontWeight.bold,
+                          letterSpacing: 0.5,
+                        }}
+                      >
+                        LiftMate Coach
+                      </Text>
+                    </View>
+                    <Text
+                      style={{
+                        color: colors.ink,
+                        fontSize: fontSize.body,
+                        lineHeight: 22,
                         marginTop: spacing.xs,
                       }}
                     >
-                      Context pipeline: Reads user program + weekly volume + goal target.
+                      {m.content}
                     </Text>
-                  ) : null}
-                </Pressable>
+                  </View>
+                  <Text
+                    style={{
+                      color: colors.inkMutedText,
+                      fontSize: fontSize.caption,
+                      marginTop: 2,
+                      marginLeft: spacing.xs,
+                    }}
+                  >
+                    {formattedTime}
+                  </Text>
+                </View>
               );
-            })}
-          </View>
+            })
+          )}
+
+          {/* Typing Indicator */}
+          {sendMessageMutation.isPending ? (
+            <View style={styles.assistantBubbleContainer}>
+              <View
+                style={[
+                  styles.assistantBubble,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.hairline,
+                    borderRadius: radius.lg,
+                    padding: spacing.md,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.sm,
+                  },
+                ]}
+              >
+                <ActivityIndicator size="small" color={colors.accent} />
+                <Text
+                  style={{
+                    color: colors.inkMutedText,
+                    fontSize: fontSize.secondary,
+                  }}
+                >
+                  {t('coach.generating')}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
+          {/* Error Banner */}
+          {errorText ? (
+            <View
+              style={[
+                styles.errorBanner,
+                {
+                  backgroundColor: colors.surfaceMuted,
+                  borderColor: colors.danger,
+                  borderRadius: radius.md,
+                  padding: spacing.sm,
+                },
+              ]}
+            >
+              <Text style={{ color: colors.danger, fontSize: fontSize.caption }}>
+                {errorText}
+              </Text>
+            </View>
+          ) : null}
+        </ScrollView>
+
+        {/* Input Bar */}
+        <View
+          style={[
+            styles.inputContainer,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.hairline,
+              borderRadius: radius.pill,
+              paddingLeft: spacing.md,
+              paddingRight: spacing.xs,
+              paddingVertical: spacing.xs,
+            },
+          ]}
+        >
+          <TextInput
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder={t('coach.inputPlaceholder')}
+            placeholderTextColor={colors.inkMutedText}
+            style={[
+              styles.textInput,
+              {
+                color: colors.ink,
+                fontSize: fontSize.body,
+              },
+            ]}
+            multiline={false}
+            returnKeyType="send"
+            onSubmitEditing={() => handleSend()}
+            editable={!sendMessageMutation.isPending}
+          />
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('coach.send')}
+            disabled={!inputText.trim() || sendMessageMutation.isPending}
+            onPress={() => handleSend()}
+            style={({ pressed }) => [
+              styles.sendButton,
+              {
+                backgroundColor:
+                  inputText.trim() && !sendMessageMutation.isPending
+                    ? colors.accent
+                    : colors.surfaceMuted,
+                borderRadius: radius.pill,
+              },
+              pressed ? { opacity: 0.85 } : null,
+            ]}
+          >
+            {sendMessageMutation.isPending ? (
+              <ActivityIndicator size="small" color={colors.surface} />
+            ) : (
+              <ArrowUp
+                size={20}
+                color={
+                  inputText.trim() ? colors.surface : colors.inkMutedText
+                }
+                strokeWidth={2.5}
+              />
+            )}
+          </Pressable>
         </View>
-      </Card>
-    </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -195,13 +436,10 @@ export default function CoachScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView
-          contentContainerStyle={[styles.content, { padding: spacing.xl, gap: spacing.lg }]}
-          showsVerticalScrollIndicator={false}
-        >
+        <View style={[styles.content, { paddingHorizontal: spacing.lg, paddingTop: spacing.md }]}>
           <ScreenHeader title={t('coach.title')} subtitle={t('coach.subtitle')} />
           <CoachSheetContent />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -211,20 +449,74 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1 },
   content: {
-    paddingBottom: 110,
+    flex: 1,
     maxWidth: 600,
     width: '100%',
     alignSelf: 'center',
   },
-  badgeRow: {
+  disclaimerBanner: {
     flexDirection: 'row',
-  },
-  phaseBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  promptCard: {
+    gap: 10,
     borderWidth: 1,
+    alignItems: 'flex-start',
+  },
+  suggestionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+  },
+  chatScroll: {
+    flex: 1,
+  },
+  chatContent: {
+    paddingVertical: 8,
+    flexGrow: 1,
+  },
+  userBubbleContainer: {
+    alignSelf: 'flex-end',
+    maxWidth: '85%',
+    alignItems: 'flex-end',
+  },
+  userBubble: {
+    borderBottomRightRadius: 4,
+  },
+  assistantBubbleContainer: {
+    alignSelf: 'flex-start',
+    maxWidth: '88%',
+    alignItems: 'flex-start',
+  },
+  assistantBubble: {
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+  },
+  coachBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  errorBanner: {
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    minHeight: 52,
+  },
+  textInput: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

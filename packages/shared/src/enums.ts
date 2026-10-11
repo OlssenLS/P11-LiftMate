@@ -116,4 +116,24 @@ export const FoodSource = z.enum([
 ]);
 export type FoodSource = z.infer<typeof FoodSource>;
 
+export const AiMessageRole = z.enum(["user", "assistant", "system"]);
+export type AiMessageRole = z.infer<typeof AiMessageRole>;
+
+export const AiInsightCategory = z.enum([
+  "training_volume",
+  "progressive_overload",
+  "recovery_fatigue",
+  "nutrition_protein",
+  "consistency_streak",
+]);
+export type AiInsightCategory = z.infer<typeof AiInsightCategory>;
+
+export const AiInsightConfidence = z.enum([
+  "high",
+  "medium",
+  "low",
+  "insufficient",
+]);
+export type AiInsightConfidence = z.infer<typeof AiInsightConfidence>;
+
 

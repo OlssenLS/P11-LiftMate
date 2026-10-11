@@ -499,14 +499,14 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* Section: Insights (DESIGN.md §7.2) */}
-        {USE_FIXTURES && !insightDismissed ? (
+        {/* Section: Insights (DESIGN.md §7.2, Spec §10–§14) */}
+        {!insightDismissed ? (
           <>
-            <SectionHeader title="Insights" />
+            <SectionHeader title="AI Coach" />
             <View style={styles.cardWrapper}>
               <InsightCard
-                title={HOME_FIXTURES.insight.title}
-                description={HOME_FIXTURES.insight.description}
+                title="AI Coach Ready"
+                description="Get personalized feedback on your workout volume, RIR trends, and daily macro targets."
                 icon={
                   <Sparkles
                     size={24}
@@ -514,8 +514,8 @@ export default function HomeScreen() {
                     strokeWidth={icons.strokeWidth}
                   />
                 }
-                actionText={HOME_FIXTURES.insight.actionText}
-                onAction={() => router.push('/(app)/train')}
+                actionText="Ask AI Coach"
+                onAction={() => router.push('/(app)/coach')}
                 onDismiss={() => setInsightDismissed(true)}
               />
             </View>

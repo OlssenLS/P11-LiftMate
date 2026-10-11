@@ -124,6 +124,27 @@ enum FoodSource {
   open_food_facts
 }
 
+enum AiMessageRole {
+  user
+  assistant
+  system
+}
+
+enum AiInsightCategory {
+  training_volume
+  progressive_overload
+  recovery_fatigue
+  nutrition_protein
+  consistency_streak
+}
+
+enum AiInsightConfidence {
+  high
+  medium
+  low
+  insufficient
+}
+
 model User {
   id           String     @id @default(uuid()) @db.Uuid
   email        String     @unique
@@ -152,6 +173,8 @@ model User {
   personalRecords     ExercisePersonalRecord[]
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
+  aiConversations     AiConversation[]
+  aiInsights          AiInsight[]
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -485,4 +508,58 @@ model ExercisePersonalRecord {
   @@index([userId])
   @@index([exerciseId])
   @@map("exercise_personal_records")
+}
+
+model AiConversation {
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String      @map("user_id") @db.Uuid
+  title     String
+  messages  AiMessage[]
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+  deletedAt DateTime?   @map("deleted_at")
+
+  @@index([userId])
+  @@index([userId, updatedAt])
+  @@index([deletedAt])
+  @@map("ai_conversations")
+}
+
+model AiMessage {
+  id             String         @id @default(uuid()) @db.Uuid
+  conversationId String         @map("conversation_id") @db.Uuid
+  role           AiMessageRole
+  content        String
+  metadata       Json?
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  @@index([conversationId])
+  @@index([conversationId, createdAt])
+  @@map("ai_messages")
+}
+
+model AiInsight {
+  id              String              @id @default(uuid()) @db.Uuid
+  userId          String              @map("user_id") @db.Uuid
+  category        AiInsightCategory
+  title           String
+  observation     String
+  evidence        String
+  possibleFactors String[]            @default([]) @map("possible_factors")
+  recommendation  String
+  confidence      AiInsightConfidence @default(medium)
+  dataWindowStart DateTime?           @map("data_window_start")
+  dataWindowEnd   DateTime?           @map("data_window_end")
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  deletedAt       DateTime?           @map("deleted_at")
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([category])
+  @@index([deletedAt])
+  @@map("ai_insights")
 }

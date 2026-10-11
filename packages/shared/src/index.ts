@@ -8,3 +8,4 @@ export * from "./nutrition-calc.js";
 export * from "./program.js";
 export * from "./nutrition.js";
 export * from "./progress.js";
+export * from "./ai.js";
