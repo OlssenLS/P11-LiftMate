@@ -24,7 +24,7 @@
 | **§23 (i)** | Exercise DB Fields: id, name, primary_muscle, secondary_muscles, equipment, movement_pattern, difficulty, instructions, alternative_exercises | **Partial** | `apps/api/prisma/schema.prisma`<br>`packages/shared/src/workout.ts`<br>`apps/api/src/exercises/exercises.service.ts` | All fields present except `alternative_exercises` (missing in Prisma and shared DTOs). |
 | **§24–28 (j)** | Nutrition: Daily overview, Food Journal (meals), Add food methods (Manual, AI, Food DB search), Manual entry fields (Name, Serving size, Quantity, Calories, Protein, Carbs, Fat, Meal type, Meal time), Food DB structure & search | **Partial** (UI) / **Missing** (API & DB) | `apps/mobile/src/app/(app)/food.tsx`<br>`apps/api/prisma/schema.prisma` | Mobile UI has week strip and meal categories with 100% hardcoded fixture data. Add food sheet has dummy placeholders. No backend Food or FoodLog models in Prisma, no API endpoints exist. |
 | **§29–32** | AI Food Recognition: Camera/upload, multi-food detection, portion estimation, nutrition calculation, confidence warning | **Deferred** | Phase 6 | Explicitly reserved for Phase 6 per prompt instructions ("DO NOT Build AI Food Recognition"). |
-| **§33–38 (l)** | AI Workout Planner & Programs: Programs model (`program_id, user_id, program_name, goal, frequency, duration, status`), Program Exercises (`id, program_id, day, exercise_id, sets, rep_min, rep_max, target_rir, rest_seconds, order`), pre-filled workout generation | **Partial** | `apps/api/prisma/schema.prisma`<br>`packages/shared/src/program.ts`<br>`apps/mobile/src/app/(app)/train.tsx`<br>`apps/mobile/src/features/workout/active-workout-store.ts` | Migration M-C applied adding `programs` and `program_exercises` tables to PostgreSQL with `ProgramStatus` enum. Shared schemas implemented in `packages/shared/src/program.ts`. Backend endpoints and mobile tracker integration in progress. |
+| **§33–38 (l)** | AI Workout Planner & Programs: Programs model (`program_id, user_id, program_name, goal, frequency, duration, status`), Program Exercises (`id, program_id, day, exercise_id, sets, rep_min, rep_max, target_rir, rest_seconds, order`), pre-filled workout generation | **Partial** (API Built / Mobile in progress) | `apps/api/prisma/schema.prisma`<br>`packages/shared/src/program.ts`<br>`apps/api/src/programs/`<br>`apps/mobile/src/app/(app)/train.tsx`<br>`apps/mobile/src/features/workout/active-workout-store.ts` | Migration M-C applied adding `programs` and `program_exercises` tables to PostgreSQL with `ProgramStatus` enum. Shared schemas implemented in `packages/shared/src/program.ts`. 6 evidence-based starter templates defined. RuleEngine implemented with equipment compatibility and avoid-list substitution. Complete Programs API built and verified: `GET /programs`, `GET /programs/current`, `GET /programs/templates`, `POST /programs`, `GET /programs/:id`, `POST /programs/:id/activate`, `POST /programs/:id/start-day/:day`. Unit tests passing. Mobile integration in progress. |
 | **§39–43** | AI Coach: Chat interface, suggested questions, context retrieval architecture, safety & medical disclaimer | **Deferred** | `apps/mobile/src/app/(app)/coach.tsx` | Phase 6. Screen has UI shell; backend/LLM is Phase 6. |
 | **§44–49 (k)** | Progress Tracking: Body weight log & history, Per-exercise strength view (best weight, best reps, volume, history, chart), Estimated 1RM (labelled estimate), Volume breakdowns (exercise, muscle group, workout, week, month), Consistency (% planned vs completed) | **Partial** (UI) / **Missing** (Backend) | `apps/mobile/src/app/metric/[id].tsx`<br>`apps/api/prisma/schema.prisma` | Metric detail screen exists but runs entirely on hardcoded fixture arrays (`METRIC_CONFIGS`). No `BodyProgress` model in Prisma. No endpoint for body weight logs, per-exercise strength history, estimated 1RM, volume aggregation, or consistency percentage. |
 | **§50–57** | AI Analytics: Metrics calculation, Structured Analytics Data, Category insights, Data sufficiency check ("Not enough data yet") | **Deferred** / **Partial** | `apps/mobile/src/components/ui/insight-card.tsx` | Phase 6. Mobile insight card primitive is built. Analytics generation is Phase 6. Empty state ("Not enough data yet") needed for Insights tab. |
@@ -98,6 +98,14 @@
   - `DELETE /workouts/:id/exercises/:exerciseRowId`
   - `POST /workouts/:id/exercises/:exerciseRowId/sets` (upsert workout set)
   - `DELETE /workouts/:id/sets/:setId`
+- **Programs Controller (`/programs`)**:
+  - `GET /programs` (list user programs with status filter)
+  - `GET /programs/current` (active program, auto-assigns recommended template if onboarded)
+  - `GET /programs/templates` (starter template library)
+  - `GET /programs/:id` (program detail with exercises and days)
+  - `POST /programs` (create custom program)
+  - `POST /programs/:id/activate` (activate program and archive previous)
+  - `POST /programs/:id/start-day/:day` (instantiate pre-filled workout with progressive overload baseline)
 - **App Controller (`/`)**:
   - `GET /` (health / greeting)
 
@@ -106,7 +114,6 @@
 - **Profile / Users**: `PATCH /users/me` (update name, age, height, weight, target weight), `POST /auth/change-password`, `GET /users/me/preferences`, `PATCH /users/me/preferences` (§65)
 - **Nutrition**: `GET /foods/search`, `POST /foods`, `GET /food-logs`, `POST /food-logs`, `PATCH /food-logs/:id`, `DELETE /food-logs/:id` (§24–28)
 - **Progress**: `GET /progress/weight`, `POST /progress/weight`, `GET /progress/strength/:exerciseId`, `GET /progress/volume`, `GET /progress/consistency` (§44–49)
-- **Programs**: `GET /programs`, `POST /programs`, `GET /programs/:id` (§33–38)
 
 ---
 

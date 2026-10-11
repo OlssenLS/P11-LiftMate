@@ -1,11 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import type { OnboardingInput, PublicUser } from '@liftmate/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { toPrismaDuration, toPublicUser } from '../users/users.service.js';
+import { ProgramsService } from '../programs/programs.service.js';
 
 @Injectable()
 export class OnboardingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly programsService?: ProgramsService,
+  ) {}
 
   async complete(userId: string, input: OnboardingInput): Promise<PublicUser> {
     const user = await this.prisma.$transaction(async (tx) => {
@@ -68,6 +72,14 @@ export class OnboardingService {
 
       return updated;
     });
+
+    if (this.programsService) {
+      try {
+        await this.programsService.assignRecommendedProgram(userId);
+      } catch (err) {
+        // Fallback silently if exercise seed is not loaded or during tests
+      }
+    }
 
     return toPublicUser(user);
   }

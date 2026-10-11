@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { OnboardingModule } from './onboarding/onboarding.module.js';
 import { ExercisesModule } from './exercises/exercises.module.js';
 import { WorkoutsModule } from './workouts/workouts.module.js';
+import { ProgramsModule } from './programs/programs.module.js';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { WorkoutsModule } from './workouts/workouts.module.js';
     OnboardingModule,
     ExercisesModule,
     WorkoutsModule,
+    ProgramsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

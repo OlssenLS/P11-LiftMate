@@ -184,6 +184,33 @@ Format: date — decision — reason.
 - **Shared Schemas (`packages/shared/src/program.ts`):**
   - Implemented `createProgramSchema`, `updateProgramSchema`, `programSchema`, `programExerciseInputSchema`, and `programExerciseSchema`.
 
+## 2026-10-11 — Phase 3 Slice PR1 (Template Library, Rule Selection Engine & Backend API)
+
+- **Starter Template Programs (`apps/api/src/programs/templates/starter-templates.ts`):**
+  - Created 6 evidence-based starter templates based on progressive overload principles:
+    1. Full Body 3-Day Foundation (`full-body-3day`)
+    2. Upper / Lower 4-Day Split (`upper-lower-4day`)
+    3. Push / Pull / Legs 6-Day Split (`ppl-6day`)
+    4. Dumbbell Only 3-Day (`dumbbell-3day`)
+    5. Bodyweight Only 3-Day (`bodyweight-3day`)
+    6. Strength Focus 3-Day (`strength-fullbody-3day`)
+  - All exercises reference verified seed catalog exercises (`externalId`).
+- **Rule Selection Engine (`apps/api/src/programs/rule-engine.ts`):**
+  - Evaluates user equipment, weekly frequency, fitness goal, and avoid-list.
+  - Automatically substitutes exercises matching user avoid-list via `fallbackExternalId` or `alternativeExercises` compatible with user equipment.
+  - Penalizes unresolvable avoid-list collisions or equipment mismatches.
+- **Programs API Endpoints (`apps/api/src/programs/`):**
+  - `GET /programs`: lists user's programs.
+  - `GET /programs/current`: retrieves active program with exercises and days. Auto-assigns recommended program if user is onboarded but lacks an active program.
+  - `GET /programs/templates`: exposes starter template library.
+  - `POST /programs`: creates a custom program.
+  - `GET /programs/:id`: retrieves program details with exercises.
+  - `POST /programs/:id/activate`: sets selected program as active and archives others.
+  - `POST /programs/:id/start-day/:day`: instantiates an active `Workout` with pre-filled planned exercises, sets, target reps, target RIR, rest seconds, and queries previous session weights for progressive overload baseline.
+- **Onboarding Integration:**
+  - `OnboardingService.complete` triggers `ProgramsService.assignRecommendedProgram` upon onboarding completion so a personalized program is immediately ready.
+
+
 
 
 
