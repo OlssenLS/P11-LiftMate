@@ -22,10 +22,12 @@ export default function AppLayout() {
         }}
         tabBar={({ state, navigation }) => {
           const routeName = state.routes[state.index].name;
-          const activeKey: TabKey =
+          const activeKey: TabKey | null =
             routeName === 'index'
               ? 'home'
-              : (routeName as TabKey);
+              : routeName === 'train' || routeName === 'food' || routeName === 'insights'
+              ? (routeName as TabKey)
+              : null;
 
           return (
             <View
@@ -54,7 +56,8 @@ export default function AppLayout() {
         <Tabs.Screen name="index" options={{ title: 'Home' }} />
         <Tabs.Screen name="train" options={{ title: 'Train' }} />
         <Tabs.Screen name="food" options={{ title: 'Food' }} />
-        <Tabs.Screen name="you" options={{ title: 'You' }} />
+        <Tabs.Screen name="insights" options={{ title: 'Insights' }} />
+        <Tabs.Screen name="you" options={{ href: null, title: 'You' }} />
         <Tabs.Screen name="coach" options={{ href: null, title: 'Coach' }} />
       </Tabs>
 

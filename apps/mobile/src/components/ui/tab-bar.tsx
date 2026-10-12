@@ -7,14 +7,14 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { House, Dumbbell, Utensils, User, Sparkles } from 'lucide-react-native';
+import { House, Dumbbell, Utensils, TrendingUp, Sparkles } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTokens } from '@/hooks/use-tokens';
 import { t, type TranslationKey } from '@/i18n';
 import { selectionTick } from '@/lib/haptics';
 
-export type TabKey = 'home' | 'train' | 'food' | 'you';
+export type TabKey = 'home' | 'train' | 'food' | 'insights';
 
 export const TABS: readonly {
   key: TabKey;
@@ -24,11 +24,11 @@ export const TABS: readonly {
   { key: 'home', labelKey: 'tabs.home', icon: House },
   { key: 'train', labelKey: 'tabs.train', icon: Dumbbell },
   { key: 'food', labelKey: 'tabs.food', icon: Utensils },
-  { key: 'you', labelKey: 'tabs.you', icon: User },
+  { key: 'insights', labelKey: 'tabs.insights', icon: TrendingUp },
 ] as const;
 
 export interface TabBarProps {
-  active: TabKey | 'coach';
+  active: TabKey | 'coach' | string | null;
   onSelect: (key: TabKey) => void;
   onCoachPress?: () => void;
   isCoachActive?: boolean;
@@ -39,7 +39,7 @@ export interface TabBarProps {
  * FloatingTabBar & Detached Coach Circle Button (DESIGN.md §5 & §14).
  *
  * - Floating pill tab bar (height 64, radius pill, surface @ 94%, elevation 1)
- * - 4 tabs: Home · Train · Food · You (icon 24, caption 12)
+ * - 4 tabs: Home · Train · Food · Insights (icon 24, caption 12)
  * - Active tab: surfaceMuted pill highlight behind icon+label, colour accentText
  * - Inactive tab: ink icon, inkMutedText label
  * - Detached Coach button: 64dp circle to the right, surface, elevation 1, sparkle in accent

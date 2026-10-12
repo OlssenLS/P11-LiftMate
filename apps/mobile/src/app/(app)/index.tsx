@@ -517,8 +517,8 @@ export default function HomeScreen() {
                       strokeWidth={icons.strokeWidth}
                     />
                   }
-                  actionText="View Analytics"
-                  onAction={() => router.push('/analytics' as any)}
+                  actionText="View Insights"
+                  onAction={() => router.push('/(app)/insights')}
                   onDismiss={() => setInsightDismissed(true)}
                 />
               ) : (

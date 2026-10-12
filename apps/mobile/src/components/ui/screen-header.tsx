@@ -19,6 +19,7 @@ import { useTokens } from '@/hooks/use-tokens';
 export interface LargeTitleHeaderProps {
   title: string;
   eyebrow?: string;
+  leading?: ReactNode;
   trailing?: ReactNode;
   style?: StyleProp<ViewStyle>;
 }
@@ -26,6 +27,7 @@ export interface LargeTitleHeaderProps {
 export function LargeTitleHeader({
   title,
   eyebrow,
+  leading,
   trailing,
   style,
 }: LargeTitleHeaderProps) {
@@ -44,6 +46,7 @@ export function LargeTitleHeader({
         style,
       ]}
     >
+      {leading ? <View style={{ marginBottom: spacing.xs }}>{leading}</View> : null}
       <View style={styles.largeHeaderRow}>
         <View style={styles.titleBlock}>
           {eyebrow ? (

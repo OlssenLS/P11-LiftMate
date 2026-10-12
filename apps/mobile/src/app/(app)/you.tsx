@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import {
   Activity,
   Bell,
@@ -30,6 +31,7 @@ import {
 import {
   Card,
   Chip,
+  CircleButton,
   DatePicker,
   DaySelector,
   EquipmentCard,
@@ -74,6 +76,7 @@ import { USE_FIXTURES } from '@/config/env';
 import { YOU_FIXTURES } from '@/dev/fixtures';
 
 export default function YouScreen() {
+  const router = useRouter();
   const { colors, radius, layout, type, icons, spacing } = useTokens();
   const bottomScrollPadding = useTabScrollPadding();
   const user = useAuthStore((s) => s.user);
@@ -375,8 +378,24 @@ export default function YouScreen() {
           },
         ]}
       >
-        {/* Large Title Header */}
-        <LargeTitleHeader title="You" />
+        {/* Large Title Header with Back Action */}
+        <LargeTitleHeader
+          title="You"
+          leading={
+            <CircleButton
+              variant="default"
+              icon="back"
+              accessibilityLabel="Go back"
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/(app)');
+                }
+              }}
+            />
+          }
+        />
 
         <OfflineBanner />
 

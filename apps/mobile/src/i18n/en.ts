@@ -25,6 +25,7 @@ export const en = {
     train: 'Train',
     coach: 'Coach',
     food: 'Food',
+    insights: 'Insights',
     you: 'You',
   },
   home: {
@@ -557,6 +558,11 @@ export const en = {
     mediumConfidence: 'Medium confidence',
     lowConfidence: 'Low confidence',
     primaryInsightBadge: 'Potential Insight',
+  },
+  insights: {
+    title: 'Insights',
+    eyebrow: 'AI ANALYTICS',
+    subtitle: 'Evidence-based trend analysis and performance insights',
   },
 } as const;
 

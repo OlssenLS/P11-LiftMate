@@ -467,3 +467,24 @@ Format: date — decision — reason.
       - "Confirm & Add to Diary" action calling `useConfirmFoodRecognition()`.
   - Connected Food tab header with 1-tap Camera circle button and Add Food Sheet with prominent AI Scan card.
 
+## 2026-10-12 — Slice N (Navigation & Insights Shell Migration)
+
+- **Approved by User:** Explicitly authorized via `"nav approved"` (resolving Open Decision 1, Brief §10).
+- **Floating Tab Bar Reconfiguration (`apps/mobile/src/components/ui/tab-bar.tsx`):**
+  - Updated floating pill tab bar to 4 primary tabs: `Home · Train · Food · Insights` (`TrendingUp` icon for Insights; `tabs.insights`).
+  - Detached 64dp Coach circle button remains positioned next to the pill, triggering the full-height Coach sheet / route.
+- **Profile / You Access Migration (`apps/mobile/src/app/(app)/index.tsx`, `you.tsx`):**
+  - Profile (You) removed from the floating pill tab bar.
+  - Profile is now exclusively accessed via the interactive top-header avatar CircleButton on the Home screen (`/(app)/index.tsx`), navigating to `/(app)/you`.
+  - Added header back button (`CircleButton icon="back"`) on `You` screen using `LargeTitleHeader` `leading` slot to enable effortless return navigation to Home.
+  - In `(app)/_layout.tsx`, `<Tabs.Screen name="you" options={{ href: null, title: 'You' }} />` preserves deep-linkability while omitting it from the tab bar.
+- **Dedicated Insights Tab Screen (`apps/mobile/src/app/(app)/insights.tsx`):**
+  - Built full `InsightsScreen` featuring `LargeTitleHeader`, refresh mutation action, and bottom tab scroll padding (`useTabScrollPadding()`).
+  - Implements Spec §54 Data Sufficiency Gate:
+    - Low-data state: *Not enough data yet* card with workout & nutrition days progress checklist and 1-tap shortcuts ("Log Workout", "Log Food").
+    - High-data state: 4-card metric overview grid, plateau notice alert, category filter tabs, structured insight cards, and contextual actions ("Ask AI Coach", "Review Workout Plan").
+- **Legacy Route Redirection (`apps/mobile/src/app/analytics.tsx`):**
+  - Route `/analytics` redirects via `<Redirect href="/(app)/insights" />` to preserve deep link and route backward compatibility.
+- **Automated Contract Tests (`apps/api/src/common/navigation-spec.spec.ts`):**
+  - Added 6 automated tests validating the 4 tab keys, layout configuration, avatar link, back navigation, and data sufficiency state.
+
