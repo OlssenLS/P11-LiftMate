@@ -69,10 +69,37 @@ export class GeminiAiProvider implements AiProvider {
   ): Promise<AiProviderGenerateResult> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
 
-    const contents = options.messages.map((m) => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
+    const contents = options.messages.map((m) => {
+      const parts: any[] = [{ text: m.content }];
+      if (m.images && m.images.length > 0) {
+        for (const img of m.images) {
+          parts.push({
+            inlineData: {
+              mimeType: img.mimeType,
+              data: img.base64,
+            },
+          });
+        }
+      }
+      return {
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts,
+      };
+    });
+
+    if (options.images && options.images.length > 0) {
+      const lastUserContent = contents.filter((c) => c.role === 'user').pop();
+      if (lastUserContent) {
+        for (const img of options.images) {
+          lastUserContent.parts.push({
+            inlineData: {
+              mimeType: img.mimeType,
+              data: img.base64,
+            },
+          });
+        }
+      }
+    }
 
     const payload: any = {
       contents,
@@ -151,6 +178,27 @@ export class GeminiAiProvider implements AiProvider {
       '';
     const lower = lastUserMsg.toLowerCase();
     const system = options.system || '';
+
+    // Food recognition detection
+    if (
+      system.includes('Food Recognition') ||
+      lower.includes('identify all visible food items') ||
+      (options.images && options.images.length > 0)
+    ) {
+      return {
+        content: JSON.stringify({
+          summary:
+            'A balanced meal containing steamed white rice, grilled chicken breast, and a hard-boiled egg.',
+          items: [
+            { foodName: 'Nasi Putih', portionGrams: 200, confidence: 'high' },
+            { foodName: 'Dada Ayam Panggang / Rebus', portionGrams: 150, confidence: 'high' },
+            { foodName: 'Telur Ayam Rebus', portionGrams: 50, confidence: 'medium' },
+          ],
+          overallConfidence: 'high',
+        }),
+        finishReason: 'STOP',
+      };
+    }
 
     // Safety checks for medical / pain inquiries (§43, §68)
     if (

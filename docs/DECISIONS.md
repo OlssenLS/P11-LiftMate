@@ -440,6 +440,30 @@ Format: date — decision — reason.
     - High-data state: 4-card metric overview grid, plateau notice alert, category filter tabs (All, Training, Nutrition, Recovery), and detailed insight cards with observation quote borders, evidence boxes, factors list, and recommendation callouts.
     - Contextual action triggers: "Ask AI Coach" pre-fills coach chat with contextual prompt (§56); "Review Workout Plan" navigates to Train tab (§57).
   - Connected Home dashboard Section "Insights" (Spec §14) to live `useAnalyticsOverview()`, presenting live potential insights with "View Analytics" shortcut.
+## 2026-10-12 — Phase 6 Slice AI4 (Multimodal AI Food Recognition & Multi-Item Confirmation)
 
-
+- **Dependency: `expo-image-picker` (`~57.0.20`):**
+  - Standard Expo SDK 57 native module enabling cross-platform camera capture and photo library image selection with base64 serialization for AI food scanning (Brief §4 rule 4).
+- **Multimodal AI Provider Extension (`GeminiAiProvider`):**
+  - Extended `AiProviderGenerateOptions` to accept `images?: Array<{ mimeType: string; base64: string }>` formatted as `inlineData` parts in Gemini API payloads.
+  - Implemented multimodal fallback returning structured JSON for common Indonesian meals (Nasi Putih + Dada Ayam + Telur) when offline or in simulated environments.
+- **AI Food Recognition Engine (`apps/api/src/ai/food/`):**
+  - Implemented `FoodRecognitionService` and `FoodRecognitionController` with endpoints:
+    - `POST /ai/food/recognize`: Rate-limited vision endpoint identifying foods and portion grams from photo base64 data.
+    - `POST /ai/food/confirm`: Transactionally persists confirmed meal items to `food_logs` with `source: 'ai_recognition'`.
+  - **Strict Data Correctness (Brief §4 rule 11):** Nutrition numbers (calories, protein, carbs, fat) are strictly computed from verified database food records (`Food`), never from free-text LLM hallucinations.
+  - **Portion Weight Calculation:** Multiplies database serving macros by `portionGrams / servingWeightG`.
+  - **Mandatory Estimate Label & Warning (Brief §4 rule 13, Spec §32):**
+    - Scans are strictly labeled `isEstimated: true` with visible `ESTIMATED NUTRITION` badge.
+    - Ambiguous or low-confidence scans automatically display the mandatory warning: *"Food identification may be inaccurate. Please verify the detected food and portion."*
+- **Mobile AI Food Recognition UI (`apps/mobile/src/features/nutrition/ai-food-recognition-modal.tsx`):**
+  - Interactive multi-step modal:
+    - Camera/Gallery Picker with meal type chips and demo scan fallback.
+    - Visual scanning loading state with animated progress and top-down guidance.
+    - Interactive Confirmation Sheet:
+      - Photo summary and estimate warning badge.
+      - Per-item cards with confidence rating, portion stepper (-25g / +25g), delete action, and live macro updates.
+      - Total nutrition summary card.
+      - "Confirm & Add to Diary" action calling `useConfirmFoodRecognition()`.
+  - Connected Food tab header with 1-tap Camera circle button and Add Food Sheet with prominent AI Scan card.
 

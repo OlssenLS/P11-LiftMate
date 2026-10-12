@@ -11,11 +11,13 @@ import {
 } from 'react-native';
 import {
   Apple,
+  Camera,
   Coffee,
   Flame,
   Moon,
   Plus,
   Search,
+  Sparkles,
   Utensils,
 } from 'lucide-react-native';
 
@@ -35,6 +37,7 @@ import {
   Sheet,
 } from '@/components/ui';
 import {
+  AiFoodRecognitionModal,
   useCreateFoodLog,
   useDailyNutritionSummary,
   useDeleteFoodLog,
@@ -78,7 +81,7 @@ function getRollingWeek(): { dateStr: string; label: string; dayNum: string; isT
 }
 
 export default function FoodScreen() {
-  const { colors, radius, layout, type, icons, touchTarget } = useTokens();
+  const { colors, radius, layout, type, icons, touchTarget, alpha } = useTokens();
   const bottomScrollPadding = useTabScrollPadding();
   const router = useRouter();
 
@@ -93,6 +96,7 @@ export default function FoodScreen() {
 
   // Add Food Sheet state
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
+  const [isAiScanOpen, setIsAiScanOpen] = useState(false);
   const [addMealType, setAddMealType] = useState<MealType>('breakfast');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
@@ -254,22 +258,39 @@ export default function FoodScreen() {
           },
         ]}
       >
-        {/* Large Title Header + Quick Add Action */}
+        {/* Large Title Header + AI Scan & Quick Add Actions */}
         <LargeTitleHeader
           title="Food"
           trailing={
-            <CircleButton
-              variant="default"
-              icon={
-                <Plus
-                  size={22}
-                  color={colors.ink}
-                  strokeWidth={icons.strokeWidth}
-                />
-              }
-              accessibilityLabel="Quick log food"
-              onPress={() => handleOpenAdd('lunch')}
-            />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <CircleButton
+                variant="default"
+                icon={
+                  <Camera
+                    size={20}
+                    color={colors.ink}
+                    strokeWidth={icons.strokeWidth}
+                  />
+                }
+                accessibilityLabel="Scan food with AI"
+                onPress={() => {
+                  selectionTick();
+                  setIsAiScanOpen(true);
+                }}
+              />
+              <CircleButton
+                variant="default"
+                icon={
+                  <Plus
+                    size={22}
+                    color={colors.ink}
+                    strokeWidth={icons.strokeWidth}
+                  />
+                }
+                accessibilityLabel="Quick log food"
+                onPress={() => handleOpenAdd('lunch')}
+              />
+            </View>
           }
         />
 
@@ -502,6 +523,39 @@ export default function FoodScreen() {
               />
             ))}
           </View>
+
+          {/* Quick AI Scan Shortcut Card */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Scan meal photo with AI"
+            onPress={() => {
+              selectionTick();
+              setIsAddSheetOpen(false);
+              setIsAiScanOpen(true);
+            }}
+          >
+            <Card
+              variant="surface"
+              padding="md"
+              style={{
+                backgroundColor: alpha(colors.accent, 0.12),
+                borderColor: colors.accent,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Sparkles size={20} color={colors.accent} strokeWidth={2.2} />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={[type.cardLabel, { color: colors.ink, fontSize: 14 }]}>
+                    Scan Meal with AI Vision
+                  </Text>
+                  <Text style={[type.caption, { color: colors.inkMutedText }]}>
+                    Auto-detect foods and portions from a photo
+                  </Text>
+                </View>
+                <Camera size={18} color={colors.accent} />
+              </View>
+            </Card>
+          </Pressable>
 
           {/* Mode switch: Search vs Custom */}
           <View style={styles.modeToggleRow}>
@@ -880,6 +934,14 @@ export default function FoodScreen() {
           </View>
         )}
       </Sheet>
+
+      {/* AI Food Recognition Modal (§29–§32) */}
+      <AiFoodRecognitionModal
+        visible={isAiScanOpen}
+        onClose={() => setIsAiScanOpen(false)}
+        defaultMealType={addMealType}
+        selectedDate={selectedDate}
+      />
     </View>
   );
 }

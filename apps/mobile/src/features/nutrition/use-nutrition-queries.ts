@@ -6,6 +6,9 @@ import type {
   Food,
   FoodLog,
   UpdateFoodLogInput,
+  RecognizeFoodInput,
+  RecognizeFoodResponse,
+  ConfirmFoodRecognitionInput,
 } from '@liftmate/shared';
 
 import { api } from '@/lib/api-client';
@@ -165,3 +168,33 @@ export function useCreateFood() {
     },
   });
 }
+
+/**
+ * AI Food Recognition: Upload photo for multi-food detection & portion estimation (§29–§32).
+ */
+export function useRecognizeFood() {
+  return useMutation({
+    mutationFn: async (input: RecognizeFoodInput): Promise<RecognizeFoodResponse> => {
+      const res = await api.post('/ai/food/recognize', input);
+      return res.data as RecognizeFoodResponse;
+    },
+  });
+}
+
+/**
+ * Confirm recognized food items and log them in user journal.
+ */
+export function useConfirmFoodRecognition() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: ConfirmFoodRecognitionInput): Promise<FoodLog[]> => {
+      const res = await api.post('/ai/food/confirm', input);
+      return res.data as FoodLog[];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nutrition', 'daily'] });
+    },
+  });
+}
+

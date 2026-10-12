@@ -8,6 +8,7 @@ import {
   WorkoutDuration,
   Equipment,
   MuscleGroup,
+  MealType,
 } from "./enums.js";
 
 // Message Schema
@@ -148,9 +149,15 @@ export const SuggestedQuestionsResponseSchema = z.object({
 export type SuggestedQuestionsResponse = z.infer<typeof SuggestedQuestionsResponseSchema>;
 
 // Provider Interfaces
+export interface AiImagePart {
+  mimeType: string;
+  base64: string;
+}
+
 export interface AiChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
+  images?: AiImagePart[];
 }
 
 export interface AiProviderGenerateOptions {
@@ -158,6 +165,7 @@ export interface AiProviderGenerateOptions {
   messages: AiChatMessage[];
   maxTokens?: number;
   temperature?: number;
+  images?: AiImagePart[];
 }
 
 export interface AiProviderGenerateResult {
@@ -238,3 +246,77 @@ export const ConfirmProgramPlanInputSchema = z.object({
 });
 export const confirmProgramPlanInputSchema = ConfirmProgramPlanInputSchema;
 export type ConfirmProgramPlanInput = z.infer<typeof ConfirmProgramPlanInputSchema>;
+
+// AI Food Recognition Schemas (§29–§32)
+export const AiFoodRecognitionConfidence = z.enum(["high", "medium", "low"]);
+export type AiFoodRecognitionConfidence = z.infer<typeof AiFoodRecognitionConfidence>;
+
+export const DetectedFoodItemSchema = z.object({
+  foodName: z.string(),
+  portionGrams: z.number().positive(),
+  confidence: AiFoodRecognitionConfidence,
+});
+export type DetectedFoodItem = z.infer<typeof DetectedFoodItemSchema>;
+
+export const RecognizedFoodItemSchema = z.object({
+  id: z.string().uuid(),
+  detectedName: z.string(),
+  matchedFoodId: z.string().uuid().nullable().optional(),
+  matchedFoodName: z.string(),
+  servingSize: z.string(),
+  servingWeightG: z.number().nullable().optional(),
+  portionGrams: z.number().positive(),
+  calories: z.number(),
+  protein: z.number(),
+  carbs: z.number(),
+  fat: z.number(),
+  confidence: AiFoodRecognitionConfidence,
+  source: z.string().default("ai_recognition"),
+});
+export const recognizedFoodItemSchema = RecognizedFoodItemSchema;
+export type RecognizedFoodItem = z.infer<typeof RecognizedFoodItemSchema>;
+
+export const RecognizeFoodInputSchema = z.object({
+  imageBase64: z.string().min(1, "Image data cannot be empty"),
+  mimeType: z.string().default("image/jpeg"),
+  mealType: MealType.optional(),
+});
+export const recognizeFoodInputSchema = RecognizeFoodInputSchema;
+export type RecognizeFoodInput = z.infer<typeof RecognizeFoodInputSchema>;
+
+export const RecognizeFoodResponseSchema = z.object({
+  imageSummary: z.string(),
+  items: z.array(RecognizedFoodItemSchema),
+  overallConfidence: AiFoodRecognitionConfidence,
+  hasLowConfidenceWarning: z.boolean(),
+  warningMessage: z.string().nullable().optional(),
+  totalEstimatedCalories: z.number(),
+  totalEstimatedProtein: z.number(),
+  totalEstimatedCarbs: z.number(),
+  totalEstimatedFat: z.number(),
+  isEstimated: z.literal(true).default(true),
+});
+export const recognizeFoodResponseSchema = RecognizeFoodResponseSchema;
+export type RecognizeFoodResponse = z.infer<typeof RecognizeFoodResponseSchema>;
+
+export const ConfirmFoodRecognitionItemSchema = z.object({
+  foodId: z.string().uuid().nullable().optional(),
+  foodName: z.string().min(1),
+  servingSize: z.string().min(1),
+  portionGrams: z.number().positive(),
+  calories: z.number().min(0),
+  protein: z.number().min(0),
+  carbs: z.number().min(0),
+  fat: z.number().min(0),
+});
+export const confirmFoodRecognitionItemSchema = ConfirmFoodRecognitionItemSchema;
+export type ConfirmFoodRecognitionItem = z.infer<typeof ConfirmFoodRecognitionItemSchema>;
+
+export const ConfirmFoodRecognitionInputSchema = z.object({
+  mealType: MealType,
+  loggedAt: z.coerce.date().default(() => new Date()),
+  items: z.array(ConfirmFoodRecognitionItemSchema).min(1, "At least one food item must be selected"),
+});
+export const confirmFoodRecognitionInputSchema = ConfirmFoodRecognitionInputSchema;
+export type ConfirmFoodRecognitionInput = z.infer<typeof ConfirmFoodRecognitionInputSchema>;
+
