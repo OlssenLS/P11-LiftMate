@@ -39,7 +39,7 @@ export function LargeTitleHeader({
       style={[
         styles.largeHeaderContainer,
         {
-          paddingTop: Math.max(insets.top, spacing.md),
+          paddingTop: Math.max(insets.top, 24) + spacing.lg,
           paddingHorizontal: layout.screenPadding,
           paddingBottom: spacing.sm,
         },
@@ -91,7 +91,7 @@ export function DetailHeader({
       style={[
         styles.detailHeaderContainer,
         {
-          paddingTop: Math.max(insets.top, spacing.sm),
+          paddingTop: Math.max(insets.top, 24) + spacing.sm,
           paddingHorizontal: layout.screenPadding,
           paddingBottom: spacing.md,
         },

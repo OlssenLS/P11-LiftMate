@@ -163,7 +163,8 @@ export function TabBar({
 export function useBottomTabScrollPadding(): number {
   const insets = useSafeAreaInsets();
   const { layout } = useTokens();
-  return layout.tabBarHeight + 24 + Math.max(insets.bottom, 12);
+  // tabBarHeight (64) + floating bar bottom margin (inset + 16) + extra clearance (24)
+  return layout.tabBarHeight + Math.max(insets.bottom, 8) + 40;
 }
 
 const styles = StyleSheet.create({

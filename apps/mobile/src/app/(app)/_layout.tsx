@@ -35,7 +35,7 @@ export default function AppLayout() {
               style={[
                 styles.floatingContainer,
                 {
-                  bottom: Math.max(insets.bottom, 12),
+                  bottom: Math.max(insets.bottom, 8) + 16,
                   paddingHorizontal: layout.screenPadding,
                 },
               ]}

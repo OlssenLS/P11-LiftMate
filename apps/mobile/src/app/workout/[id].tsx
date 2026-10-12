@@ -9,7 +9,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   Card,
@@ -91,8 +90,7 @@ export default function WorkoutDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <SafeAreaView edges={['top']} style={styles.safeArea}>
-        <DetailHeader
+      <DetailHeader
           title={workout?.name || t('workout.workoutDetailTitle')}
           onBack={() => {
             pressLight();
@@ -345,7 +343,6 @@ export default function WorkoutDetailScreen() {
             </View>
           </View>
         </Sheet>
-      </SafeAreaView>
     </View>
   );
 }

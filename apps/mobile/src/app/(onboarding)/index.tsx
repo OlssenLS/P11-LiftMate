@@ -564,7 +564,7 @@ export default function OnboardingScreen() {
           style={[
             styles.stepHeader,
             {
-              paddingTop: Math.max(insets.top, spacing.md),
+              paddingTop: Math.max(insets.top, 24) + spacing.md,
               paddingHorizontal: spacing.lg,
               paddingBottom: spacing.sm,
               gap: spacing.md,
