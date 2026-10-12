@@ -3,6 +3,11 @@ import {
   AiMessageRole,
   AiInsightCategory,
   AiInsightConfidence,
+  FitnessGoal,
+  Difficulty,
+  WorkoutDuration,
+  Equipment,
+  MuscleGroup,
 } from "./enums.js";
 
 // Message Schema
@@ -99,3 +104,53 @@ export interface AiProviderGenerateResult {
     totalTokens: number;
   };
 }
+
+// AI Workout Planner Schemas (§33–§38)
+export const GenerateProgramInputSchema = z.object({
+  goal: FitnessGoal.optional(),
+  experienceLevel: Difficulty.optional(),
+  frequency: z.number().int().min(2).max(6).optional(),
+  duration: WorkoutDuration.optional(),
+  focusNotes: z.string().max(500).optional(),
+});
+export const generateProgramInputSchema = GenerateProgramInputSchema;
+export type GenerateProgramInput = z.infer<typeof GenerateProgramInputSchema>;
+
+export const GeneratedProgramExerciseSchema = z.object({
+  exerciseId: z.string().uuid(),
+  exerciseName: z.string(),
+  primaryMuscle: MuscleGroup,
+  equipment: Equipment,
+  sets: z.number().int().min(1).max(10),
+  repMin: z.number().int().min(1).max(50),
+  repMax: z.number().int().min(1).max(50),
+  targetRir: z.number().int().min(0).max(5).nullable().optional(),
+  restSeconds: z.number().int().min(15).max(360).nullable().optional(),
+  order: z.number().int(),
+});
+export type GeneratedProgramExercise = z.infer<typeof GeneratedProgramExerciseSchema>;
+
+export const GeneratedProgramDaySchema = z.object({
+  day: z.number().int().min(1).max(7),
+  dayName: z.string(),
+  exercises: z.array(GeneratedProgramExerciseSchema),
+});
+export type GeneratedProgramDay = z.infer<typeof GeneratedProgramDaySchema>;
+
+export const GeneratedProgramPlanSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  goal: FitnessGoal,
+  frequency: z.number().int().min(2).max(6),
+  duration: z.string(),
+  days: z.array(GeneratedProgramDaySchema),
+});
+export const generatedProgramPlanSchema = GeneratedProgramPlanSchema;
+export type GeneratedProgramPlan = z.infer<typeof GeneratedProgramPlanSchema>;
+
+export const ConfirmProgramPlanInputSchema = z.object({
+  plan: GeneratedProgramPlanSchema,
+  activateImmediately: z.boolean().default(true),
+});
+export const confirmProgramPlanInputSchema = ConfirmProgramPlanInputSchema;
+export type ConfirmProgramPlanInput = z.infer<typeof ConfirmProgramPlanInputSchema>;

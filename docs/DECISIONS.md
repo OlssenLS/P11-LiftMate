@@ -397,4 +397,21 @@ Format: date — decision — reason.
     - Text input with send button and rate-limit error banner.
   - Connected Home screen InsightCard with "Ask AI Coach" shortcut.
 
+## 2026-10-12 — Phase 6 Slice AI2 (AI Workout Planner & Periodization Engine)
+
+- **AI Workout Planner Architecture (`apps/api/src/ai/planner/`):**
+  - Implemented `PlannerService` and `PlannerController` with endpoints:
+    - `POST /ai/planner/generate`: Generates personalized training splits conforming to user's goal, frequency (2–6 days), duration, equipment, and focus notes.
+    - `POST /ai/planner/confirm`: Persists generated routine to `programs` and `program_exercises` and activates it as the user's primary schedule.
+- **Strict Exercise Validation Filter (Brief §4 rule 12):**
+  - Candidate exercises are pre-filtered to user's available equipment and avoid-list.
+  - When LLM outputs exercises, every `exerciseId` is validated against candidate database exercises. Hallucinated IDs or duplicate movements are replaced with matching valid exercises for that primary muscle group.
+  - When AI is offline or without API key, the deterministic periodization engine designs balanced splits (Full Body, Upper/Lower, PPL) with target rep ranges, sets, RIR, and rest periods matching the user's goal.
+- **Mobile AI Planner UI (`apps/mobile/src/features/program/ai-planner-modal.tsx`):**
+  - Interactive multi-step configuration & preview modal:
+    - Configuration: Goal chips, 2–6 days/week frequency selector, session duration picker, and optional special focus text input.
+    - Plan Preview: Hero overview with frequency/duration badges, day navigation tabs, and exercise cards showing sets, reps, target RIR, and rest seconds.
+    - Activation: "Save & Activate Program" button immediately updates the user's active program, Train screen, and Home "Next Workout" hero card.
+  - Connected Train tab Planner section `InsightCard` with "Generate Routine with AI" action.
+
 

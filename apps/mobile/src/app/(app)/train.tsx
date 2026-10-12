@@ -18,7 +18,7 @@ import { USE_FIXTURES } from '@/config/env';
 import { TRAIN_FIXTURES } from '@/dev/fixtures';
 import { ExercisePicker } from '@/features/workout/exercise-picker';
 import { useWorkoutHistory } from '@/features/workout/use-workout-queries';
-import { useCurrentProgram, useStartProgramDay } from '@/features/program/use-program-queries';
+import { useCurrentProgram, useStartProgramDay, AiPlannerModal } from '@/features/program';
 import { useActiveWorkoutStore } from '@/features/workout/active-workout-store';
 import { useTokens } from '@/hooks/use-tokens';
 import { useTabScrollPadding } from '@/hooks/use-tab-scroll-padding';
@@ -30,6 +30,7 @@ export default function TrainScreen() {
   const bottomScrollPadding = useTabScrollPadding();
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [plannerModalOpen, setPlannerModalOpen] = useState(false);
 
   const { data: historyWorkouts, isLoading: isHistoryLoading } = useWorkoutHistory('completed');
   const { data: currentProgram } = useCurrentProgram();
@@ -340,48 +341,34 @@ export default function TrainScreen() {
                   strokeWidth={icons.strokeWidth}
                 />
               }
-              actionText="Create Workout"
+              actionText="Generate with AI"
               onAction={() => {
                 pressLight();
-                router.push('/workout/active');
+                setPlannerModalOpen(true);
               }}
             />
           )}
         </View>
 
-        {/* Section: Planner (DESIGN.md §7.5) */}
+        {/* Section: Planner (DESIGN.md §7.5, Spec §33–§38) */}
         <SectionHeader title="Planner" />
         <View style={styles.cardWrapper}>
-          {USE_FIXTURES ? (
-            <InsightCard
-              title={TRAIN_FIXTURES.plannerInsight.title}
-              description={TRAIN_FIXTURES.plannerInsight.description}
-              icon={
-                <Sparkles
-                  size={24}
-                  color={colors.accent}
-                  strokeWidth={icons.strokeWidth}
-                />
-              }
-              actionText={TRAIN_FIXTURES.plannerInsight.actionText}
-              onAction={() => {
-                pressLight();
-                setPickerOpen(true);
-              }}
-            />
-          ) : (
-            <EmptyState
-              title="No Plan Available"
-              description="AI Periodization Planner will be activated in Phase 6."
-              icon={
-                <Sparkles
-                  size={40}
-                  color={colors.inkMuted}
-                  strokeWidth={icons.strokeWidth}
-                />
-              }
-            />
-          )}
+          <InsightCard
+            title="AI Workout Planner"
+            description="Design an evidence-based progressive overload routine tailored to your equipment, frequency, and goals."
+            icon={
+              <Sparkles
+                size={24}
+                color={colors.accent}
+                strokeWidth={icons.strokeWidth}
+              />
+            }
+            actionText="Generate Routine with AI"
+            onAction={() => {
+              pressLight();
+              setPlannerModalOpen(true);
+            }}
+          />
         </View>
 
         {/* Section: History (DESIGN.md §7.5 & WORKOUT_UX.md §10.1) */}
@@ -505,6 +492,14 @@ export default function TrainScreen() {
           setPickerOpen(false);
           router.push('/workout/active');
         }}
+      />
+
+      <AiPlannerModal
+        visible={plannerModalOpen}
+        onClose={() => setPlannerModalOpen(false)}
+        defaultGoal={currentProgram?.goal}
+        defaultFrequency={currentProgram?.frequency}
+        defaultDuration={currentProgram?.duration as any}
       />
     </View>
   );
