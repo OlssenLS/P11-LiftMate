@@ -46,6 +46,8 @@ export function Sheet({
       animationType="slide"
       onRequestClose={onClose}
       accessibilityViewIsModal
+      statusBarTranslucent
+      navigationBarTranslucent
     >
       <View style={styles.overlay}>
         {/* Scrim backdrop */}

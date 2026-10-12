@@ -144,6 +144,8 @@ export function AiPlannerModal({
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}
+      statusBarTranslucent
+      navigationBarTranslucent
     >
       <View style={[styles.container, { backgroundColor: colors.bg }]}>
         <SafeAreaView style={styles.safeArea}>

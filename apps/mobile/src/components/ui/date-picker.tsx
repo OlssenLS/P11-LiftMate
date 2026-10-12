@@ -26,6 +26,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTokens } from '@/hooks/use-tokens';
 import { t } from '@/i18n';
@@ -96,6 +97,7 @@ export function DatePicker({
   minYear,
   maxYear,
 }: DatePickerProps) {
+  const insets = useSafeAreaInsets();
   const { colors, radius, spacing, touchTarget, fontSize, fontWeight, alpha } = useTokens();
 
   const now = new Date();
@@ -247,7 +249,14 @@ export function DatePicker({
         </Text>
       ) : null}
 
-      <Modal visible={open} transparent animationType="none" onRequestClose={cancel}>
+      <Modal
+        visible={open}
+        transparent
+        animationType="none"
+        onRequestClose={cancel}
+        statusBarTranslucent
+        navigationBarTranslucent
+      >
         <Animated.View
           entering={FadeIn.duration(150)}
           style={[styles.backdrop, { backgroundColor: alpha(colors.ink, 0.4) }]}
@@ -262,7 +271,9 @@ export function DatePicker({
                 backgroundColor: colors.surface,
                 borderTopLeftRadius: radius.cardLg,
                 borderTopRightRadius: radius.cardLg,
-                padding: spacing.xl,
+                paddingHorizontal: spacing.xl,
+                paddingTop: spacing.xl,
+                paddingBottom: Math.max(insets.bottom, spacing.xl),
                 gap: spacing.lg,
               },
             ]}

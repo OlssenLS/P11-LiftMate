@@ -18,6 +18,8 @@ import {
 } from 'react-native';
 import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { useExerciseSearch } from '@/features/workout/use-workout-queries';
 import { useTokens } from '@/hooks/use-tokens';
 import { t } from '@/i18n';
@@ -30,6 +32,7 @@ export type ExercisePickerProps = {
 };
 
 export function ExercisePicker({ visible, onClose, onSelect }: ExercisePickerProps) {
+  const insets = useSafeAreaInsets();
   const { colors, radius, spacing, touchTarget, fontSize, fontWeight, alpha } = useTokens();
   const [query, setQuery] = useState('');
   const { data, isLoading, isError, refetch } = useExerciseSearch(
@@ -43,7 +46,14 @@ export function ExercisePicker({ visible, onClose, onSelect }: ExercisePickerPro
   };
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      onRequestClose={onClose}
+      statusBarTranslucent
+      navigationBarTranslucent
+    >
       <Animated.View
         entering={FadeIn.duration(150)}
         style={[styles.backdrop, { backgroundColor: alpha(colors.ink, 0.4) }]}
@@ -58,7 +68,9 @@ export function ExercisePicker({ visible, onClose, onSelect }: ExercisePickerPro
               backgroundColor: colors.surface,
               borderTopLeftRadius: 32,
               borderTopRightRadius: 32,
-              padding: spacing.xl,
+              paddingHorizontal: spacing.xl,
+              paddingTop: spacing.xl,
+              paddingBottom: Math.max(insets.bottom, spacing.xl),
               gap: spacing.lg,
             },
           ]}

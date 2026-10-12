@@ -287,6 +287,8 @@ export function AiFoodRecognitionModal({
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
+      statusBarTranslucent
+      navigationBarTranslucent
     >
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.bg }]}
