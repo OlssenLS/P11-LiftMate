@@ -10,6 +10,8 @@ import {
 import { House, Dumbbell, Utensils, TrendingUp, Sparkles } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { tokens } from '@liftmate/shared';
+
 import { useTokens } from '@/hooks/use-tokens';
 import { t, type TranslationKey } from '@/i18n';
 import { selectionTick } from '@/lib/haptics';
@@ -97,10 +99,21 @@ export function TabBar({
                   styles.tabHighlight,
                   {
                     borderRadius: radius.pill,
-                    backgroundColor: selected ? colors.surfaceMuted : 'transparent',
                   },
                 ]}
               >
+                {selected ? (
+                  <View
+                    pointerEvents="none"
+                    style={[
+                      styles.activeHighlight,
+                      {
+                        backgroundColor: colors.surfaceMuted,
+                        borderRadius: radius.pill,
+                      },
+                    ]}
+                  />
+                ) : null}
                 <IconComponent
                   size={icons.defaultSize}
                   color={iconColor}
@@ -196,6 +209,18 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 12,
     minWidth: 54,
+    borderRadius: tokens.radius.pill,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  activeHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: tokens.radius.pill,
+    overflow: 'hidden',
   },
   tabLabel: {
     marginTop: 2,
