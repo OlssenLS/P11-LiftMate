@@ -122,6 +122,20 @@ describe('FoodRecognitionService', () => {
       expect(result.items.length).toBeGreaterThan(0);
       expect(result.isEstimated).toBe(true);
     });
+
+    it('returns fast-path demo response for demo payload without calling AI provider', async () => {
+      foodsServiceMock.search.mockResolvedValue([mockDbFood]);
+
+      const result = await service.recognizeFood('user-1', {
+        imageBase64: 'demo_sample_food_base64_payload',
+        mimeType: 'image/jpeg',
+      });
+
+      expect(aiProviderMock.generate).not.toHaveBeenCalled();
+      expect(result.items.length).toBeGreaterThan(0);
+      expect(result.overallConfidence).toBe('high');
+      expect(result.isEstimated).toBe(true);
+    });
   });
 
   describe('confirmFood', () => {

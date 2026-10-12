@@ -39,6 +39,21 @@ export class GeminiAiProvider implements AiProvider {
   ): Promise<AiProviderGenerateResult> {
     const startTime = Date.now();
 
+    const hasDemoImage =
+      options.images?.some((img) => img.base64.startsWith('demo_')) ||
+      options.messages.some((m) =>
+        m.images?.some((img) => img.base64.startsWith('demo_')),
+      );
+
+    if (hasDemoImage) {
+      this.logger.log(
+        '[GeminiAiProvider] 🧪 Demo image detected; returning deterministic demo meal without calling API',
+      );
+      const fallbackResult = this.generateDeterministicFallback(options);
+      fallbackResult.latencyMs = Date.now() - startTime;
+      return fallbackResult;
+    }
+
     if (this.apiKey && this.apiKey.trim().length > 5) {
       try {
         this.logger.log(`[GeminiAiProvider] 🌐 Calling Google Gemini API (${this.model})...`);
@@ -69,6 +84,11 @@ export class GeminiAiProvider implements AiProvider {
   ): Promise<AiProviderGenerateResult> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
 
+    const cleanBase64 = (raw: string) => {
+      const trimmed = raw.trim();
+      return trimmed.includes(',') ? trimmed.split(',')[1] : trimmed;
+    };
+
     const contents = options.messages.map((m) => {
       const parts: any[] = [{ text: m.content }];
       if (m.images && m.images.length > 0) {
@@ -76,7 +96,7 @@ export class GeminiAiProvider implements AiProvider {
           parts.push({
             inlineData: {
               mimeType: img.mimeType,
-              data: img.base64,
+              data: cleanBase64(img.base64),
             },
           });
         }
@@ -91,10 +111,10 @@ export class GeminiAiProvider implements AiProvider {
       const lastUserContent = contents.filter((c) => c.role === 'user').pop();
       if (lastUserContent) {
         for (const img of options.images) {
-          lastUserContent.parts.push({
+          parts: lastUserContent.parts.push({
             inlineData: {
               mimeType: img.mimeType,
-              data: img.base64,
+              data: cleanBase64(img.base64),
             },
           });
         }
