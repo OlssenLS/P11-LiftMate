@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   Inject,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AI_PROVIDER, type AiProvider } from '../provider/ai-provider.interface.js';
@@ -14,10 +15,13 @@ import {
   SendAiMessageInput,
   SuggestedQuestionsResponse,
   AiChatMessage,
+  AiCoachStatus,
 } from '@liftmate/shared';
 
 @Injectable()
 export class CoachService {
+  private readonly logger = new Logger(CoachService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider,
@@ -225,14 +229,18 @@ export class CoachService {
       }));
 
     // 5. Generate assistant response
+    this.logger.log(`[CoachService] 🧠 Generating coaching response for user ${userId} in conversation ${conversationId}`);
     const aiResult = await this.aiProvider.generate({
       system: systemPrompt,
       messages: chatHistory,
       temperature: 0.7,
       maxTokens: 800,
     });
+    this.logger.log(
+      `[CoachService] 🤖 Response generated (live: ${aiResult.isLiveApi ?? false}, provider: ${aiResult.provider ?? 'unknown'}, latency: ${aiResult.latencyMs ?? 0}ms)`,
+    );
 
-    // 6. Persist assistant message
+    // 6. Persist assistant message with diagnostics metadata
     const assistantMessage = await this.prisma.aiMessage.create({
       data: {
         conversationId,
@@ -240,6 +248,9 @@ export class CoachService {
         content: aiResult.content,
         metadata: {
           finishReason: aiResult.finishReason,
+          provider: aiResult.provider ?? 'gemini-1.5-flash',
+          isLiveApi: aiResult.isLiveApi ?? false,
+          latencyMs: aiResult.latencyMs ?? 0,
           usage: aiResult.usage,
         },
       },
@@ -325,5 +336,43 @@ export class CoachService {
     });
 
     return { suggestions };
+  }
+
+  async getCoachStatus(userId: string): Promise<AiCoachStatus> {
+    const providerStatus = (this.aiProvider as any).getStatus
+      ? (this.aiProvider as any).getStatus()
+      : {
+          hasApiKey: false,
+          maskedKey: null,
+          model: 'gemini-1.5-flash',
+          mode: 'deterministic_fallback' as const,
+        };
+
+    const startOfDay = new Date();
+    startOfDay.setUTCHours(0, 0, 0, 0);
+
+    const usedToday = await this.prisma.aiMessage.count({
+      where: {
+        role: 'user',
+        conversation: { userId },
+        createdAt: { gte: startOfDay },
+      },
+    });
+
+    const dailyLimit = 50;
+    const remainingToday = Math.max(0, dailyLimit - usedToday);
+
+    return {
+      status: 'ok',
+      hasApiKey: providerStatus.hasApiKey,
+      maskedKey: providerStatus.maskedKey,
+      model: providerStatus.model,
+      mode: providerStatus.mode,
+      rateLimit: {
+        dailyLimit,
+        usedToday,
+        remainingToday,
+      },
+    };
   }
 }

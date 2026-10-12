@@ -221,4 +221,23 @@ describe('CoachService', () => {
       ).toBe(true);
     });
   });
+
+  describe('getCoachStatus', () => {
+    it('returns provider mode, key detection, and remaining daily quota', async () => {
+      mockPrisma.aiMessage.count = vi.fn().mockResolvedValue(5);
+      mockAiProvider.getStatus = vi.fn().mockReturnValue({
+        hasApiKey: true,
+        maskedKey: 'AIzaSy...1234',
+        model: 'gemini-1.5-flash',
+        mode: 'live_gemini',
+      });
+
+      const res = await service.getCoachStatus(testUserId);
+      expect(res.status).toBe('ok');
+      expect(res.hasApiKey).toBe(true);
+      expect(res.mode).toBe('live_gemini');
+      expect(res.rateLimit.usedToday).toBe(5);
+      expect(res.rateLimit.remainingToday).toBe(45);
+    });
+  });
 });

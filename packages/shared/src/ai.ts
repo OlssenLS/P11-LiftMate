@@ -163,12 +163,31 @@ export interface AiProviderGenerateOptions {
 export interface AiProviderGenerateResult {
   content: string;
   finishReason?: string;
+  provider?: string;
+  isLiveApi?: boolean;
+  latencyMs?: number;
   usage?: {
     promptTokens: number;
     completionTokens: number;
     totalTokens: number;
   };
 }
+
+// AI Coach Diagnostic & Status Schemas
+export const AiCoachStatusSchema = z.object({
+  status: z.string(),
+  hasApiKey: z.boolean(),
+  maskedKey: z.string().nullable(),
+  model: z.string(),
+  mode: z.enum(["live_gemini", "deterministic_fallback"]),
+  rateLimit: z.object({
+    dailyLimit: z.number(),
+    usedToday: z.number(),
+    remainingToday: z.number(),
+  }),
+});
+export const aiCoachStatusSchema = AiCoachStatusSchema;
+export type AiCoachStatus = z.infer<typeof AiCoachStatusSchema>;
 
 // AI Workout Planner Schemas (§33–§38)
 export const GenerateProgramInputSchema = z.object({

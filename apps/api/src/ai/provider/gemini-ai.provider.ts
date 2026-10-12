@@ -20,26 +20,52 @@ export class GeminiAiProvider implements AiProvider {
       this.configService.get<string>('GEMINI_MODEL') || 'gemini-1.5-flash';
   }
 
+  getStatus() {
+    const hasKey = Boolean(this.apiKey && this.apiKey.trim().length > 5);
+    const maskedKey = hasKey
+      ? `${this.apiKey!.trim().slice(0, 6)}...${this.apiKey!.trim().slice(-4)}`
+      : null;
+
+    return {
+      hasApiKey: hasKey,
+      maskedKey,
+      model: this.model,
+      mode: hasKey ? ('live_gemini' as const) : ('deterministic_fallback' as const),
+    };
+  }
+
   async generate(
     options: AiProviderGenerateOptions,
   ): Promise<AiProviderGenerateResult> {
-    if (this.apiKey) {
+    const startTime = Date.now();
+
+    if (this.apiKey && this.apiKey.trim().length > 5) {
       try {
-        return await this.callGeminiApi(options);
+        this.logger.log(`[GeminiAiProvider] 🌐 Calling Google Gemini API (${this.model})...`);
+        const result = await this.callGeminiApi(options, startTime);
+        this.logger.log(
+          `[GeminiAiProvider] ✅ Google Gemini responded in ${result.latencyMs}ms (${result.usage?.totalTokens ?? 0} tokens)`,
+        );
+        return result;
       } catch (error) {
         this.logger.warn(
-          `Gemini API call failed, falling back to deterministic response: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
+          `[GeminiAiProvider] ⚠️ Gemini API call failed (${error instanceof Error ? error.message : String(error)}), falling back to deterministic response`,
         );
       }
+    } else {
+      this.logger.debug(
+        `[GeminiAiProvider] ⚙️ No GEMINI_API_KEY detected in environment; using deterministic fallback engine`,
+      );
     }
 
-    return this.generateDeterministicFallback(options);
+    const fallbackResult = this.generateDeterministicFallback(options);
+    fallbackResult.latencyMs = Date.now() - startTime;
+    return fallbackResult;
   }
 
   private async callGeminiApi(
     options: AiProviderGenerateOptions,
+    startTime: number,
   ): Promise<AiProviderGenerateResult> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
 
@@ -83,6 +109,9 @@ export class GeminiAiProvider implements AiProvider {
     return {
       content: text,
       finishReason: candidate?.finishReason || 'STOP',
+      provider: this.model,
+      isLiveApi: true,
+      latencyMs: Date.now() - startTime,
       usage: data.usageMetadata
         ? {
             promptTokens: data.usageMetadata.promptTokenCount || 0,

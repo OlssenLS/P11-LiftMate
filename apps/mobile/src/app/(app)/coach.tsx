@@ -19,6 +19,7 @@ import { t } from '@/i18n';
 import { selectionTick } from '@/lib/haptics';
 import {
   useActiveCoachConversation,
+  useCoachStatus,
   useSendMessage,
   useSuggestedQuestions,
 } from '@/features/coach';
@@ -31,6 +32,7 @@ export function CoachSheetContent() {
 
   const { data: conversation, isLoading, isError, refetch } =
     useActiveCoachConversation();
+  const { data: coachStatus } = useCoachStatus();
   const { data: suggestedQuestionsData } = useSuggestedQuestions();
   const sendMessageMutation = useSendMessage();
 
@@ -107,6 +109,63 @@ export function CoachSheetContent() {
             {t('coach.disclaimer')}
           </Text>
         </View>
+
+        {/* Runtime Diagnostics & API Status Bar */}
+        {coachStatus ? (
+          <View
+            style={[
+              styles.statusBar,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.hairline,
+                borderRadius: radius.md,
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm,
+              },
+            ]}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: coachStatus.mode === 'live_gemini' ? colors.success : '#D97706',
+                  }}
+                />
+                <Text
+                  style={{
+                    color: colors.ink,
+                    fontSize: fontSize.caption,
+                    fontWeight: fontWeight.bold,
+                  }}
+                >
+                  {coachStatus.mode === 'live_gemini' ? 'Live Gemini AI' : 'Deterministic Engine'}
+                </Text>
+                <Text
+                  style={{
+                    color: colors.inkMutedText,
+                    fontSize: fontSize.caption,
+                  }}
+                >
+                  {coachStatus.mode === 'live_gemini'
+                    ? `(${coachStatus.model})`
+                    : '(Free Fallback)'}
+                </Text>
+              </View>
+
+              <Text
+                style={{
+                  color: colors.inkMutedText,
+                  fontSize: fontSize.caption,
+                }}
+              >
+                {coachStatus.rateLimit.remainingToday}/{coachStatus.rateLimit.dailyLimit} daily quota
+              </Text>
+            </View>
+          </View>
+        ) : null}
 
         {/* Suggested Questions (§39) */}
         {suggestions.length > 0 ? (
@@ -271,21 +330,46 @@ export function CoachSheetContent() {
                     ]}
                   >
                     <View style={styles.coachBadgeRow}>
-                      <Sparkles
-                        size={15}
-                        color={colors.accent}
-                        strokeWidth={icons.strokeWidth}
-                      />
-                      <Text
-                        style={{
-                          color: colors.accentText,
-                          fontSize: fontSize.caption,
-                          fontWeight: fontWeight.bold,
-                          letterSpacing: 0.5,
-                        }}
-                      >
-                        LiftMate Coach
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Sparkles
+                          size={15}
+                          color={colors.accent}
+                          strokeWidth={icons.strokeWidth}
+                        />
+                        <Text
+                          style={{
+                            color: colors.accentText,
+                            fontSize: fontSize.caption,
+                            fontWeight: fontWeight.bold,
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          LiftMate Coach
+                        </Text>
+                      </View>
+
+                      {m.metadata ? (
+                        <View
+                          style={{
+                            backgroundColor: colors.surfaceMuted,
+                            paddingHorizontal: 6,
+                            paddingVertical: 2,
+                            borderRadius: radius.pill,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: colors.inkMutedText,
+                              fontSize: 10,
+                              fontWeight: fontWeight.medium,
+                            }}
+                          >
+                            {(m.metadata as any).isLiveApi
+                              ? `Gemini · ${(m.metadata as any).latencyMs ?? 0}ms`
+                              : 'Offline Engine'}
+                          </Text>
+                        </View>
+                      ) : null}
                     </View>
                     <Text
                       style={{
@@ -490,10 +574,14 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
     borderWidth: 1,
   },
+  statusBar: {
+    borderWidth: 1,
+  },
   coachBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'space-between',
+    width: '100%',
     marginBottom: 4,
   },
   errorBanner: {

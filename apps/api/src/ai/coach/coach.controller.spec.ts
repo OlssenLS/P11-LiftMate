@@ -99,4 +99,17 @@ describe('CoachController', () => {
     );
     expect(res.suggestions.length).toBe(1);
   });
+
+  it('delegates getStatus', async () => {
+    mockCoachService.getCoachStatus = vi.fn().mockResolvedValue({
+      status: 'ok',
+      hasApiKey: false,
+      model: 'gemini-1.5-flash',
+      mode: 'deterministic_fallback',
+      rateLimit: { dailyLimit: 50, usedToday: 0, remainingToday: 50 },
+    });
+    const res = await controller.getStatus(mockUser);
+    expect(mockCoachService.getCoachStatus).toHaveBeenCalledWith(mockUser.id);
+    expect(res.mode).toBe('deterministic_fallback');
+  });
 });

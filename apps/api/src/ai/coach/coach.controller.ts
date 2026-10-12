@@ -15,6 +15,7 @@ import {
   type AiConversation,
   type AiConversationDetail,
   type SuggestedQuestionsResponse,
+  type AiCoachStatus,
 } from '@liftmate/shared';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator.js';
@@ -26,6 +27,11 @@ import { CoachService } from './coach.service.js';
 @UseGuards(JwtAccessGuard)
 export class CoachController {
   constructor(private readonly coachService: CoachService) {}
+
+  @Get('status')
+  getStatus(@CurrentUser() user: AuthUser): Promise<AiCoachStatus> {
+    return this.coachService.getCoachStatus(user.id);
+  }
 
   @Get('conversations')
   getConversations(@CurrentUser() user: AuthUser): Promise<AiConversation[]> {

@@ -5,9 +5,24 @@ import type {
   CreateAiConversationInput,
   SendAiMessageInput,
   SuggestedQuestionsResponse,
+  AiCoachStatus,
 } from '@liftmate/shared';
 
 import { api } from '@/lib/api-client';
+
+/**
+ * Fetch AI Coach runtime status, API key detection, and quota diagnostics.
+ */
+export function useCoachStatus() {
+  return useQuery<AiCoachStatus>({
+    queryKey: ['coach', 'status'],
+    queryFn: async () => {
+      const res = await api.get('/ai/coach/status');
+      return res.data as AiCoachStatus;
+    },
+    staleTime: 30 * 1000,
+  });
+}
 
 /**
  * Fetch all AI Coach conversations for the user.
