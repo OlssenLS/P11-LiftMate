@@ -88,17 +88,38 @@ export class GeminiAiProvider implements AiProvider {
       };
     }
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
+    let res: Response | null = null;
+    let attempts = 0;
+    const maxAttempts = 2;
 
-    if (!res.ok) {
+    while (attempts < maxAttempts) {
+      attempts++;
+      res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        break;
+      }
+
+      if (res.status === 503 && attempts < maxAttempts) {
+        this.logger.warn(
+          `[GeminiAiProvider] 503 Service Unavailable spike, retrying in 1000ms (attempt ${attempts}/${maxAttempts})...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        continue;
+      }
+
       const errText = await res.text();
       throw new Error(`Gemini HTTP ${res.status}: ${errText}`);
+    }
+
+    if (!res || !res.ok) {
+      throw new Error('Gemini API call failed with no response');
     }
 
     const data = await res.json();
