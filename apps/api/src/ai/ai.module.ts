@@ -8,11 +8,13 @@ import { CoachService } from './coach/coach.service.js';
 import { CoachController } from './coach/coach.controller.js';
 import { PlannerService } from './planner/planner.service.js';
 import { PlannerController } from './planner/planner.controller.js';
+import { AnalyticsService } from './analytics/analytics.service.js';
+import { AnalyticsController } from './analytics/analytics.controller.js';
 import { AiRateLimiterService } from './ai-rate-limiter.service.js';
 
 @Module({
   imports: [PrismaModule, ProgramsModule],
-  controllers: [CoachController, PlannerController],
+  controllers: [CoachController, PlannerController, AnalyticsController],
   providers: [
     {
       provide: AI_PROVIDER,
@@ -22,6 +24,7 @@ import { AiRateLimiterService } from './ai-rate-limiter.service.js';
     CoachContextService,
     CoachService,
     PlannerService,
+    AnalyticsService,
     AiRateLimiterService,
   ],
   exports: [
@@ -29,6 +32,7 @@ import { AiRateLimiterService } from './ai-rate-limiter.service.js';
     CoachContextService,
     CoachService,
     PlannerService,
+    AnalyticsService,
     AiRateLimiterService,
   ],
 })

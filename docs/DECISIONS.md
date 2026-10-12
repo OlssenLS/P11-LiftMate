@@ -414,4 +414,32 @@ Format: date — decision — reason.
     - Activation: "Save & Activate Program" button immediately updates the user's active program, Train screen, and Home "Next Workout" hero card.
   - Connected Train tab Planner section `InsightCard` with "Generate Routine with AI" action.
 
+## 2026-10-12 — Phase 6 Slice AI3 (AI Analytics & Evidence-Based Insights)
+
+- **AI Analytics Engine (`apps/api/src/ai/analytics/`):**
+  - Implemented `AnalyticsService` and `AnalyticsController` with endpoints:
+    - `GET /ai/analytics/overview` (and `/ai/analytics/insights`): Computes and returns data sufficiency status, deterministic 4-week metrics, and categorized insights.
+    - `POST /ai/analytics/generate`: Triggers fresh analytics metrics calculation and insight synthesis.
+- **Data Sufficiency Gate (Spec §54, Brief §4 rule 19):**
+  - Verifies whether the lifter has logged at least 3 completed workouts and 3 days of nutrition logs.
+  - If insufficient: Returns `isSufficient: false` with prompt: "Complete at least several workout and nutrition entries before generating a meaningful trend analysis." System strictly prevents premature conclusions from 1–2 data points.
+- **Deterministic Metrics Pipeline (Spec §51):**
+  - Calculates 4-week window metrics directly from database rows:
+    - Workouts completed and adherence % against target weekly frequency.
+    - Working-sets volume (`weight * reps`), average weekly volume, and period-over-period volume delta %.
+    - Average daily calories and protein with user target adherence %.
+    - Average working sets RIR.
+    - Stagnant lift detection: Identifies exercises with identical load across 3+ consecutive sessions (matching Bench Press specification in §52).
+- **Structured Output Format (Spec §52, §53, §55):**
+  - Every insight follows the strict specification schema: `category`, `title`, `observation`, `evidence`, `possibleFactors` (array), `recommendation`, `action` (`ask_coach` | `review_plan` | `none`), and `confidence` (`high` | `medium` | `low`).
+  - Strict compliance with AI Data Rules (§68): LLM only receives structured numbers; no medical diagnoses; causation claims replaced with "may be one factor".
+  - Deterministic fallback engine generates rule-based insights if AI keys are absent or rate-limited.
+- **Mobile AI Analytics UI (`apps/mobile/src/app/analytics.tsx`):**
+  - Full dedicated analytics screen accessible from Home dashboard:
+    - Low-data state: Clean empty card matching §54 with progress counters towards required workouts and nutrition logs.
+    - High-data state: 4-card metric overview grid, plateau notice alert, category filter tabs (All, Training, Nutrition, Recovery), and detailed insight cards with observation quote borders, evidence boxes, factors list, and recommendation callouts.
+    - Contextual action triggers: "Ask AI Coach" pre-fills coach chat with contextual prompt (§56); "Review Workout Plan" navigates to Train tab (§57).
+  - Connected Home dashboard Section "Insights" (Spec §14) to live `useAnalyticsOverview()`, presenting live potential insights with "View Analytics" shortcut.
+
+
 

@@ -52,7 +52,10 @@ export const AiConversationDetailSchema = AiConversationSchema.extend({
 });
 export type AiConversationDetail = z.infer<typeof AiConversationDetailSchema>;
 
-// Insights Schema
+// Insights & Analytics Schemas (§50–§57)
+export const AiInsightActionSchema = z.enum(["ask_coach", "review_plan", "none"]);
+export type AiInsightAction = z.infer<typeof AiInsightActionSchema>;
+
 export const AiInsightSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
@@ -62,12 +65,74 @@ export const AiInsightSchema = z.object({
   evidence: z.string(),
   possibleFactors: z.array(z.string()),
   recommendation: z.string(),
+  action: AiInsightActionSchema.default("ask_coach"),
   confidence: AiInsightConfidence,
   dataWindowStart: z.string().datetime().nullable().optional(),
   dataWindowEnd: z.string().datetime().nullable().optional(),
   createdAt: z.string().datetime(),
 });
+export const aiInsightSchema = AiInsightSchema;
 export type AiInsight = z.infer<typeof AiInsightSchema>;
+
+export const AnalyticsSufficiencySchema = z.object({
+  isSufficient: z.boolean(),
+  workoutCount: z.number().int(),
+  nutritionDaysCount: z.number().int(),
+  weightLogsCount: z.number().int(),
+  minimumWorkoutsRequired: z.number().int(),
+  minimumNutritionDaysRequired: z.number().int(),
+  message: z.string(),
+});
+export const analyticsSufficiencySchema = AnalyticsSufficiencySchema;
+export type AnalyticsSufficiency = z.infer<typeof AnalyticsSufficiencySchema>;
+
+export const StructuredAnalyticsMetricsSchema = z.object({
+  timeframeWeeks: z.number(),
+  workoutsCompleted: z.number(),
+  plannedSessions: z.number(),
+  adherencePct: z.number(),
+  averageWeeklyVolumeKg: z.number(),
+  volumeDeltaPct: z.number().nullable(),
+  averageDailyCalories: z.number(),
+  targetCalories: z.number().nullable(),
+  calorieAdherencePct: z.number().nullable(),
+  averageDailyProteinGrams: z.number(),
+  targetProteinGrams: z.number().nullable(),
+  proteinAdherencePct: z.number().nullable(),
+  averageRir: z.number().nullable(),
+  weightChangeKg: z.number().nullable(),
+  topProgressingExercises: z.array(
+    z.object({
+      exerciseName: z.string(),
+      deltaKg: z.number(),
+      best1Rm: z.number(),
+    })
+  ),
+  stagnantExercises: z.array(
+    z.object({
+      exerciseName: z.string(),
+      sessionsCount: z.number(),
+      currentLoadKg: z.number(),
+    })
+  ),
+});
+export const structuredAnalyticsMetricsSchema = StructuredAnalyticsMetricsSchema;
+export type StructuredAnalyticsMetrics = z.infer<typeof StructuredAnalyticsMetricsSchema>;
+
+export const AnalyticsOverviewResponseSchema = z.object({
+  sufficiency: AnalyticsSufficiencySchema,
+  metrics: StructuredAnalyticsMetricsSchema.nullable(),
+  insights: z.array(AiInsightSchema),
+  primaryInsight: AiInsightSchema.nullable(),
+});
+export const analyticsOverviewResponseSchema = AnalyticsOverviewResponseSchema;
+export type AnalyticsOverviewResponse = z.infer<typeof AnalyticsOverviewResponseSchema>;
+
+export const GenerateAnalyticsInputSchema = z.object({
+  forceRefresh: z.boolean().optional(),
+});
+export const generateAnalyticsInputSchema = GenerateAnalyticsInputSchema;
+export type GenerateAnalyticsInput = z.infer<typeof GenerateAnalyticsInputSchema>;
 
 // Suggested Questions
 export const SuggestedQuestionSchema = z.object({

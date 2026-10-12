@@ -39,6 +39,7 @@ import { useWorkoutHistory } from '@/features/workout/use-workout-queries';
 import { useActiveWorkoutStore } from '@/features/workout/active-workout-store';
 import { useDailyNutritionSummary } from '@/features/nutrition';
 import { useProgressSummary } from '@/features/progress';
+import { useAnalyticsOverview } from '@/features/coach';
 
 export default function HomeScreen() {
   const { colors, radius, layout, type, floatingShadow, icons, touchTarget } = useTokens();
@@ -48,6 +49,7 @@ export default function HomeScreen() {
 
   const { data: historyWorkouts } = useWorkoutHistory('completed');
   const { data: currentProgram } = useCurrentProgram();
+  const { data: analyticsOverview } = useAnalyticsOverview();
   const { mutateAsync: startProgramDay, isPending: isStartingDay } = useStartProgramDay();
   const activeWorkout = useActiveWorkoutStore((s) => s.workout);
   const startFromWorkout = useActiveWorkoutStore((s) => s.startFromWorkout);
@@ -502,22 +504,39 @@ export default function HomeScreen() {
         {/* Section: Insights (DESIGN.md §7.2, Spec §10–§14) */}
         {!insightDismissed ? (
           <>
-            <SectionHeader title="AI Coach" />
+            <SectionHeader title={analyticsOverview?.primaryInsight ? 'AI Insights' : 'AI Coach'} />
             <View style={styles.cardWrapper}>
-              <InsightCard
-                title="AI Coach Ready"
-                description="Get personalized feedback on your workout volume, RIR trends, and daily macro targets."
-                icon={
-                  <Sparkles
-                    size={24}
-                    color={colors.accent}
-                    strokeWidth={icons.strokeWidth}
-                  />
-                }
-                actionText="Ask AI Coach"
-                onAction={() => router.push('/(app)/coach')}
-                onDismiss={() => setInsightDismissed(true)}
-              />
+              {analyticsOverview?.primaryInsight ? (
+                <InsightCard
+                  title={`✦ ${analyticsOverview.primaryInsight.title}`}
+                  description={analyticsOverview.primaryInsight.observation}
+                  icon={
+                    <Sparkles
+                      size={24}
+                      color={colors.accent}
+                      strokeWidth={icons.strokeWidth}
+                    />
+                  }
+                  actionText="View Analytics"
+                  onAction={() => router.push('/analytics' as any)}
+                  onDismiss={() => setInsightDismissed(true)}
+                />
+              ) : (
+                <InsightCard
+                  title="AI Coach Ready"
+                  description="Get personalized feedback on your workout volume, RIR trends, and daily macro targets."
+                  icon={
+                    <Sparkles
+                      size={24}
+                      color={colors.accent}
+                      strokeWidth={icons.strokeWidth}
+                    />
+                  }
+                  actionText="Ask AI Coach"
+                  onAction={() => router.push('/(app)/coach')}
+                  onDismiss={() => setInsightDismissed(true)}
+                />
+              )}
             </View>
           </>
         ) : null}
