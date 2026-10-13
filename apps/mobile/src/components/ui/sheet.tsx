@@ -23,6 +23,7 @@ export interface SheetProps {
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  scrollable?: boolean;
 }
 
 export function Sheet({
@@ -35,6 +36,7 @@ export function Sheet({
   accessibilityLabel,
   style,
   contentContainerStyle,
+  scrollable = true,
 }: SheetProps) {
   const insets = useSafeAreaInsets();
   const { colors, radius, type, spacing } = useTokens();
@@ -122,13 +124,19 @@ export function Sheet({
           ) : null}
 
           {/* Body Content */}
-          <ScrollView
-            bounces={false}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.contentContainer, contentContainerStyle]}
-          >
-            {children}
-          </ScrollView>
+          {scrollable ? (
+            <ScrollView
+              bounces={false}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={[styles.contentContainer, contentContainerStyle]}
+            >
+              {children}
+            </ScrollView>
+          ) : (
+            <View style={[styles.bodyContainer, contentContainerStyle]}>
+              {children}
+            </View>
+          )}
         </View>
       </View>
     </Modal>
@@ -148,6 +156,10 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingHorizontal: 20,
     zIndex: 1,
+  },
+  bodyContainer: {
+    flex: 1,
+    minHeight: 0,
   },
   editHeaderBlock: {
     marginBottom: 12,

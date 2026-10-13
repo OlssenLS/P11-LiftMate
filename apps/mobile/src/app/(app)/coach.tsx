@@ -79,7 +79,7 @@ export function CoachSheetContent() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1 }}
     >
-      <View style={{ flex: 1, gap: spacing.md, paddingBottom: spacing.sm }}>
+      <View style={{ flex: 1, gap: spacing.sm, paddingBottom: spacing.sm }}>
         {/* Safety & Medical Disclaimer Banner (§43, §68) */}
         <View
           style={[
@@ -164,65 +164,6 @@ export function CoachSheetContent() {
                 {coachStatus.rateLimit.remainingToday}/{coachStatus.rateLimit.dailyLimit} daily quota
               </Text>
             </View>
-          </View>
-        ) : null}
-
-        {/* Suggested Questions (§39) */}
-        {suggestions.length > 0 ? (
-          <View style={{ gap: spacing.xs }}>
-            <Text
-              style={{
-                color: colors.accentText,
-                fontSize: fontSize.caption,
-                fontWeight: fontWeight.bold,
-                letterSpacing: 0.5,
-                textTransform: 'uppercase',
-                paddingHorizontal: spacing.xs,
-              }}
-            >
-              {t('coach.suggestedTitle')}
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.xs }}
-            >
-              {suggestions.map((q) => (
-                <Pressable
-                  key={q.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={q.prompt}
-                  disabled={sendMessageMutation.isPending}
-                  onPress={() => handleSend(q.prompt)}
-                  style={({ pressed }) => [
-                    styles.suggestionPill,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.hairline,
-                      borderRadius: radius.pill,
-                      paddingHorizontal: spacing.md,
-                      paddingVertical: spacing.sm,
-                    },
-                    pressed ? { opacity: 0.8, backgroundColor: colors.surfaceMuted } : null,
-                  ]}
-                >
-                  <Sparkles
-                    size={14}
-                    color={colors.accent}
-                    strokeWidth={icons.strokeWidth}
-                  />
-                  <Text
-                    style={{
-                      color: colors.ink,
-                      fontSize: fontSize.secondary,
-                      fontWeight: fontWeight.medium,
-                    }}
-                  >
-                    {q.prompt}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
           </View>
         ) : null}
 
@@ -446,6 +387,65 @@ export function CoachSheetContent() {
             </View>
           ) : null}
         </ScrollView>
+
+        {/* Suggested Questions (§39) */}
+        {suggestions.length > 0 ? (
+          <View style={{ gap: spacing.xs }}>
+            <Text
+              style={{
+                color: colors.accentText,
+                fontSize: fontSize.caption,
+                fontWeight: fontWeight.bold,
+                letterSpacing: 0.5,
+                textTransform: 'uppercase',
+                paddingHorizontal: spacing.xs,
+              }}
+            >
+              {t('coach.suggestedTitle')}
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.xs }}
+            >
+              {suggestions.map((q) => (
+                <Pressable
+                  key={q.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={q.prompt}
+                  disabled={sendMessageMutation.isPending}
+                  onPress={() => handleSend(q.prompt)}
+                  style={({ pressed }) => [
+                    styles.suggestionPill,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.hairline,
+                      borderRadius: radius.pill,
+                      paddingHorizontal: spacing.md,
+                      paddingVertical: spacing.sm,
+                    },
+                    pressed ? { opacity: 0.8, backgroundColor: colors.surfaceMuted } : null,
+                  ]}
+                >
+                  <Sparkles
+                    size={14}
+                    color={colors.accent}
+                    strokeWidth={icons.strokeWidth}
+                  />
+                  <Text
+                    style={{
+                      color: colors.ink,
+                      fontSize: fontSize.secondary,
+                      fontWeight: fontWeight.medium,
+                    }}
+                  >
+                    {q.prompt}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
 
         {/* Input Bar */}
         <View

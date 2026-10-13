@@ -67,6 +67,8 @@ export default function AppLayout() {
         onClose={() => setIsCoachOpen(false)}
         title={t('coach.title')}
         mode="picker"
+        scrollable={false}
+        style={styles.coachSheetSurface}
       >
         <CoachSheetContent />
       </Sheet>
@@ -82,5 +84,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 100,
+  },
+  coachSheetSurface: {
+    height: '90%',
   },
 });
