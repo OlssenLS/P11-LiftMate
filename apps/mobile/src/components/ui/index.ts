@@ -45,3 +45,4 @@ export { DatePicker, type DatePickerProps } from './date-picker';
 export { SelectCard, type SelectCardProps } from './select-card';
 export { EquipmentCard, type EquipmentCardProps } from './equipment-card';
 export { NutritionField, type NutritionFieldProps } from './nutrition-field';
+export { WeekStrip, type WeekStripProps } from './week-strip';

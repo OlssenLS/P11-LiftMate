@@ -35,6 +35,7 @@ import {
   SecondaryButton,
   SectionHeader,
   Sheet,
+  WeekStrip,
 } from '@/components/ui';
 import {
   AiFoodRecognitionModal,
@@ -55,37 +56,11 @@ const MEAL_LABELS: Record<MealType, string> = {
   snack: 'Snacks',
 };
 
-function getRollingWeek(): { dateStr: string; label: string; dayNum: string; isToday: boolean }[] {
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
-  const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-
-  const dayOfWeek = today.getDay();
-  const mondayDiff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + mondayDiff);
-
-  const days = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    const dateStr = d.toISOString().split('T')[0];
-    days.push({
-      dateStr,
-      label: dayNames[d.getDay()],
-      dayNum: String(d.getDate()),
-      isToday: dateStr === todayStr,
-    });
-  }
-  return days;
-}
-
 export default function FoodScreen() {
-  const { colors, radius, layout, type, icons, touchTarget, alpha } = useTokens();
+  const { colors, radius, layout, type, icons, alpha } = useTokens();
   const bottomScrollPadding = useTabScrollPadding();
   const router = useRouter();
 
-  const weekDays = useMemo(() => getRollingWeek(), []);
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
 
@@ -296,71 +271,12 @@ export default function FoodScreen() {
 
         <OfflineBanner />
 
-        {/* Week Strip of 7 Date Circles (DESIGN.md §7.7) */}
+        {/* Week Strip with Calendar Picker & Pagination */}
         <View style={styles.cardWrapper}>
-          <View
-            style={[
-              styles.weekStripContainer,
-              {
-                backgroundColor: colors.surfaceMuted,
-                borderRadius: radius.lg,
-              },
-            ]}
-          >
-            {weekDays.map((day) => {
-              const isSelected = day.dateStr === selectedDate;
-
-              return (
-                <Pressable
-                  key={day.dateStr}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isSelected }}
-                  accessibilityLabel={`${day.label} ${day.dayNum}`}
-                  onPress={() => {
-                    selectionTick();
-                    setSelectedDate(day.dateStr);
-                  }}
-                  hitSlop={Math.max(0, (touchTarget.min - 44) / 2)}
-                  style={styles.dayHitArea}
-                >
-                  <View
-                    style={[
-                      styles.dayCircle,
-                      {
-                        backgroundColor: isSelected ? colors.accent : colors.surface,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        type.caption,
-                        {
-                          color: isSelected ? '#FFFFFF' : colors.inkMutedText,
-                          fontWeight: '600',
-                          fontSize: 11,
-                        },
-                      ]}
-                    >
-                      {day.label}
-                    </Text>
-                    <Text
-                      style={[
-                        type.cardLabel,
-                        {
-                          color: isSelected ? '#FFFFFF' : colors.ink,
-                          fontWeight: '700',
-                          fontSize: 14,
-                          lineHeight: 18,
-                        },
-                      ]}
-                    >
-                      {day.dayNum}
-                    </Text>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
+          <WeekStrip
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+          />
         </View>
 
         {/* Calories Summary MetricCard (DESIGN.md §7.7) */}
@@ -957,27 +873,6 @@ const styles = StyleSheet.create({
   },
   cardWrapper: {
     paddingHorizontal: 20,
-  },
-  weekStripContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    alignSelf: 'stretch',
-  },
-  dayHitArea: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dayCircle: {
-    width: 44,
-    height: 52,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 2,
   },
   macroHeaderRow: {
     flexDirection: 'row',
