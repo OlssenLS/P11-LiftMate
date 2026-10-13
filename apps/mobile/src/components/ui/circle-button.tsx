@@ -20,6 +20,7 @@ export interface CircleButtonProps {
   accessibilityLabel: string;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
+  containerStyle?: StyleProp<ViewStyle>;
   size?: number;
 }
 
@@ -30,6 +31,7 @@ export function CircleButton({
   accessibilityLabel,
   disabled = false,
   style,
+  containerStyle,
   size = 44,
 }: CircleButtonProps) {
   const { colors, floatingShadow, icons, touchTarget } = useTokens();
@@ -73,6 +75,7 @@ export function CircleButton({
       style={({ pressed }) => [
         styles.hitArea,
         { minWidth: touchTarget.min, minHeight: touchTarget.min },
+        containerStyle,
       ]}
     >
       {({ pressed }) => (

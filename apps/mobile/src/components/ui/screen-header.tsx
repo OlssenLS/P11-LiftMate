@@ -46,7 +46,11 @@ export function LargeTitleHeader({
         style,
       ]}
     >
-      {leading ? <View style={{ marginBottom: spacing.xs }}>{leading}</View> : null}
+      {leading ? (
+        <View style={[styles.largeHeaderLeadingRow, { marginBottom: spacing.sm }]}>
+          {leading}
+        </View>
+      ) : null}
       <View style={styles.largeHeaderRow}>
         <View style={styles.titleBlock}>
           {eyebrow ? (
@@ -215,6 +219,12 @@ export function ScreenHeader({ title, subtitle, action, style }: ScreenHeaderPro
 const styles = StyleSheet.create({
   largeHeaderContainer: {
     alignSelf: 'stretch',
+  },
+  largeHeaderLeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    alignSelf: 'flex-start',
   },
   largeHeaderRow: {
     flexDirection: 'row',

@@ -386,6 +386,7 @@ export default function YouScreen() {
               variant="default"
               icon="back"
               accessibilityLabel="Go back"
+              containerStyle={{ alignSelf: 'flex-start' }}
               onPress={() => {
                 if (router.canGoBack()) {
                   router.back();
