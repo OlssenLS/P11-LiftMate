@@ -39,12 +39,13 @@ export function CoachSheetContent() {
   const messages = conversation?.messages || [];
   const suggestions = suggestedQuestionsData?.suggestions || [];
 
-  // Auto scroll to bottom when messages change
+  // Auto scroll to bottom when messages change or generation status changes
   useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(() => {
+    if (messages.length > 0 || sendMessageMutation.isPending) {
+      const timer = setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      }, 60);
+      return () => clearTimeout(timer);
     }
   }, [messages.length, sendMessageMutation.isPending]);
 
@@ -63,6 +64,9 @@ export function CoachSheetContent() {
       },
       {
         onError: (err: any) => {
+          if (!textToSend) {
+            setInputText(content);
+          }
           const status = err?.response?.status;
           if (status === 429) {
             setErrorText(t('coach.quotaExceeded'));
@@ -174,6 +178,11 @@ export function CoachSheetContent() {
           contentContainerStyle={[styles.chatContent, { gap: spacing.md }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() => {
+            if (messages.length > 0 || sendMessageMutation.isPending) {
+              scrollViewRef.current?.scrollToEnd({ animated: true });
+            }
+          }}
         >
           {isLoading ? (
             <View style={{ paddingVertical: spacing.xxl, alignItems: 'center' }}>
@@ -497,7 +506,7 @@ export function CoachSheetContent() {
             ]}
           >
             {sendMessageMutation.isPending ? (
-              <ActivityIndicator size="small" color={colors.surface} />
+              <ActivityIndicator size="small" color={colors.inkMutedText} />
             ) : (
               <ArrowUp
                 size={20}

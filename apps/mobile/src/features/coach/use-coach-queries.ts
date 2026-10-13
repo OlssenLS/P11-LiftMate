@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AiConversation,
   AiConversationDetail,
+  AiMessage,
   CreateAiConversationInput,
   SendAiMessageInput,
   SuggestedQuestionsResponse,
@@ -78,7 +79,7 @@ export function useSuggestedQuestions() {
 }
 
 /**
- * Send a message to an active conversation with optimistic or immediate cache update.
+ * Send a message to an active conversation with optimistic cache update.
  */
 export function useSendMessage() {
   const queryClient = useQueryClient();
@@ -99,18 +100,101 @@ export function useSendMessage() {
         payload,
       );
       return res.data as {
-        userMessage: any;
-        assistantMessage: any;
+        userMessage: AiMessage;
+        assistantMessage: AiMessage;
       };
     },
+    onMutate: async (variables) => {
+      // 1. Cancel in-flight queries so optimistic update isn't overwritten
+      await queryClient.cancelQueries({ queryKey: ['coach', 'active'] });
+      await queryClient.cancelQueries({
+        queryKey: ['coach', 'conversation', variables.conversationId],
+      });
+
+      // 2. Snapshot previous values for rollback
+      const prevActive = queryClient.getQueryData<AiConversationDetail>(['coach', 'active']);
+      const prevConversation = queryClient.getQueryData<AiConversationDetail>([
+        'coach',
+        'conversation',
+        variables.conversationId,
+      ]);
+
+      // 3. Optimistic user message
+      const optimisticUserMsg: AiMessage = {
+        id: `optimistic-${Date.now()}`,
+        conversationId: variables.conversationId,
+        role: 'user',
+        content: variables.content,
+        metadata: variables.metadata ?? null,
+        createdAt: new Date().toISOString(),
+      };
+
+      // 4. Optimistically update active conversation
+      if (prevActive) {
+        queryClient.setQueryData<AiConversationDetail>(['coach', 'active'], {
+          ...prevActive,
+          messages: [...prevActive.messages, optimisticUserMsg],
+        });
+      }
+
+      // 5. Optimistically update specific conversation if cached
+      if (prevConversation) {
+        queryClient.setQueryData<AiConversationDetail>(
+          ['coach', 'conversation', variables.conversationId],
+          {
+            ...prevConversation,
+            messages: [...prevConversation.messages, optimisticUserMsg],
+          },
+        );
+      }
+
+      return { prevActive, prevConversation };
+    },
+    onError: (_err, variables, context) => {
+      // Rollback to previous state on failure
+      if (context?.prevActive) {
+        queryClient.setQueryData(['coach', 'active'], context.prevActive);
+      }
+      if (context?.prevConversation) {
+        queryClient.setQueryData(
+          ['coach', 'conversation', variables.conversationId],
+          context.prevConversation,
+        );
+      }
+    },
     onSuccess: (data, variables) => {
-      // Invalidate active and specific conversation
+      // Replace optimistic message and append assistant message directly
+      queryClient.setQueryData<AiConversationDetail>(['coach', 'active'], (old) => {
+        if (!old) return old;
+        const filtered = old.messages.filter((m) => !m.id.startsWith('optimistic-'));
+        return {
+          ...old,
+          messages: [...filtered, data.userMessage, data.assistantMessage],
+        };
+      });
+
+      queryClient.setQueryData<AiConversationDetail>(
+        ['coach', 'conversation', variables.conversationId],
+        (old) => {
+          if (!old) return old;
+          const filtered = old.messages.filter((m) => !m.id.startsWith('optimistic-'));
+          return {
+            ...old,
+            messages: [...filtered, data.userMessage, data.assistantMessage],
+          };
+        },
+      );
+    },
+    onSettled: (_data, _error, variables) => {
+      // Sync cache with server authority
       queryClient.invalidateQueries({
         queryKey: ['coach', 'active'],
       });
-      queryClient.invalidateQueries({
-        queryKey: ['coach', 'conversation', variables.conversationId],
-      });
+      if (variables?.conversationId) {
+        queryClient.invalidateQueries({
+          queryKey: ['coach', 'conversation', variables.conversationId],
+        });
+      }
       queryClient.invalidateQueries({
         queryKey: ['coach', 'conversations'],
       });
