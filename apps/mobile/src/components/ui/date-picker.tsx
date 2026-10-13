@@ -17,7 +17,6 @@
  */
 import { useMemo, useState } from 'react';
 import {
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,9 +24,8 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Sheet } from './sheet';
 import { useTokens } from '@/hooks/use-tokens';
 import { t } from '@/i18n';
 import { pressMedium, selectionTick } from '@/lib/haptics';
@@ -97,8 +95,7 @@ export function DatePicker({
   minYear,
   maxYear,
 }: DatePickerProps) {
-  const insets = useSafeAreaInsets();
-  const { colors, radius, spacing, touchTarget, fontSize, fontWeight, alpha } = useTokens();
+  const { colors, radius, spacing, touchTarget, fontSize, fontWeight } = useTokens();
 
   const now = new Date();
   const resolvedMaxYear = maxYear ?? now.getFullYear();
@@ -249,141 +246,71 @@ export function DatePicker({
         </Text>
       ) : null}
 
-      <Modal
+      <Sheet
         visible={open}
-        transparent
-        animationType="none"
-        onRequestClose={cancel}
-        statusBarTranslucent
-        navigationBarTranslucent
+        onClose={cancel}
+        onConfirm={confirm}
+        title={label ?? t('datePicker.title')}
+        mode="edit"
+        scrollable={false}
       >
-        <Animated.View
-          entering={FadeIn.duration(150)}
-          style={[styles.backdrop, { backgroundColor: alpha(colors.ink, 0.4) }]}
-        >
-          <Pressable style={styles.backdropFill} accessibilityLabel={t('common.cancel')} onPress={cancel} />
-          <Animated.View
-            entering={SlideInDown.duration(240)}
-            exiting={SlideOutDown.duration(180)}
-            style={[
-              styles.sheet,
-              {
-                backgroundColor: colors.surface,
-                borderTopLeftRadius: radius.cardLg,
-                borderTopRightRadius: radius.cardLg,
-                paddingHorizontal: spacing.xl,
-                paddingTop: spacing.xl,
-                paddingBottom: Math.max(insets.bottom, spacing.xl),
-                gap: spacing.lg,
-              },
-            ]}
-          >
-            <Text
-              style={{ color: colors.ink, fontSize: fontSize.title, fontWeight: fontWeight.bold }}
-            >
-              {label ?? t('datePicker.title')}
-            </Text>
-
-            <View style={[styles.wheels, { gap: spacing.md }]}>
-              <View style={styles.column}>
-                <Text style={columnLabelStyle}>{t('datePicker.month')}</Text>
-                {renderWheel(
-                  MONTH_KEYS.map((key, idx) => ({
-                    key,
-                    display: t(`datePicker.months.${key}`),
-                    selected: draft.month === idx,
-                    onPress: () => {
-                      selectionTick();
-                      setDraft((d) => ({
-                        ...d,
-                        month: idx,
-                        day: Math.min(d.day, daysInMonth(d.year, idx)),
-                      }));
-                    },
-                  })),
-                )}
-              </View>
-
-              <View style={styles.column}>
-                <Text style={columnLabelStyle}>{t('datePicker.day')}</Text>
-                {renderWheel(
-                  days.map((d) => ({
-                    key: `d-${d}`,
-                    display: String(d),
-                    selected: draft.day === d,
-                    onPress: () => {
-                      selectionTick();
-                      setDraft((prev) => ({ ...prev, day: d }));
-                    },
-                  })),
-                )}
-              </View>
-
-              <View style={styles.column}>
-                <Text style={columnLabelStyle}>{t('datePicker.year')}</Text>
-                {renderWheel(
-                  years.map((y) => ({
-                    key: `y-${y}`,
-                    display: String(y),
-                    selected: draft.year === y,
-                    onPress: () => {
-                      selectionTick();
-                      setDraft((prev) => ({
-                        ...prev,
-                        year: y,
-                        day: Math.min(prev.day, daysInMonth(y, prev.month)),
-                      }));
-                    },
-                  })),
-                )}
-              </View>
+        <View style={{ gap: spacing.lg, paddingBottom: spacing.sm }}>
+          <View style={[styles.wheels, { gap: spacing.md }]}>
+            <View style={styles.column}>
+              <Text style={columnLabelStyle}>{t('datePicker.month')}</Text>
+              {renderWheel(
+                MONTH_KEYS.map((key, idx) => ({
+                  key,
+                  display: t(`datePicker.months.${key}`),
+                  selected: draft.month === idx,
+                  onPress: () => {
+                    selectionTick();
+                    setDraft((d) => ({
+                      ...d,
+                      month: idx,
+                      day: Math.min(d.day, daysInMonth(d.year, idx)),
+                    }));
+                  },
+                })),
+              )}
             </View>
 
-            <View style={[styles.actions, { gap: spacing.md }]}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={cancel}
-                style={({ pressed }) => [
-                  styles.action,
-                  {
-                    minHeight: touchTarget.min,
-                    borderRadius: radius.button,
-                    borderWidth: 1.5,
-                    borderColor: colors.ink,
-                    backgroundColor: colors.surface,
+            <View style={styles.column}>
+              <Text style={columnLabelStyle}>{t('datePicker.day')}</Text>
+              {renderWheel(
+                days.map((d) => ({
+                  key: `d-${d}`,
+                  display: String(d),
+                  selected: draft.day === d,
+                  onPress: () => {
+                    selectionTick();
+                    setDraft((prev) => ({ ...prev, day: d }));
                   },
-                  pressed ? styles.pressed : null,
-                ]}
-              >
-                <Text
-                  style={{ color: colors.ink, fontSize: fontSize.body, fontWeight: fontWeight.semibold }}
-                >
-                  {t('common.cancel')}
-                </Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={confirm}
-                style={({ pressed }) => [
-                  styles.action,
-                  {
-                    minHeight: touchTarget.min,
-                    borderRadius: radius.button,
-                    backgroundColor: colors.accent,
-                  },
-                  pressed ? styles.pressed : null,
-                ]}
-              >
-                <Text
-                  style={{ color: colors.surface, fontSize: fontSize.body, fontWeight: fontWeight.semibold }}
-                >
-                  {t('common.done')}
-                </Text>
-              </Pressable>
+                })),
+              )}
             </View>
-          </Animated.View>
-        </Animated.View>
-      </Modal>
+
+            <View style={styles.column}>
+              <Text style={columnLabelStyle}>{t('datePicker.year')}</Text>
+              {renderWheel(
+                years.map((y) => ({
+                  key: `y-${y}`,
+                  display: String(y),
+                  selected: draft.year === y,
+                  onPress: () => {
+                    selectionTick();
+                    setDraft((prev) => ({
+                      ...prev,
+                      year: y,
+                      day: Math.min(prev.day, daysInMonth(y, prev.month)),
+                    }));
+                  },
+                })),
+              )}
+            </View>
+          </View>
+        </View>
+      </Sheet>
     </View>
   );
 }
@@ -391,9 +318,6 @@ export function DatePicker({
 const styles = StyleSheet.create({
   container: { alignSelf: 'stretch' },
   pressed: { opacity: 0.85 },
-  backdrop: { flex: 1, justifyContent: 'flex-end' },
-  backdropFill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  sheet: { width: '100%' },
   wheels: { flexDirection: 'row' },
   column: { flex: 1 },
   wheel: { height: ROW_HEIGHT * 4 },
@@ -402,6 +326,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actions: { flexDirection: 'row' },
-  action: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

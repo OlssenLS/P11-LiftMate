@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Tabs } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,12 +6,16 @@ import { Sheet } from '@/components/ui';
 import { TabBar, type TabKey } from '@/components/ui/tab-bar';
 import { useTokens } from '@/hooks/use-tokens';
 import { t } from '@/i18n';
+import { useCoachStore } from '@/stores/coach-store';
 import { CoachSheetContent } from './coach';
 
 export default function AppLayout() {
   const insets = useSafeAreaInsets();
   const { layout } = useTokens();
-  const [isCoachOpen, setIsCoachOpen] = useState(false);
+  const isCoachOpen = useCoachStore((s) => s.isOpen);
+  const openCoach = useCoachStore((s) => s.openCoach);
+  const closeCoach = useCoachStore((s) => s.closeCoach);
+  const prefillPrompt = useCoachStore((s) => s.prefillPrompt);
 
   return (
     <>
@@ -46,7 +49,7 @@ export default function AppLayout() {
                   const target = key === 'home' ? 'index' : key;
                   navigation.navigate(target);
                 }}
-                onCoachPress={() => setIsCoachOpen(true)}
+                onCoachPress={() => openCoach()}
                 isCoachActive={isCoachOpen}
               />
             </View>
@@ -64,13 +67,13 @@ export default function AppLayout() {
       {/* Full-Height Coach Sheet (DESIGN.md §5 & §7.8) */}
       <Sheet
         visible={isCoachOpen}
-        onClose={() => setIsCoachOpen(false)}
+        onClose={closeCoach}
         title={t('coach.title')}
         mode="picker"
         scrollable={false}
         style={styles.coachSheetSurface}
       >
-        <CoachSheetContent />
+        <CoachSheetContent key={prefillPrompt ?? 'default'} prefill={prefillPrompt} />
       </Sheet>
     </>
   );

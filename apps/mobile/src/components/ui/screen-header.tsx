@@ -6,6 +6,7 @@ import {
   View,
   type StyleProp,
   type ViewStyle,
+  type TextStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CircleButton } from './circle-button';
@@ -19,6 +20,8 @@ import { useTokens } from '@/hooks/use-tokens';
 export interface LargeTitleHeaderProps {
   title: string;
   eyebrow?: string;
+  eyebrowColor?: string;
+  eyebrowStyle?: StyleProp<TextStyle>;
   leading?: ReactNode;
   trailing?: ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -27,6 +30,8 @@ export interface LargeTitleHeaderProps {
 export function LargeTitleHeader({
   title,
   eyebrow,
+  eyebrowColor,
+  eyebrowStyle,
   leading,
   trailing,
   style,
@@ -54,7 +59,14 @@ export function LargeTitleHeader({
       <View style={styles.largeHeaderRow}>
         <View style={styles.titleBlock}>
           {eyebrow ? (
-            <Text style={[type.eyebrow, { marginBottom: spacing.xs }]}>
+            <Text
+              style={[
+                type.eyebrow,
+                eyebrowColor ? { color: eyebrowColor } : null,
+                { marginBottom: spacing.xs },
+                eyebrowStyle,
+              ]}
+            >
               {eyebrow}
             </Text>
           ) : null}

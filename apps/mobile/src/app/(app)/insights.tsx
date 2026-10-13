@@ -28,6 +28,7 @@ import {
   useAnalyticsOverview,
   useGenerateAnalytics,
 } from '@/features/coach';
+import { useCoachStore } from '@/stores/coach-store';
 import type { AiInsight } from '@liftmate/shared';
 
 type CategoryFilter = 'all' | 'training' | 'nutrition' | 'recovery';
@@ -51,12 +52,11 @@ export default function InsightsScreen() {
     });
   };
 
+  const openCoach = useCoachStore((s) => s.openCoach);
+
   const handleAskCoach = (insight: AiInsight) => {
     const prompt = `My analytics indicate that ${insight.title.toLowerCase()}. Observation: ${insight.observation}. Can you give me specific advice on how to progress?`;
-    router.push({
-      pathname: '/(app)/coach',
-      params: { prefill: prompt },
-    });
+    openCoach(prompt);
   };
 
   const handleReviewPlan = () => {

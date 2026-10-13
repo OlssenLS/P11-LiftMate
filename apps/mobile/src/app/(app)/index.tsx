@@ -40,12 +40,14 @@ import { useActiveWorkoutStore } from '@/features/workout/active-workout-store';
 import { useDailyNutritionSummary } from '@/features/nutrition';
 import { useProgressSummary } from '@/features/progress';
 import { useAnalyticsOverview } from '@/features/coach';
+import { useCoachStore } from '@/stores/coach-store';
 
 export default function HomeScreen() {
   const { colors, radius, layout, type, floatingShadow, icons, touchTarget } = useTokens();
   const bottomScrollPadding = useTabScrollPadding();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const openCoach = useCoachStore((s) => s.openCoach);
 
   const { data: historyWorkouts } = useWorkoutHistory('completed');
   const { data: currentProgram } = useCurrentProgram();
@@ -158,6 +160,8 @@ export default function HomeScreen() {
         {/* Large Title Header + Avatar (DESIGN.md §4 & §7.2) */}
         <LargeTitleHeader
           eyebrow={todayEyebrow}
+          eyebrowColor={colors.accentText}
+          eyebrowStyle={{ fontWeight: '700', letterSpacing: 0.8 }}
           title="Today"
           trailing={
             <Pressable
@@ -533,7 +537,7 @@ export default function HomeScreen() {
                     />
                   }
                   actionText="Ask AI Coach"
-                  onAction={() => router.push('/(app)/coach')}
+                  onAction={() => openCoach()}
                   onDismiss={() => setInsightDismissed(true)}
                 />
               )}

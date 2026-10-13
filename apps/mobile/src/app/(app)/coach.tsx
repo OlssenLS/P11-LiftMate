@@ -24,9 +24,9 @@ import {
   useSuggestedQuestions,
 } from '@/features/coach';
 
-export function CoachSheetContent() {
+export function CoachSheetContent({ prefill }: { prefill?: string | null } = {}) {
   const { colors, radius, spacing, fontSize, fontWeight, icons } = useTokens();
-  const [inputText, setInputText] = useState('');
+  const [inputText, setInputText] = useState(prefill ?? '');
   const [errorText, setErrorText] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
