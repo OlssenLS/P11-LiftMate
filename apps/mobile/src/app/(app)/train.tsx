@@ -1,11 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Clock, Dumbbell, Search, Sparkles } from 'lucide-react-native';
+import type { Workout } from '@liftmate/shared';
 
 import {
   CircleButton,
   EmptyState,
+  EquipmentIcon,
   InsightCard,
   LargeTitleHeader,
   ListGroup,
@@ -20,15 +22,18 @@ import { ExercisePicker } from '@/features/workout/exercise-picker';
 import { useWorkoutHistory } from '@/features/workout/use-workout-queries';
 import { useCurrentProgram, useStartProgramDay, AiPlannerModal } from '@/features/program';
 import { useActiveWorkoutStore } from '@/features/workout/active-workout-store';
+import { useAuthStore } from '@/stores/auth-store';
 import { useTokens } from '@/hooks/use-tokens';
 import { useTabScrollPadding } from '@/hooks/use-tab-scroll-padding';
 import { t } from '@/i18n';
 import { pressLight } from '@/lib/haptics';
+import { newId } from '@/lib/uuid';
 
 export default function TrainScreen() {
   const { colors, radius, layout, type, icons } = useTokens();
   const bottomScrollPadding = useTabScrollPadding();
   const router = useRouter();
+  const user = useAuthStore((s) => s.user);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [plannerModalOpen, setPlannerModalOpen] = useState(false);
 
@@ -38,6 +43,7 @@ export default function TrainScreen() {
   const activeWorkout = useActiveWorkoutStore((s) => s.workout);
   const startFromWorkout = useActiveWorkoutStore((s) => s.startFromWorkout);
   const startWorkout = useActiveWorkoutStore((s) => s.startWorkout);
+  const discardWorkout = useActiveWorkoutStore((s) => s.discardWorkout);
 
   const programDays = useMemo(() => {
     if (!currentProgram?.programExercises || currentProgram.programExercises.length === 0) return [];
@@ -64,25 +70,127 @@ export default function TrainScreen() {
     return programDays[nextIdx] || programDays[0];
   }, [programDays, historyWorkouts]);
 
+  const startProgramDaySession = async (dayNumber: number) => {
+    const dayExercises = currentProgram?.programExercises?.filter((pe) => pe.day === dayNumber) ?? [];
+    const dayName = dayExercises[0]?.dayName ?? `Day ${dayNumber}`;
+    const programName = currentProgram?.name ?? 'Program';
+
+    if (currentProgram?.id) {
+      try {
+        const workout = await startProgramDay({ programId: currentProgram.id, day: dayNumber });
+        if (workout && workout.exercises && workout.exercises.length > 0) {
+          await startFromWorkout(workout);
+          router.push('/workout/active');
+          return;
+        }
+      } catch {
+        // Fallback to local program schedule if API is offline or returns empty
+      }
+    }
+
+    // Build the full workout session locally from currentProgram.programExercises
+    if (dayExercises.length > 0) {
+      const workoutId = newId();
+      const localWorkout: Workout = {
+        id: workoutId,
+        userId: user?.id ?? '',
+        name: `${programName} - ${dayName}`,
+        notes: null,
+        note: null,
+        status: 'in_progress',
+        programId: currentProgram?.id ?? null,
+        startedAt: new Date(),
+        completedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+        exercises: dayExercises.map((pe, exIdx) => {
+          const workoutExerciseId = newId();
+          return {
+            id: workoutExerciseId,
+            workoutId,
+            exerciseId: pe.exerciseId,
+            position: exIdx + 1,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            deletedAt: null,
+            exercise: pe.exercise,
+            sets: Array.from({ length: pe.sets || 3 }, (_, sIdx) => ({
+              id: newId(),
+              workoutExerciseId,
+              position: sIdx + 1,
+              setType: 'working' as const,
+              weight: 0,
+              weightUnit: 'kg' as const,
+              reps: pe.repMin || 10,
+              rir: pe.targetRir ?? null,
+              rirUnknown: pe.targetRir === null || pe.targetRir === undefined,
+              rpe: null,
+              restTime: pe.restSeconds ?? null,
+              notes: null,
+              completed: false,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              deletedAt: null,
+            })),
+          };
+        }),
+      };
+      await startFromWorkout(localWorkout);
+      router.push('/workout/active');
+      return;
+    }
+
+    await startWorkout(`${programName} - Day ${dayNumber}`);
+    router.push('/workout/active');
+  };
+
   const handleStartDay = async (dayNumber: number) => {
     pressLight();
+
+    // If an active session exists in progress
     if (activeWorkout && activeWorkout.status === 'in_progress') {
-      router.push('/workout/active');
+      // If it has NO exercises, it was just an empty draft. Overwrite it directly!
+      if (!activeWorkout.exercises || activeWorkout.exercises.length === 0) {
+        await startProgramDaySession(dayNumber);
+        return;
+      }
+
+      // If it is ALREADY this exact program day, resume it directly
+      const dayExercises = currentProgram?.programExercises?.filter((pe) => pe.day === dayNumber) ?? [];
+      const dayName = dayExercises[0]?.dayName ?? `Day ${dayNumber}`;
+      const isSameDay =
+        activeWorkout.name?.includes(dayName) ||
+        activeWorkout.name?.includes(`Day ${dayNumber}`);
+      if (isSameDay) {
+        router.push('/workout/active');
+        return;
+      }
+
+      // Ongoing session from another day: prompt user
+      Alert.alert(
+        'Workout in progress',
+        `You have an ongoing workout (${activeWorkout.name || 'Current Session'}). What would you like to do?`,
+        [
+          {
+            text: 'Resume Current',
+            onPress: () => router.push('/workout/active'),
+          },
+          {
+            text: `Start ${dayName}`,
+            style: 'destructive',
+            onPress: async () => {
+              await discardWorkout();
+              await startProgramDaySession(dayNumber);
+            },
+          },
+          { text: 'Cancel', style: 'cancel' },
+        ],
+      );
       return;
     }
-    if (!currentProgram) {
-      await startWorkout();
-      router.push('/workout/active');
-      return;
-    }
-    try {
-      const workout = await startProgramDay({ programId: currentProgram.id, day: dayNumber });
-      await startFromWorkout(workout);
-      router.push('/workout/active');
-    } catch {
-      await startWorkout(`${currentProgram.name} - Day ${dayNumber}`);
-      router.push('/workout/active');
-    }
+
+    await startProgramDaySession(dayNumber);
   };
 
   const groupedHistory = useMemo(() => {
@@ -320,11 +428,20 @@ export default function TrainScreen() {
                   label={`Day ${d.day}: ${d.dayName}`}
                   subtitle={`${d.exercises.length} exercises · ${d.exercises.slice(0, 3).map((e) => e.exercise?.name || 'Exercise').join(', ')}${d.exercises.length > 3 ? '...' : ''}`}
                   icon={
-                    <Dumbbell
-                      size={icons.cardLabelSize}
-                      color={colors.accentText}
-                      strokeWidth={icons.strokeWidth}
-                    />
+                    d.exercises[0]?.exercise?.equipment ? (
+                      <EquipmentIcon
+                        equipment={d.exercises[0].exercise.equipment}
+                        size={icons.cardLabelSize}
+                        color={colors.accentText}
+                        strokeWidth={icons.strokeWidth}
+                      />
+                    ) : (
+                      <Dumbbell
+                        size={icons.cardLabelSize}
+                        color={colors.accentText}
+                        strokeWidth={icons.strokeWidth}
+                      />
+                    )
                   }
                   onPress={() => handleStartDay(d.day)}
                 />

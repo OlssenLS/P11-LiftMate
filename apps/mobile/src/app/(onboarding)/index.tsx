@@ -898,7 +898,7 @@ export default function OnboardingScreen() {
                   {Equipment.options.map((item) => (
                     <View key={item} style={styles.gridItem}>
                       <EquipmentCard
-                        icon={t(`onboarding.equipmentIcons.${item}`)}
+                        equipment={item}
                         label={t(`onboarding.equipment.${item}`)}
                         selected={selectedEquipment.includes(item)}
                         onPress={() => toggleEquipment(item)}

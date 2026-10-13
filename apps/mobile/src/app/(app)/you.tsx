@@ -881,7 +881,7 @@ export default function YouScreen() {
               {Equipment.options.map((item) => (
                 <View key={item} style={styles.gridItem}>
                   <EquipmentCard
-                    icon={t(`onboarding.equipmentIcons.${item}`)}
+                    equipment={item}
                     label={t(`onboarding.equipment.${item}`)}
                     selected={draftEquipment.includes(item)}
                     onPress={() => toggleDraftEquipment(item)}

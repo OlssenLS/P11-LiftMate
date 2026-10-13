@@ -22,7 +22,7 @@ import type {
   WorkoutDuration,
 } from '@liftmate/shared';
 
-import { Card, PrimaryButton, SecondaryButton } from '@/components/ui';
+import { Card, EquipmentIcon, PrimaryButton, SecondaryButton } from '@/components/ui';
 import { useTokens } from '@/hooks/use-tokens';
 import { selectionTick, pressLight } from '@/lib/haptics';
 import {
@@ -689,9 +689,13 @@ export function AiPlannerModal({
                                 {
                                   backgroundColor: colors.surfaceMuted,
                                   borderRadius: 4,
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  gap: 4,
                                 },
                               ]}
                             >
+                              <EquipmentIcon equipment={ex.equipment} size={11} color={colors.inkMutedText} />
                               <Text
                                 style={{
                                   color: colors.inkMutedText,

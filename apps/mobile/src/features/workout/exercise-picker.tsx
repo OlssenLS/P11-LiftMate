@@ -17,7 +17,7 @@ import {
   View,
 } from 'react-native';
 
-import { Sheet } from '@/components/ui';
+import { EquipmentIcon, Sheet } from '@/components/ui';
 import { useExerciseSearch } from '@/features/workout/use-workout-queries';
 import { useTokens } from '@/hooks/use-tokens';
 import { t } from '@/i18n';
@@ -120,9 +120,12 @@ export function ExercisePicker({ visible, onClose, onSelect }: ExercisePickerPro
                 <Text style={{ color: colors.ink, fontSize: fontSize.body, fontWeight: fontWeight.semibold }}>
                   {item.name}
                 </Text>
-                <Text style={{ color: colors.inkMutedText, fontSize: fontSize.label, marginTop: 2 }}>
-                  {item.primaryMuscle} · {item.equipment}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                  <EquipmentIcon equipment={item.equipment} size={14} color={colors.inkMutedText} />
+                  <Text style={{ color: colors.inkMutedText, fontSize: fontSize.label }}>
+                    {item.primaryMuscle} · {item.equipment}
+                  </Text>
+                </View>
               </Pressable>
             )}
           />

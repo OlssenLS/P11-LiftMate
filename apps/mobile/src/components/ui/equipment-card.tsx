@@ -7,14 +7,18 @@
  *
  * Tokens only; `icon` and `label` are passed already-resolved/translated.
  */
+import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
+import { EquipmentIcon, type EquipmentType } from './equipment-icon';
 import { useTokens } from '@/hooks/use-tokens';
 import { selectionTick } from '@/lib/haptics';
 
 export type EquipmentCardProps = {
-  /** Glyph/emoji shown large at the top of the tile. */
-  icon: string;
+  /** Optional icon node or legacy glyph string. */
+  icon?: ReactNode | string;
+  /** Equipment enum key to render vector EquipmentIcon. */
+  equipment?: EquipmentType | string;
   /** Already-translated label. */
   label: string;
   selected?: boolean;
@@ -22,7 +26,14 @@ export type EquipmentCardProps = {
   style?: ViewStyle;
 };
 
-export function EquipmentCard({ icon, label, selected = false, onPress, style }: EquipmentCardProps) {
+export function EquipmentCard({
+  icon,
+  equipment,
+  label,
+  selected = false,
+  onPress,
+  style,
+}: EquipmentCardProps) {
   const { colors, radius, spacing, touchTarget, fontSize, fontWeight } = useTokens();
 
   const containerStyle: ViewStyle = {
@@ -39,6 +50,34 @@ export function EquipmentCard({ icon, label, selected = false, onPress, style }:
   const handlePress = () => {
     selectionTick();
     onPress();
+  };
+
+  const iconColor = selected ? colors.accentText : colors.ink;
+
+  const renderIcon = () => {
+    if (equipment) {
+      return <EquipmentIcon equipment={equipment} size={24} color={iconColor} />;
+    }
+    if (React.isValidElement(icon)) {
+      return icon;
+    }
+    if (typeof icon === 'string') {
+      return (
+        <Text
+          style={{
+            color: iconColor,
+            fontSize: fontSize.body,
+            fontWeight: fontWeight.bold,
+            letterSpacing: 0.5,
+          }}
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        >
+          {icon}
+        </Text>
+      );
+    }
+    return null;
   };
 
   return (
@@ -61,18 +100,7 @@ export function EquipmentCard({ icon, label, selected = false, onPress, style }:
           borderColor: selected ? colors.accent : colors.hairline,
         }}
       >
-        <Text
-          style={{
-            color: selected ? colors.accentText : colors.ink,
-            fontSize: fontSize.body,
-            fontWeight: fontWeight.bold,
-            letterSpacing: 0.5,
-          }}
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-        >
-          {icon}
-        </Text>
+        {renderIcon()}
       </View>
       <Text
         numberOfLines={2}

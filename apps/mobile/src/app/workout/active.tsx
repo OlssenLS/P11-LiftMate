@@ -30,6 +30,7 @@ import {
   Card,
   CircleButton,
   EmptyState,
+  EquipmentIcon,
   Input,
   OfflineBanner,
   PrimaryButton,
@@ -1100,9 +1101,14 @@ function ExerciseBlock({
               {exercise.name}
             </Text>
             {(exercise.primaryMuscle || exercise.equipment) && (
-              <Text style={[type.secondary, { color: colors.inkMutedText, marginTop: 2 }]}>
-                {[exercise.primaryMuscle, exercise.equipment].filter(Boolean).join(' · ')}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
+                {exercise.equipment && (
+                  <EquipmentIcon equipment={exercise.equipment} size={13} color={colors.inkMutedText} />
+                )}
+                <Text style={[type.secondary, { color: colors.inkMutedText }]}>
+                  {[exercise.primaryMuscle, exercise.equipment].filter(Boolean).join(' · ')}
+                </Text>
+              </View>
             )}
           </Pressable>
 
