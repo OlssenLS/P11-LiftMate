@@ -4,6 +4,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   recognizeFoodInputSchema,
   confirmFoodRecognitionInputSchema,
@@ -24,6 +25,7 @@ export class FoodRecognitionController {
   constructor(private readonly foodRecognitionService: FoodRecognitionService) {}
 
   @Post('recognize')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   recognize(
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(recognizeFoodInputSchema))

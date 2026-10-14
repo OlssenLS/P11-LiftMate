@@ -38,6 +38,8 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @UsePipes(new ZodValidationPipe(registerSchema))
   register(@Body() body: RegisterInput, @Headers('user-agent') userAgent?: string) {
     return this.auth.register(body, userAgent);
@@ -45,6 +47,8 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @UsePipes(new ZodValidationPipe(loginSchema))
   login(@Body() body: LoginInput, @Headers('user-agent') userAgent?: string) {
     return this.auth.login(body, userAgent);

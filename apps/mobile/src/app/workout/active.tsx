@@ -15,6 +15,7 @@ import {
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import {
   Alert,
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -875,7 +876,14 @@ export default function ActiveWorkoutScreen() {
       <Sheet
         visible={renameSheetOpen}
         onClose={() => setRenameSheetOpen(false)}
+        onConfirm={() => {
+          Keyboard.dismiss();
+          pressLight();
+          void renameWorkout(workoutNameInput.trim());
+          setRenameSheetOpen(false);
+        }}
         title={t('workout.renameWorkoutTitle')}
+        mode="edit"
       >
         <View style={{ gap: spacing.lg, paddingVertical: spacing.md }}>
           <Input
@@ -887,6 +895,7 @@ export default function ActiveWorkoutScreen() {
           <PrimaryButton
             label={t('common.save')}
             onPress={() => {
+              Keyboard.dismiss();
               pressLight();
               void renameWorkout(workoutNameInput.trim());
               setRenameSheetOpen(false);
@@ -899,7 +908,14 @@ export default function ActiveWorkoutScreen() {
       <Sheet
         visible={notesSheetOpen}
         onClose={() => setNotesSheetOpen(false)}
+        onConfirm={() => {
+          Keyboard.dismiss();
+          pressLight();
+          void updateWorkoutNotes(workoutNotesInput.trim() || null);
+          setNotesSheetOpen(false);
+        }}
         title={t('workout.workoutNotesTitle')}
+        mode="edit"
       >
         <View style={{ gap: spacing.lg, paddingVertical: spacing.md }}>
           <Input
@@ -913,6 +929,7 @@ export default function ActiveWorkoutScreen() {
           <PrimaryButton
             label={t('common.save')}
             onPress={() => {
+              Keyboard.dismiss();
               pressLight();
               void updateWorkoutNotes(workoutNotesInput.trim() || null);
               setNotesSheetOpen(false);

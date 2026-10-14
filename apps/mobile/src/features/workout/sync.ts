@@ -36,8 +36,14 @@ export async function drainSyncQueue(): Promise<number> {
         await runOp(op);
         await dequeueOp(op.id);
         synced += 1;
-      } catch {
-        // Still offline or server error — keep this and remaining ops queued.
+      } catch (err: any) {
+        const status = err?.response?.status;
+        // If unrecoverable client error (4xx except 408/429), discard op to prevent wedging queue
+        if (status && status >= 400 && status < 500 && status !== 408 && status !== 429) {
+          await dequeueOp(op.id);
+          continue;
+        }
+        // Still offline or transient 5xx server error — keep this and remaining ops queued.
         break;
       }
     }

@@ -105,6 +105,8 @@ function enqueueWorkout(workout: ActiveWorkout): Promise<void> {
       exercises: workout.exercises.map((e) => ({
         id: e.id,
         exerciseId: e.exerciseId,
+        exerciseName: e.name,
+        name: e.name,
         position: e.position,
         sets: e.sets.map((s) => ({
           id: s.id,

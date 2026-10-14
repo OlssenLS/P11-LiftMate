@@ -84,7 +84,9 @@ export type WorkoutSet = z.infer<typeof workoutSetSchema>;
 
 export const workoutExerciseInputSchema = z.object({
   id: uuid,
-  exerciseId: uuid,
+  exerciseId: z.string().min(1),
+  name: z.string().optional(),
+  exerciseName: z.string().optional(),
   position: z.number().int().min(0),
   sets: z.array(workoutSetInputSchema).default([]),
 });

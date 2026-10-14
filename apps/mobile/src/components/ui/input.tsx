@@ -59,18 +59,19 @@ export function Input({
 
       <View
         style={{
-          minHeight: touchTarget.min,
+          minHeight: rest.multiline ? 96 : touchTarget.min,
           borderRadius: radius.cardSm,
           borderWidth: 1.5,
           borderColor,
           backgroundColor: colors.surface,
           flexDirection: 'row',
-          alignItems: 'center',
+          alignItems: rest.multiline ? 'flex-start' : 'center',
           paddingHorizontal: spacing.md,
         }}
       >
         <TextInput
           placeholderTextColor={colors.inkMuted}
+          textAlignVertical={rest.multiline ? 'top' : 'center'}
           onFocus={(e) => {
             setFocused(true);
             onFocus?.(e);
@@ -86,6 +87,7 @@ export function Input({
             paddingHorizontal: spacing.xs,
             fontSize: fontSize.body,
             fontWeight: fontWeight.regular,
+            minHeight: rest.multiline ? 80 : undefined,
           }}
           {...rest}
         />

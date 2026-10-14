@@ -4,6 +4,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   generateProgramInputSchema,
   confirmProgramPlanInputSchema,
@@ -24,6 +25,7 @@ export class PlannerController {
   constructor(private readonly plannerService: PlannerService) {}
 
   @Post('generate')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   generate(
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(generateProgramInputSchema))

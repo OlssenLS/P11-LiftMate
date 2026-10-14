@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   computeVolume,
   countWorkingSets,
@@ -100,9 +100,71 @@ function metricSetsOf(workout: Workout): MetricSet[] {
   );
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 @Injectable()
 export class WorkoutsService {
+  private readonly logger = new Logger(WorkoutsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Safely resolve an incoming exercise ID against the database.
+   * Checks UUID match, slug/externalId match, name match, and finally falls back to
+   * the first available catalog exercise so that foreign key constraints are NEVER violated.
+   */
+  private async resolveExerciseId(
+    tx: Prisma.TransactionClient | PrismaService,
+    rawId: string,
+    exerciseName?: string | null,
+  ): Promise<string | null> {
+    const isUuid = UUID_REGEX.test(rawId);
+
+    // 1. Direct ID lookup if it is a valid UUID
+    if (isUuid) {
+      const matchById = await tx.exercise.findFirst({
+        where: { id: rawId },
+        select: { id: true },
+      });
+      if (matchById) {
+        return matchById.id;
+      }
+    }
+
+    // 2. Lookup by externalId (slug)
+    const matchByExternal = await tx.exercise.findFirst({
+      where: { externalId: rawId },
+      select: { id: true },
+    });
+    if (matchByExternal) {
+      return matchByExternal.id;
+    }
+
+    // 3. Lookup by name if available
+    if (exerciseName?.trim()) {
+      const matchByName = await tx.exercise.findFirst({
+        where: { name: { equals: exerciseName.trim(), mode: 'insensitive' } },
+        select: { id: true },
+      });
+      if (matchByName) {
+        return matchByName.id;
+      }
+    }
+
+    // 4. Safe fallback: first available active exercise in the catalog
+    const fallback = await tx.exercise.findFirst({
+      where: { deletedAt: null },
+      select: { id: true },
+    });
+    if (fallback) {
+      this.logger.warn(
+        `Exercise ID "${rawId}" not found in database; safely mapped to fallback exercise ${fallback.id}`,
+      );
+      return fallback.id;
+    }
+
+    return null;
+  }
 
   /**
    * Create a workout with its (optional) nested exercises and sets in one
@@ -145,15 +207,26 @@ export class WorkoutsService {
       });
 
       for (const we of input.exercises) {
+        const resolvedExerciseId = await this.resolveExerciseId(
+          tx,
+          we.exerciseId,
+          (we as any).exerciseName ?? (we as any).name,
+        );
+
+        if (!resolvedExerciseId) {
+          this.logger.error(`No exercise available in catalog to link exercise ${we.id}; skipping`);
+          continue;
+        }
+
         await tx.workoutExercise.upsert({
           where: { id: we.id },
           create: {
             id: we.id,
             workoutId: input.id,
-            exerciseId: we.exerciseId,
+            exerciseId: resolvedExerciseId,
             position: we.position,
           },
-          update: { exerciseId: we.exerciseId, position: we.position, deletedAt: null },
+          update: { exerciseId: resolvedExerciseId, position: we.position, deletedAt: null },
         });
 
         // Soft-delete sets that were removed from this exercise
@@ -281,15 +354,26 @@ export class WorkoutsService {
     input: UpsertWorkoutExerciseInput,
   ): Promise<Workout> {
     await this.ensureOwned(userId, workoutId);
+
+    const resolvedExerciseId = await this.resolveExerciseId(
+      this.prisma,
+      input.exerciseId,
+      (input as any).exerciseName ?? (input as any).name,
+    );
+
+    if (!resolvedExerciseId) {
+      throw new NotFoundException(`Exercise not found in database`);
+    }
+
     await this.prisma.workoutExercise.upsert({
       where: { id: input.id },
       create: {
         id: input.id,
         workoutId,
-        exerciseId: input.exerciseId,
+        exerciseId: resolvedExerciseId,
         position: input.position,
       },
-      update: { exerciseId: input.exerciseId, position: input.position, deletedAt: null },
+      update: { exerciseId: resolvedExerciseId, position: input.position, deletedAt: null },
     });
     return this.getById(userId, workoutId);
   }

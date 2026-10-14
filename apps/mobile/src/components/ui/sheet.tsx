@@ -1,6 +1,9 @@
-import React, { type ReactNode } from 'react';
+import React, { type ReactNode, useEffect, useState } from 'react';
 import {
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,6 +27,7 @@ export interface SheetProps {
   style?: StyleProp<ViewStyle>;
   contentContainerStyle?: StyleProp<ViewStyle>;
   scrollable?: boolean;
+  avoidKeyboard?: boolean;
 }
 
 export function Sheet({
@@ -37,28 +41,46 @@ export function Sheet({
   style,
   contentContainerStyle,
   scrollable = true,
+  avoidKeyboard = true,
 }: SheetProps) {
   const insets = useSafeAreaInsets();
   const { colors, radius, type, spacing } = useTokens();
 
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-      accessibilityViewIsModal
-      statusBarTranslucent
-      navigationBarTranslucent
-    >
-      <View style={styles.overlay}>
-        {/* Scrim backdrop */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Dismiss sheet"
-          onPress={onClose}
-          style={[styles.scrim, { backgroundColor: colors.scrim }]}
-        />
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, () => setIsKeyboardVisible(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setIsKeyboardVisible(false));
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const handleScrimPress = () => {
+    if (isKeyboardVisible) {
+      Keyboard.dismiss();
+      return;
+    }
+    onClose();
+  };
+
+  const flatStyle = StyleSheet.flatten(style);
+  const hasExplicitHeight = Boolean(flatStyle?.height != null || flatStyle?.flex != null);
+
+  const sheetBody = (
+    <View style={styles.overlay}>
+      {/* Scrim backdrop */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss sheet"
+        onPress={handleScrimPress}
+        style={[styles.scrim, { backgroundColor: colors.scrim }]}
+      />
 
         {/* Sheet container */}
         <View
@@ -128,22 +150,54 @@ export function Sheet({
             <ScrollView
               bounces={false}
               showsVerticalScrollIndicator={false}
+              style={hasExplicitHeight ? styles.bodyContainerFlex : styles.bodyContainerAuto}
               contentContainerStyle={[styles.contentContainer, contentContainerStyle]}
+              keyboardShouldPersistTaps="handled"
             >
               {children}
             </ScrollView>
           ) : (
-            <View style={[styles.bodyContainer, contentContainerStyle]}>
+            <View
+              style={[
+                hasExplicitHeight ? styles.bodyContainerFlex : styles.bodyContainerAuto,
+                contentContainerStyle,
+              ]}
+            >
               {children}
             </View>
           )}
         </View>
       </View>
+  );
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      accessibilityViewIsModal
+      statusBarTranslucent
+      navigationBarTranslucent
+    >
+      {avoidKeyboard ? (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+          style={styles.keyboardAvoidingView}
+        >
+          {sheetBody}
+        </KeyboardAvoidingView>
+      ) : (
+        sheetBody
+      )}
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -152,14 +206,18 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
   },
   sheetSurface: {
+    width: '100%',
     maxHeight: '90%',
     paddingTop: 16,
     paddingHorizontal: 20,
     zIndex: 1,
   },
-  bodyContainer: {
+  bodyContainerFlex: {
     flex: 1,
     minHeight: 0,
+  },
+  bodyContainerAuto: {
+    flexShrink: 1,
   },
   editHeaderBlock: {
     marginBottom: 12,

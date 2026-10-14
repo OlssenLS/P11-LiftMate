@@ -76,10 +76,31 @@ function workoutRow(
 
 describe('WorkoutsService', () => {
   let service: WorkoutsService;
+  const txMock = {
+    workout: {
+      upsert: vi.fn(),
+    },
+    workoutExercise: {
+      updateMany: vi.fn(),
+      upsert: vi.fn(),
+    },
+    workoutSet: {
+      updateMany: vi.fn(),
+      upsert: vi.fn(),
+    },
+    exercise: {
+      findFirst: vi.fn(),
+    },
+  };
+
   const prisma = {
+    $transaction: vi.fn(async (cb: (tx: any) => Promise<any>) => cb(txMock)),
     workout: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
+    },
+    exercise: {
+      findFirst: vi.fn(),
     },
   };
 
@@ -234,6 +255,99 @@ describe('WorkoutsService', () => {
           },
           take: 5,
           orderBy: { completedAt: 'desc' },
+        }),
+      );
+    });
+  });
+
+  describe('create and exercise resolution', () => {
+    it('resolves valid UUID exercise directly', async () => {
+      const validExId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      txMock.exercise.findFirst.mockResolvedValueOnce({ id: validExId });
+      prisma.workout.findFirst.mockResolvedValueOnce(workoutRow('w-1', start, now, []));
+
+      await service.create('u1', {
+        id: 'w-1',
+        name: 'Test Workout',
+        startedAt: start,
+        exercises: [
+          {
+            id: 'we-1',
+            exerciseId: validExId,
+            position: 1,
+            sets: [],
+          },
+        ],
+      });
+
+      expect(txMock.workoutExercise.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            exerciseId: validExId,
+          }),
+        }),
+      );
+    });
+
+    it('resolves external slug exerciseId to database UUID', async () => {
+      const dbExId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+      txMock.exercise.findFirst.mockResolvedValueOnce({ id: dbExId });
+      prisma.workout.findFirst.mockResolvedValueOnce(workoutRow('w-1', start, now, []));
+
+      await service.create('u1', {
+        id: 'w-1',
+        name: 'Test Workout',
+        startedAt: start,
+        exercises: [
+          {
+            id: 'we-1',
+            exerciseId: 'barbell-bench-press',
+            position: 1,
+            sets: [],
+          },
+        ],
+      });
+
+      expect(txMock.workoutExercise.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            exerciseId: dbExId,
+          }),
+        }),
+      );
+    });
+
+    it('falls back to active catalog exercise when exerciseId is unknown to prevent foreign key violations', async () => {
+      const fallbackId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+      // 1. matchById -> null
+      // 2. matchByExternal -> null
+      // 3. fallback -> returns fallbackId
+      txMock.exercise.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: fallbackId });
+
+      prisma.workout.findFirst.mockResolvedValueOnce(workoutRow('w-1', start, now, []));
+
+      await service.create('u1', {
+        id: 'w-1',
+        name: 'Test Workout',
+        startedAt: start,
+        exercises: [
+          {
+            id: 'we-1',
+            exerciseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+            position: 1,
+            sets: [],
+          },
+        ],
+      });
+
+      expect(txMock.workoutExercise.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            exerciseId: fallbackId,
+          }),
         }),
       );
     });

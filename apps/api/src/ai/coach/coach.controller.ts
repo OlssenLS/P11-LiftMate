@@ -7,6 +7,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   createAiConversationSchema,
   sendAiMessageSchema,
@@ -63,6 +64,7 @@ export class CoachController {
   }
 
   @Post('conversations/:id/messages')
+  @Throttle({ default: { limit: 15, ttl: 60000 } })
   sendMessage(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,

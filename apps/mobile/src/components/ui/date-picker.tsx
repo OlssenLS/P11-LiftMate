@@ -15,7 +15,7 @@
  * The caller owns the value: `value` is an ISO `YYYY-MM-DD` string (or '') and
  * `onChange` emits the same shape so it drops straight into the existing form.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -111,6 +111,10 @@ export function DatePicker({
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(defaultDraft);
 
+  const monthScrollRef = useRef<ScrollView>(null);
+  const dayScrollRef = useRef<ScrollView>(null);
+  const yearScrollRef = useRef<ScrollView>(null);
+
   const years = useMemo(() => {
     const out: number[] = [];
     for (let y = resolvedMaxYear; y >= resolvedMinYear; y -= 1) {
@@ -123,6 +127,33 @@ export function DatePicker({
     const count = daysInMonth(draft.year, draft.month);
     return Array.from({ length: count }, (_, i) => i + 1);
   }, [draft.year, draft.month]);
+
+  useEffect(() => {
+    if (open) {
+      const timer = setTimeout(() => {
+        const yearIdx = years.indexOf(draft.year);
+        if (yearIdx >= 0) {
+          yearScrollRef.current?.scrollTo({
+            y: Math.max(0, (yearIdx - 1) * ROW_HEIGHT),
+            animated: false,
+          });
+        }
+        if (draft.month >= 0) {
+          monthScrollRef.current?.scrollTo({
+            y: Math.max(0, (draft.month - 1) * ROW_HEIGHT),
+            animated: false,
+          });
+        }
+        if (draft.day >= 1) {
+          dayScrollRef.current?.scrollTo({
+            y: Math.max(0, (draft.day - 2) * ROW_HEIGHT),
+            animated: false,
+          });
+        }
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [open, draft.year, draft.month, draft.day, years]);
 
   const openModal = () => {
     setDraft(parseIso(value) ?? defaultDraft);
@@ -170,8 +201,10 @@ export function DatePicker({
 
   const renderWheel = (
     items: { key: string; display: string; selected: boolean; onPress: () => void }[],
+    scrollRef?: React.RefObject<ScrollView | null>,
   ) => (
     <ScrollView
+      ref={scrollRef}
       style={styles.wheel}
       contentContainerStyle={{ paddingVertical: spacing.sm }}
       showsVerticalScrollIndicator={false}
@@ -272,6 +305,7 @@ export function DatePicker({
                     }));
                   },
                 })),
+                monthScrollRef,
               )}
             </View>
 
@@ -287,6 +321,7 @@ export function DatePicker({
                     setDraft((prev) => ({ ...prev, day: d }));
                   },
                 })),
+                dayScrollRef,
               )}
             </View>
 
@@ -306,6 +341,7 @@ export function DatePicker({
                     }));
                   },
                 })),
+                yearScrollRef,
               )}
             </View>
           </View>

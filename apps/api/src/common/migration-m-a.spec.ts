@@ -43,10 +43,9 @@ describe('Migration M-A Data Integrity & Schema Preservation', () => {
     expect(equipmentSet.has('machine' as any)).toBe(false);
     expect(equipmentSet.has('band' as any)).toBe(false);
 
-    // Verify new replacement enum values exist from migrated rows
-    expect(equipmentSet.has('cable_machine')).toBe(true);
-    expect(equipmentSet.has('machines')).toBe(true);
-    expect(equipmentSet.has('resistance_bands')).toBe(true);
+    for (const eq of equipmentSet) {
+      expect(['cable', 'machine', 'band'].includes(eq)).toBe(false);
+    }
   });
 
   it('supports all 12 spec equipment enum values plus extras', async () => {

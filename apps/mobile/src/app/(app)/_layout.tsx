@@ -71,6 +71,7 @@ export default function AppLayout() {
         title={t('coach.title')}
         mode="picker"
         scrollable={false}
+        avoidKeyboard={false}
         style={styles.coachSheetSurface}
       >
         <CoachSheetContent key={prefillPrompt ?? 'default'} prefill={prefillPrompt} />
