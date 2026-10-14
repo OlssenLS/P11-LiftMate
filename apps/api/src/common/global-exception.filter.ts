@@ -49,7 +49,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     if (err?.code === 'P2003') {
-      this.logger.warn(`Foreign key constraint violation on ${request.url}`);
+      const field = (err as any)?.meta?.field_name ?? (err as any)?.meta?.constraint ?? 'unknown';
+      this.logger.warn(
+        `Foreign key constraint violation on ${request.url} (field/constraint: ${field}): ${err?.message ?? ''}`,
+      );
       response.status(HttpStatus.BAD_REQUEST).json({
         statusCode: HttpStatus.BAD_REQUEST,
         message: 'A referenced resource does not exist.',

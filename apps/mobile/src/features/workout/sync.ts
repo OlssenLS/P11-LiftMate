@@ -30,8 +30,29 @@ async function runOp(op: SyncOp): Promise<void> {
 export async function drainSyncQueue(): Promise<number> {
   draining ??= (async () => {
     const ops = await pendingOps();
+
+    // Coalesce duplicate workout snapshot ops (only sync latest snapshot per workout id)
+    const latestWorkoutOpMap = new Map<string, string>();
+    for (const op of ops) {
+      if (op.method === 'POST' && op.path === '/workouts' && typeof op.body === 'object' && op.body !== null) {
+        const wid = (op.body as any).id;
+        if (wid) {
+          latestWorkoutOpMap.set(wid, op.id);
+        }
+      }
+    }
+
     let synced = 0;
     for (const op of ops) {
+      // If this is an obsolete workout snapshot replaced by a newer one, skip and dequeue
+      if (op.method === 'POST' && op.path === '/workouts' && typeof op.body === 'object' && op.body !== null) {
+        const wid = (op.body as any).id;
+        if (wid && latestWorkoutOpMap.get(wid) !== op.id) {
+          await dequeueOp(op.id);
+          continue;
+        }
+      }
+
       try {
         await runOp(op);
         await dequeueOp(op.id);

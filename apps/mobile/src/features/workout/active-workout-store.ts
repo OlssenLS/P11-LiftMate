@@ -90,7 +90,7 @@ function persist(workout: ActiveWorkout): Promise<void> {
 /** Serialise the whole workout as a single idempotent create/upsert op. */
 function enqueueWorkout(workout: ActiveWorkout): Promise<void> {
   return enqueueOp({
-    id: `workout:${workout.id}:${Date.now()}`,
+    id: `workout:${workout.id}`,
     method: 'POST',
     path: '/workouts',
     body: {

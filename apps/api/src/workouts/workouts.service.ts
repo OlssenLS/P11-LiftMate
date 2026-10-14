@@ -173,6 +173,33 @@ export class WorkoutsService {
    */
   async create(userId: string, input: CreateWorkoutInput): Promise<Workout> {
     await this.prisma.$transaction(async (tx) => {
+      // 1. Verify user exists
+      const userExists = await tx.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+      if (!userExists) {
+        throw new NotFoundException(`User with ID ${userId} not found`);
+      }
+
+      // 2. Validate programId if provided
+      let targetProgramId = input.programId ?? null;
+      if (targetProgramId) {
+        const isProgUuid = UUID_REGEX.test(targetProgramId);
+        const prog = isProgUuid
+          ? await tx.program.findFirst({
+              where: { id: targetProgramId, deletedAt: null },
+              select: { id: true },
+            })
+          : null;
+        if (!prog) {
+          this.logger.warn(
+            `Program ID "${targetProgramId}" not found in DB; safely unlinking from workout ${input.id}`,
+          );
+          targetProgramId = null;
+        }
+      }
+
       await tx.workout.upsert({
         where: { id: input.id },
         create: {
@@ -181,7 +208,7 @@ export class WorkoutsService {
           name: input.name ?? null,
           notes: input.notes ?? input.note ?? null,
           status: input.status ?? (input.completedAt ? 'completed' : 'in_progress'),
-          programId: input.programId ?? null,
+          programId: targetProgramId,
           startedAt: input.startedAt,
           completedAt: input.completedAt ?? null,
         },
@@ -189,7 +216,7 @@ export class WorkoutsService {
           name: input.name ?? null,
           notes: input.notes ?? input.note ?? null,
           status: input.status ?? (input.completedAt ? 'completed' : undefined),
-          programId: input.programId ?? undefined,
+          programId: targetProgramId ?? undefined,
           startedAt: input.startedAt,
           completedAt: input.completedAt ?? null,
         },
@@ -313,13 +340,31 @@ export class WorkoutsService {
 
   async update(userId: string, id: string, input: UpdateWorkoutInput): Promise<Workout> {
     await this.ensureOwned(userId, id);
+
+    let targetProgramId = input.programId;
+    if (targetProgramId) {
+      const isProgUuid = UUID_REGEX.test(targetProgramId);
+      const prog = isProgUuid
+        ? await this.prisma.program.findFirst({
+            where: { id: targetProgramId, deletedAt: null },
+            select: { id: true },
+          })
+        : null;
+      if (!prog) {
+        this.logger.warn(
+          `Program ID "${targetProgramId}" not found in DB; unlinking from workout ${id}`,
+        );
+        targetProgramId = null;
+      }
+    }
+
     await this.prisma.workout.update({
       where: { id },
       data: {
         name: input.name === undefined ? undefined : input.name,
         notes: (input.notes ?? input.note) === undefined ? undefined : (input.notes ?? input.note),
         status: input.status === undefined ? (input.completedAt ? 'completed' : undefined) : input.status,
-        programId: input.programId === undefined ? undefined : input.programId,
+        programId: targetProgramId === undefined ? undefined : targetProgramId,
         completedAt: input.completedAt === undefined ? undefined : input.completedAt,
       },
     });

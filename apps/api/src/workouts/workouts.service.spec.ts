@@ -77,6 +77,12 @@ function workoutRow(
 describe('WorkoutsService', () => {
   let service: WorkoutsService;
   const txMock = {
+    user: {
+      findUnique: vi.fn(),
+    },
+    program: {
+      findFirst: vi.fn(),
+    },
     workout: {
       upsert: vi.fn(),
     },
@@ -95,9 +101,16 @@ describe('WorkoutsService', () => {
 
   const prisma = {
     $transaction: vi.fn(async (cb: (tx: any) => Promise<any>) => cb(txMock)),
+    user: {
+      findUnique: vi.fn(),
+    },
+    program: {
+      findFirst: vi.fn(),
+    },
     workout: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
+      update: vi.fn(),
     },
     exercise: {
       findFirst: vi.fn(),
@@ -106,6 +119,7 @@ describe('WorkoutsService', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    txMock.user.findUnique.mockResolvedValue({ id: 'u1' });
     const module: TestingModule = await Test.createTestingModule({
       providers: [WorkoutsService, { provide: PrismaService, useValue: prisma }],
     }).compile();
