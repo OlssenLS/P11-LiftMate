@@ -4,6 +4,7 @@ import { ProgramsModule } from '../programs/programs.module.js';
 import { NutritionModule } from '../nutrition/nutrition.module.js';
 import { AI_PROVIDER } from './provider/ai-provider.interface.js';
 import { GeminiAiProvider } from './provider/gemini-ai.provider.js';
+import { GroqAiProvider } from './provider/groq-ai.provider.js';
 import { CoachContextService } from './coach/coach-context.service.js';
 import { CoachService } from './coach/coach.service.js';
 import { CoachController } from './coach/coach.controller.js';
@@ -24,11 +25,12 @@ import { FoodRecognitionController } from './food/food-recognition.controller.js
     FoodRecognitionController,
   ],
   providers: [
+    GeminiAiProvider,
+    GroqAiProvider,
     {
       provide: AI_PROVIDER,
-      useClass: GeminiAiProvider,
+      useClass: GroqAiProvider,
     },
-    GeminiAiProvider,
     CoachContextService,
     CoachService,
     PlannerService,
@@ -38,6 +40,8 @@ import { FoodRecognitionController } from './food/food-recognition.controller.js
   ],
   exports: [
     AI_PROVIDER,
+    GroqAiProvider,
+    GeminiAiProvider,
     CoachContextService,
     CoachService,
     PlannerService,

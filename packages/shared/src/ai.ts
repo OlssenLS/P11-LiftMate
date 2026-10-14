@@ -187,7 +187,7 @@ export const AiCoachStatusSchema = z.object({
   hasApiKey: z.boolean(),
   maskedKey: z.string().nullable(),
   model: z.string(),
-  mode: z.enum(["live_gemini", "deterministic_fallback"]),
+  mode: z.enum(["live_groq", "live_gemini", "deterministic_fallback"]),
   rateLimit: z.object({
     dailyLimit: z.number(),
     usedToday: z.number(),

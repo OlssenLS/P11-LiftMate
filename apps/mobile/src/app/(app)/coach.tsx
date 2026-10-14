@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
+  Keyboard,
+  LayoutAnimation,
   Platform,
   Pressable,
   ScrollView,
@@ -10,7 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowUp, Info, Sparkles } from 'lucide-react-native';
 
 import { Card, EmptyState, ScreenHeader } from '@/components/ui';
@@ -24,10 +25,18 @@ import {
   useSuggestedQuestions,
 } from '@/features/coach';
 
-export function CoachSheetContent({ prefill }: { prefill?: string | null } = {}) {
+export function CoachSheetContent({
+  prefill,
+  isInsideSheet = true,
+}: {
+  prefill?: string | null;
+  isInsideSheet?: boolean;
+} = {}) {
   const { colors, radius, spacing, fontSize, fontWeight, icons } = useTokens();
+  const insets = useSafeAreaInsets();
   const [inputText, setInputText] = useState(prefill ?? '');
   const [errorText, setErrorText] = useState<string | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const { data: conversation, isLoading, isError, refetch } =
@@ -78,12 +87,60 @@ export function CoachSheetContent({ prefill }: { prefill?: string | null } = {})
     );
   };
 
+  // Listen to keyboard show/hide events to keep the input bar precisely above the keyboard
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const onShow = (e: any) => {
+      const height = e?.endCoordinates?.height ?? 0;
+      if (Platform.OS === 'ios') {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      }
+      setKeyboardHeight(height);
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 50);
+    };
+
+    const onHide = () => {
+      if (Platform.OS === 'ios') {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      }
+      setKeyboardHeight(0);
+    };
+
+    const showSub = Keyboard.addListener(showEvent, onShow);
+    const hideSub = Keyboard.addListener(hideEvent, onHide);
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const bottomInset = isInsideSheet ? Math.max(insets.bottom, spacing.lg) : insets.bottom;
+  const keyboardOffset =
+    keyboardHeight > 0
+      ? Math.max(0, keyboardHeight - bottomInset + spacing.xs)
+      : 0;
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={{ flex: 1 }}
-    >
-      <View style={{ flex: 1, gap: spacing.sm, paddingBottom: spacing.sm }}>
+    <View style={[styles.mainContainer, { paddingBottom: keyboardOffset }]}>
+      {/* Chat Thread */}
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.chatScroll}
+        contentContainerStyle={[styles.chatContent, { gap: spacing.md }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        onContentSizeChange={() => {
+          if (messages.length > 0 || sendMessageMutation.isPending) {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+          }
+        }}
+      >
         {/* Safety & Medical Disclaimer Banner (§43, §68) */}
         <View
           style={[
@@ -135,7 +192,10 @@ export function CoachSheetContent({ prefill }: { prefill?: string | null } = {})
                     width: 8,
                     height: 8,
                     borderRadius: 4,
-                    backgroundColor: coachStatus.mode === 'live_gemini' ? colors.success : '#D97706',
+                    backgroundColor:
+                      coachStatus.mode === 'live_groq' || coachStatus.mode === 'live_gemini'
+                        ? colors.success
+                        : '#D97706',
                   }}
                 />
                 <Text
@@ -145,7 +205,11 @@ export function CoachSheetContent({ prefill }: { prefill?: string | null } = {})
                     fontWeight: fontWeight.bold,
                   }}
                 >
-                  {coachStatus.mode === 'live_gemini' ? 'Live Gemini AI' : 'Deterministic Engine'}
+                  {coachStatus.mode === 'live_groq'
+                    ? 'Live Groq AI'
+                    : coachStatus.mode === 'live_gemini'
+                      ? 'Live Gemini AI'
+                      : 'Deterministic Engine'}
                 </Text>
                 <Text
                   style={{
@@ -153,7 +217,7 @@ export function CoachSheetContent({ prefill }: { prefill?: string | null } = {})
                     fontSize: fontSize.caption,
                   }}
                 >
-                  {coachStatus.mode === 'live_gemini'
+                  {coachStatus.mode !== 'deterministic_fallback'
                     ? `(${coachStatus.model})`
                     : '(Free Fallback)'}
                 </Text>
@@ -171,20 +235,7 @@ export function CoachSheetContent({ prefill }: { prefill?: string | null } = {})
           </View>
         ) : null}
 
-        {/* Chat Thread */}
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.chatScroll}
-          contentContainerStyle={[styles.chatContent, { gap: spacing.md }]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          onContentSizeChange={() => {
-            if (messages.length > 0 || sendMessageMutation.isPending) {
-              scrollViewRef.current?.scrollToEnd({ animated: true });
-            }
-          }}
-        >
-          {isLoading ? (
+        {isLoading ? (
             <View style={{ paddingVertical: spacing.xxl, alignItems: 'center' }}>
               <ActivityIndicator size="small" color={colors.accent} />
             </View>
@@ -398,7 +449,7 @@ export function CoachSheetContent({ prefill }: { prefill?: string | null } = {})
         </ScrollView>
 
         {/* Suggested Questions (§39) */}
-        {suggestions.length > 0 ? (
+        {suggestions.length > 0 && keyboardHeight === 0 ? (
           <View style={{ gap: spacing.xs }}>
             <Text
               style={{
@@ -486,6 +537,11 @@ export function CoachSheetContent({ prefill }: { prefill?: string | null } = {})
             returnKeyType="send"
             onSubmitEditing={() => handleSend()}
             editable={!sendMessageMutation.isPending}
+            onFocus={() => {
+              setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+              }, 80);
+            }}
           />
 
           <Pressable
@@ -519,7 +575,6 @@ export function CoachSheetContent({ prefill }: { prefill?: string | null } = {})
           </Pressable>
         </View>
       </View>
-    </KeyboardAvoidingView>
   );
 }
 
@@ -531,7 +586,7 @@ export default function CoachScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={[styles.content, { paddingHorizontal: spacing.lg, paddingTop: spacing.md }]}>
           <ScreenHeader title={t('coach.title')} subtitle={t('coach.subtitle')} />
-          <CoachSheetContent />
+          <CoachSheetContent isInsideSheet={false} />
         </View>
       </SafeAreaView>
     </View>
@@ -539,6 +594,10 @@ export default function CoachScreen() {
 }
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    gap: 8,
+  },
   container: { flex: 1 },
   safeArea: { flex: 1 },
   content: {

@@ -74,7 +74,7 @@ export default function AppLayout() {
         avoidKeyboard={false}
         style={styles.coachSheetSurface}
       >
-        <CoachSheetContent key={prefillPrompt ?? 'default'} prefill={prefillPrompt} />
+        <CoachSheetContent key={prefillPrompt ?? 'default'} prefill={prefillPrompt} isInsideSheet={true} />
       </Sheet>
     </>
   );

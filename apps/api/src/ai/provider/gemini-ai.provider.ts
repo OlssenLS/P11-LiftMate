@@ -17,7 +17,7 @@ export class GeminiAiProvider implements AiProvider {
       this.configService.get<string>('GEMINI_API_KEY') ||
       this.configService.get<string>('AI_API_KEY');
     this.model =
-      this.configService.get<string>('GEMINI_MODEL') || 'gemini-1.5-flash';
+      this.configService.get<string>('GEMINI_MODEL') || 'gemini-flash-latest';
   }
 
   getStatus() {
