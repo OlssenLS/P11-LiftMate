@@ -41,6 +41,18 @@ importers:
       '@prisma/client':
         specifier: ^6.2.1
         version: 6.19.3(prisma@6.19.3(typescript@6.0.3))(typescript@6.0.3)
+      '@types/express':
+        specifier: ^5.0.0
+        version: 5.0.6
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.19.1
+      '@types/passport-jwt':
+        specifier: ^4.0.1
+        version: 4.0.1
+      '@vercel/node':
+        specifier: ^24.0.3
+        version: 24.0.3(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@vercel/build-utils@14.21.3)
       bcrypt:
         specifier: ^6.0.0
         version: 6.0.0
@@ -56,12 +68,18 @@ importers:
       passport-jwt:
         specifier: ^4.0.1
         version: 4.0.1
+      prisma:
+        specifier: ^6.2.1
+        version: 6.19.3(typescript@6.0.3)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
       rxjs:
         specifier: ^7.8.1
         version: 7.8.2
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.3
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -81,21 +99,9 @@ importers:
       '@types/bcrypt':
         specifier: ^6.0.0
         version: 6.0.0
-      '@types/express':
-        specifier: ^5.0.0
-        version: 5.0.6
-      '@types/node':
-        specifier: ^24.0.0
-        version: 24.19.1
-      '@types/passport-jwt':
-        specifier: ^4.0.1
-        version: 4.0.1
       '@types/supertest':
         specifier: ^7.0.0
         version: 7.2.1
-      '@vercel/node':
-        specifier: ^24.0.3
-        version: 24.0.3(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@vercel/build-utils@14.21.3)
       '@vitest/coverage-v8':
         specifier: ^4.1.2
         version: 4.1.11(vitest@4.1.11)
@@ -105,9 +111,6 @@ importers:
       prettier:
         specifier: ^3.4.2
         version: 3.9.9
-      prisma:
-        specifier: ^6.2.1
-        version: 6.19.3(typescript@6.0.3)
       source-map-support:
         specifier: ^0.5.21
         version: 0.5.21
@@ -117,9 +120,6 @@ importers:
       tsx:
         specifier: ^4.19.2
         version: 4.23.15
-      typescript:
-        specifier: ^6.0.2
-        version: 6.0.3
       vite-tsconfig-paths:
         specifier: ^5.1.4
         version: 5.1.4(typescript@6.0.3)(vite@8.3.2(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
