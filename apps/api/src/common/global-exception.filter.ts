@@ -14,8 +14,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
+    const response = ctx.getResponse<any>();
+    const request = ctx.getRequest<any>();
 
     // 1. Handled HttpExceptions (e.g. Zod validation, BadRequest, Unauthorized, NotFound, ThrottlerException)
     if (exception instanceof HttpException) {

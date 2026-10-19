@@ -51,6 +51,9 @@ async function bootstrap(): Promise<NestExpressApplication> {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const nestApp = await bootstrap();
-  const instance = nestApp.getHttpAdapter().getInstance();
+  const instance = nestApp.getHttpAdapter().getInstance() as (
+    req: VercelRequest,
+    res: VercelResponse,
+  ) => void;
   return instance(req, res);
 }
