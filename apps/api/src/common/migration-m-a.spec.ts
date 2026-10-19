@@ -36,7 +36,7 @@ describe('Migration M-A Data Integrity & Schema Preservation', () => {
       distinct: ['equipment'],
     });
 
-    const equipmentSet = new Set(equipmentRows.map((r) => r.equipment));
+    const equipmentSet = new Set((equipmentRows as any[]).map((r: any) => r.equipment));
 
     // Verify none of the dropped legacy enum values exist
     expect(equipmentSet.has('cable' as any)).toBe(false);
@@ -44,7 +44,7 @@ describe('Migration M-A Data Integrity & Schema Preservation', () => {
     expect(equipmentSet.has('band' as any)).toBe(false);
 
     for (const eq of equipmentSet) {
-      expect(['cable', 'machine', 'band'].includes(eq)).toBe(false);
+      expect(['cable', 'machine', 'band'].includes(eq as string)).toBe(false);
     }
   });
 
@@ -57,7 +57,7 @@ describe('Migration M-A Data Integrity & Schema Preservation', () => {
       ORDER BY e.enumsortorder;
     `);
 
-    const labels = enumRows.map((r) => r.enumlabel);
+    const labels = enumRows.map((r: { enumlabel: string }) => r.enumlabel);
 
     const required12 = [
       'barbell',
@@ -89,7 +89,7 @@ describe('Migration M-A Data Integrity & Schema Preservation', () => {
       WHERE t.typname = 'FitnessGoal';
     `);
 
-    const labels = enumRows.map((r) => r.enumlabel);
+    const labels = enumRows.map((r: { enumlabel: string }) => r.enumlabel);
     expect(labels).toContain('body_recomposition');
   });
 

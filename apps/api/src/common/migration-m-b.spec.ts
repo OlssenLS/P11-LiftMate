@@ -22,7 +22,7 @@ describe('Migration M-B Data Integrity & Workout Preservation', () => {
       ORDER BY e.enumsortorder;
     `);
 
-    const labels = enumRows.map((r) => r.enumlabel);
+    const labels = enumRows.map((r: { enumlabel: string }) => r.enumlabel);
     expect(labels).toContain('in_progress');
     expect(labels).toContain('completed');
     expect(labels).toContain('cancelled');

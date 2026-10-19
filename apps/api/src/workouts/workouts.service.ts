@@ -49,7 +49,7 @@ function toWorkout(row: WorkoutRow): Workout {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt,
-    exercises: row.exercises.map((we) => ({
+    exercises: (row.exercises as any[]).map((we: any) => ({
       id: we.id,
       workoutId: we.workoutId,
       exerciseId: we.exerciseId,
@@ -71,7 +71,7 @@ function toWorkout(row: WorkoutRow): Workout {
             alternativeExercises: we.exercise.alternativeExercises,
           }
         : undefined,
-      sets: we.sets.map((s) => ({
+      sets: (we.sets as any[]).map((s: any) => ({
         id: s.id,
         workoutExerciseId: s.workoutExerciseId,
         position: s.position,
@@ -114,7 +114,7 @@ export class WorkoutsService {
    * the first available catalog exercise so that foreign key constraints are NEVER violated.
    */
   private async resolveExerciseId(
-    tx: Prisma.TransactionClient | PrismaService,
+    tx: any,
     rawId: string,
     exerciseName?: string | null,
   ): Promise<string | null> {

@@ -23,7 +23,7 @@ describe('Migration M-C Programs & Program Exercises Integrity', () => {
       ORDER BY e.enumsortorder;
     `);
 
-    const labels = enumRows.map((r) => r.enumlabel);
+    const labels = enumRows.map((r: { enumlabel: string }) => r.enumlabel);
     expect(labels).toContain('active');
     expect(labels).toContain('completed');
     expect(labels).toContain('archived');

@@ -17,6 +17,9 @@
     "skipLibCheck": true,
     "strict": true,
     "strictPropertyInitialization": false,
-    "types": ["vitest/globals", "node", "express", "passport-jwt"]
+    "types": ["vitest/globals", "node", "express", "passport-jwt"],
+    "paths": {
+      "@prisma/client": ["./src/generated/prisma"]
+    }
   }
 }

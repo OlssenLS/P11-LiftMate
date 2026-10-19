@@ -46,7 +46,7 @@ export function toProgram(row: ProgramRow): Program {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt,
-    programExercises: row.programExercises.map((pe) => ({
+    programExercises: (row.programExercises as any[]).map((pe: any) => ({
       id: pe.id,
       programId: pe.programId,
       day: pe.day,
@@ -370,7 +370,7 @@ export class ProgramsService {
       throw new NotFoundException(`Program not found`);
     }
 
-    const dayExercises = program.programExercises.filter((pe) => pe.day === day);
+    const dayExercises = (program.programExercises as any[]).filter((pe: any) => pe.day === day);
     if (dayExercises.length === 0) {
       throw new BadRequestException(
         `Program "${program.name}" has no scheduled exercises for Day ${day}`,
@@ -382,7 +382,7 @@ export class ProgramsService {
 
     // Pre-fill exercises and sets
     const exercisesInput = await Promise.all(
-      dayExercises.map(async (pe, exIdx) => {
+      dayExercises.map(async (pe: any, exIdx: number) => {
         // Look up previous session weight if available
         let baselineWeight = 0;
         try {

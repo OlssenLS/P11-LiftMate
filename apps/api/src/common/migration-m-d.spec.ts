@@ -23,7 +23,7 @@ describe('Migration M-D Nutrition (Foods & FoodLogs) Integrity', () => {
       ORDER BY e.enumsortorder;
     `);
 
-    const labels = enumRows.map((r) => r.enumlabel);
+    const labels = enumRows.map((r: { enumlabel: string }) => r.enumlabel);
     expect(labels).toContain('breakfast');
     expect(labels).toContain('lunch');
     expect(labels).toContain('dinner');
@@ -39,7 +39,7 @@ describe('Migration M-D Nutrition (Foods & FoodLogs) Integrity', () => {
       ORDER BY e.enumsortorder;
     `);
 
-    const labels = enumRows.map((r) => r.enumlabel);
+    const labels = enumRows.map((r: { enumlabel: string }) => r.enumlabel);
     expect(labels).toContain('verified');
     expect(labels).toContain('custom');
     expect(labels).toContain('tkpi');
