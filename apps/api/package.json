@@ -30,7 +30,7 @@
   "dependencies": {
     "@liftmate/shared": "workspace:*",
     "@nestjs/common": "^12.0.1",
-    "@nestjs/config": "^4.0.0",
+    "@nestjs/config": "^12.0.1",
     "@nestjs/core": "^12.0.1",
     "@nestjs/jwt": "^12.0.2",
     "@nestjs/passport": "^12.0.0",
