@@ -3,11 +3,17 @@
     "version": ">= 12.0.0"
   },
   "build": {
+    "base": {
+      "node": "22.14.0",
+      "pnpm": "9.15.0"
+    },
     "development": {
+      "extends": "base",
       "developmentClient": true,
       "distribution": "internal"
     },
     "preview": {
+      "extends": "base",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
@@ -17,6 +23,7 @@
       }
     },
     "preview:device": {
+      "extends": "base",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
@@ -26,6 +33,7 @@
       }
     },
     "production": {
+      "extends": "base",
       "android": {
         "buildType": "app-bundle"
       },

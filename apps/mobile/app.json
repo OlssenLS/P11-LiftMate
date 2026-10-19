@@ -2,6 +2,12 @@
   "expo": {
     "name": "LiftMate",
     "slug": "liftmate",
+    "owner": "olssenls",
+    "extra": {
+      "eas": {
+        "projectId": "ad4d25fc-42cf-4fdc-ab27-ba861d5881d9"
+      }
+    },
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
