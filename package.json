@@ -12,6 +12,11 @@
     "dev:mobile": "pnpm --filter @liftmate/mobile start",
     "android": "pnpm --filter @liftmate/mobile android",
     "build": "pnpm -r build",
+    "build:apk": "pnpm --filter @liftmate/mobile build:apk",
+    "build:android": "pnpm --filter @liftmate/mobile build:android",
+    "build:ios": "pnpm --filter @liftmate/mobile build:ios",
+    "build:ios:sim": "pnpm --filter @liftmate/mobile build:ios:sim",
+    "build:preview": "pnpm --filter @liftmate/mobile build:preview",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test"

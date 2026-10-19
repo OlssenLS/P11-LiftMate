@@ -13,7 +13,10 @@
       "supportsTablet": false,
       "infoPlist": {
         "NSCameraUsageDescription": "LiftMate uses your camera to capture meal photos for AI food logging.",
-        "NSPhotoLibraryUsageDescription": "LiftMate accesses your photo library to select meal pictures for nutritional tracking."
+        "NSPhotoLibraryUsageDescription": "LiftMate accesses your photo library to select meal pictures for nutritional tracking.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
       }
     },
     "android": {
@@ -51,6 +54,14 @@
         {
           "photosPermission": "LiftMate accesses your photos to analyze and log meals.",
           "cameraPermission": "LiftMate uses the camera to scan and identify your meals."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
         }
       ]
     ],
