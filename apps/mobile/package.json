@@ -11,6 +11,7 @@
     "web": "expo start --web",
     "prebuild": "expo prebuild",
     "build:apk": "npx --yes eas-cli build --platform android --profile preview",
+    "build:apk:arm64": "npx --yes eas-cli build --platform android --profile preview:arm64",
     "build:android": "npx --yes eas-cli build --platform android --profile production",
     "build:ios": "npx --yes eas-cli build --platform ios --profile production",
     "build:ios:sim": "npx --yes eas-cli build --platform ios --profile preview",

@@ -13,6 +13,7 @@
     "android": "pnpm --filter @liftmate/mobile android",
     "build": "pnpm -r build",
     "build:apk": "pnpm --filter @liftmate/mobile build:apk",
+    "build:apk:arm64": "pnpm --filter @liftmate/mobile build:apk:arm64",
     "build:android": "pnpm --filter @liftmate/mobile build:android",
     "build:ios": "pnpm --filter @liftmate/mobile build:ios",
     "build:ios:sim": "pnpm --filter @liftmate/mobile build:ios:sim",

@@ -22,6 +22,14 @@
         "simulator": true
       }
     },
+    "preview:arm64": {
+      "extends": "base",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease -PreactNativeArchitectures=arm64-v8a"
+      }
+    },
     "preview:device": {
       "extends": "base",
       "distribution": "internal",
