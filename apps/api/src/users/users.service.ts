@@ -151,7 +151,7 @@ export class UsersService {
           skipDuplicates: true,
         });
       }
-    });
+    }, { maxWait: 10000, timeout: 30000 });
     return equipment;
   }
 }

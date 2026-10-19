@@ -246,7 +246,7 @@ export class ProgramsService {
         where: { id: programRow.id },
         include: programInclude,
       });
-    });
+    }, { maxWait: 10000, timeout: 30000 });
 
     return toProgram(created);
   }
@@ -302,7 +302,7 @@ export class ProgramsService {
         where: { id: programRow.id },
         include: programInclude,
       });
-    });
+    }, { maxWait: 10000, timeout: 30000 });
 
     return toProgram(created);
   }
@@ -335,7 +335,7 @@ export class ProgramsService {
         data: { status: ProgramStatus.active },
         include: programInclude,
       });
-    });
+    }, { maxWait: 10000, timeout: 30000 });
 
     return toProgram(updated);
   }

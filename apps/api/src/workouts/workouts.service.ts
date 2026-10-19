@@ -301,7 +301,7 @@ export class WorkoutsService {
           });
         }
       }
-    });
+    }, { maxWait: 10000, timeout: 30000 });
 
     return this.getById(userId, input.id);
   }
@@ -389,7 +389,7 @@ export class WorkoutsService {
       }
       await tx.workoutExercise.updateMany({ where: { workoutId: id }, data: { deletedAt: now } });
       await tx.workout.update({ where: { id }, data: { deletedAt: now } });
-    });
+    }, { maxWait: 10000, timeout: 30000 });
   }
 
   /** Add or update a single exercise within a workout. */
@@ -433,7 +433,7 @@ export class WorkoutsService {
         data: { deletedAt: now },
       });
       await tx.workoutExercise.update({ where: { id: exerciseRowId }, data: { deletedAt: now } });
-    });
+    }, { maxWait: 10000, timeout: 30000 });
   }
 
   /** Add or update a single set within a workout exercise. */

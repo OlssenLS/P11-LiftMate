@@ -71,7 +71,7 @@ export class OnboardingService {
       });
 
       return updated;
-    });
+    }, { maxWait: 10000, timeout: 30000 });
 
     if (this.programsService) {
       try {
