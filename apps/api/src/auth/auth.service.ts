@@ -156,8 +156,8 @@ export class AuthService {
       { sub: user.id, email: user.email, type: 'access' },
       {
         secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
-        expiresIn: this.config.get<string>('JWT_ACCESS_TTL', '15m') as unknown as number,
-      },
+        expiresIn: this.config.get<string>('JWT_ACCESS_TTL', '15m'),
+      } as any,
     );
     const refreshToken = await this.jwt.signAsync(
       { sub: user.id, jti, type: 'refresh' },
@@ -166,8 +166,8 @@ export class AuthService {
         expiresIn: this.config.get<string>(
           'JWT_REFRESH_TTL',
           `${REFRESH_TTL_DAYS}d`,
-        ) as unknown as number,
-      },
+        ),
+      } as any,
     );
     const tokenHash = await bcrypt.hash(refreshToken, REFRESH_SALT_ROUNDS);
     const expiresAt = new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000);
