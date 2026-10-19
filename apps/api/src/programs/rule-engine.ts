@@ -1,5 +1,11 @@
-import { Equipment, FitnessGoal } from '@prisma/client';
-import { STARTER_TEMPLATES, type StarterTemplate, type TemplateDay, type TemplateExercise } from './templates/starter-templates.js';
+import {
+  STARTER_TEMPLATES,
+  Equipment,
+  FitnessGoal,
+  type StarterTemplate,
+  type TemplateDay,
+  type TemplateExercise,
+} from './templates/starter-templates.js';
 
 export interface ExerciseLookupItem {
   id: string;

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { ProgramsController } from './programs.controller.js';
-import type { ProgramsService } from './programs.service.js';
-import { FitnessGoal, ProgramStatus } from '@prisma/client';
+import { ProgramStatus, type ProgramsService } from './programs.service.js';
+import { FitnessGoal } from './templates/starter-templates.js';
 import type { AuthUser } from '../auth/strategies/jwt-access.strategy.js';
 
 describe('ProgramsController', () => {

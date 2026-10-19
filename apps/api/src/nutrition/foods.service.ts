@@ -1,8 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Food, CreateFoodInput } from '@liftmate/shared';
-import { FoodSource, type Food as PrismaFood } from '@prisma/client';
+import type { Food as PrismaFood } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
+
+export const FoodSource = {
+  verified: 'verified',
+  custom: 'custom',
+  tkpi: 'tkpi',
+  open_food_facts: 'open_food_facts',
+} as const;
+export type FoodSource = (typeof FoodSource)[keyof typeof FoodSource];
 
 export function toFood(row: PrismaFood): Food {
   return {
@@ -76,7 +84,7 @@ export class FoodsService {
         protein: input.protein,
         carbs: input.carbs,
         fat: input.fat,
-        source: (input.source as FoodSource) ?? FoodSource.custom,
+        source: ((input.source as FoodSource) ?? FoodSource.custom) as any,
         barcode: input.barcode ?? null,
         externalId: input.externalId ?? null,
       },

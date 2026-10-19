@@ -1,7 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { FoodLogsService } from './food-logs.service.js';
+import { FoodLogsService, MealType } from './food-logs.service.js';
 import { NotFoundException } from '@nestjs/common';
-import { MealType } from '@prisma/client';
 import type { PrismaService } from '../prisma/prisma.service.js';
 
 describe('FoodLogsService', () => {

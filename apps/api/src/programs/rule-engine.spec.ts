@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { Equipment, FitnessGoal } from '@prisma/client';
 import {
   RuleEngine,
   isEquipmentCompatible,
@@ -7,7 +6,11 @@ import {
   type ExerciseLookupItem,
   type SelectionCriteria,
 } from './rule-engine.js';
-import { STARTER_TEMPLATES } from './templates/starter-templates.js';
+import {
+  STARTER_TEMPLATES,
+  Equipment,
+  FitnessGoal,
+} from './templates/starter-templates.js';
 
 describe('RuleEngine', () => {
   const mockExerciseCatalog: ExerciseLookupItem[] = [

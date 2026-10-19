@@ -1,4 +1,29 @@
-import { Equipment, FitnessGoal } from '@prisma/client';
+export const Equipment = {
+  barbell: 'barbell',
+  dumbbell: 'dumbbell',
+  cable_machine: 'cable_machine',
+  smith_machine: 'smith_machine',
+  leg_press: 'leg_press',
+  hack_squat: 'hack_squat',
+  pulldown_machine: 'pulldown_machine',
+  chest_press: 'chest_press',
+  machines: 'machines',
+  pull_up_bar: 'pull_up_bar',
+  resistance_bands: 'resistance_bands',
+  bodyweight: 'bodyweight',
+  kettlebell: 'kettlebell',
+  other: 'other',
+} as const;
+export type Equipment = (typeof Equipment)[keyof typeof Equipment];
+
+export const FitnessGoal = {
+  lose_fat: 'lose_fat',
+  build_muscle: 'build_muscle',
+  gain_strength: 'gain_strength',
+  general_fitness: 'general_fitness',
+  body_recomposition: 'body_recomposition',
+} as const;
+export type FitnessGoal = (typeof FitnessGoal)[keyof typeof FitnessGoal];
 
 export interface TemplateExercise {
   exerciseExternalId: string;

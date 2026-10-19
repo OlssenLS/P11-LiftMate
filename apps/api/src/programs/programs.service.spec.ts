@@ -1,8 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { ProgramsService } from './programs.service.js';
+import { ProgramsService, ProgramStatus } from './programs.service.js';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { FitnessGoal } from '@liftmate/shared';
-import { ProgramStatus } from '@prisma/client';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import type { WorkoutsService } from '../workouts/workouts.service.js';
 

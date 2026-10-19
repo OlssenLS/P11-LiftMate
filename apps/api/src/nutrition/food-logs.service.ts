@@ -7,9 +7,17 @@ import type {
   UpdateFoodLogInput,
   MealGroup,
 } from '@liftmate/shared';
-import { MealType, type Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { toFood } from './foods.service.js';
+
+export const MealType = {
+  breakfast: 'breakfast',
+  lunch: 'lunch',
+  dinner: 'dinner',
+  snack: 'snack',
+} as const;
+export type MealType = (typeof MealType)[keyof typeof MealType];
 
 type FoodLogRow = Prisma.FoodLogGetPayload<{ include: { food: true } }>;
 

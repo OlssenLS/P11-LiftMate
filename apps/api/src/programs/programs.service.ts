@@ -8,11 +8,18 @@ import type {
   Program,
   Workout,
 } from '@liftmate/shared';
-import { FitnessGoal, ProgramStatus, type Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { STARTER_TEMPLATES, type StarterTemplate } from './templates/starter-templates.js';
+import { STARTER_TEMPLATES, FitnessGoal, type StarterTemplate } from './templates/starter-templates.js';
 import { RuleEngine, type ExerciseLookupItem } from './rule-engine.js';
 import { WorkoutsService } from '../workouts/workouts.service.js';
+
+export const ProgramStatus = {
+  active: 'active',
+  completed: 'completed',
+  archived: 'archived',
+} as const;
+export type ProgramStatus = (typeof ProgramStatus)[keyof typeof ProgramStatus];
 
 const programInclude = {
   programExercises: {
