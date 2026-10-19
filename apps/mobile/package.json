@@ -16,6 +16,8 @@
     "build:ios:sim": "eas build --platform ios --profile preview",
     "build:ios:device": "eas build --platform ios --profile preview:device",
     "build:all": "eas build --platform all --profile preview",
+    "postinstall": "pnpm --filter @liftmate/shared build",
+    "eas-build-post-install": "pnpm --filter @liftmate/shared build",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint"
   },
