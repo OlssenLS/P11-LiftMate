@@ -4,7 +4,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle } from '../../common/throttler/index.js';
 import {
   recognizeFoodInputSchema,
   confirmFoodRecognitionInputSchema,
