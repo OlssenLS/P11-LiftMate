@@ -8,6 +8,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm --filter @liftmate/shared build && prisma generate && nest build",
+    "postinstall": "prisma generate",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "dev": "pnpm --filter @liftmate/shared build && nest start --watch",

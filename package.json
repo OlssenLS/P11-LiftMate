@@ -19,7 +19,7 @@
     "build:ios:sim": "pnpm --filter @liftmate/mobile build:ios:sim",
     "build:preview": "pnpm --filter @liftmate/mobile build:preview",
     "typecheck": "pnpm -r typecheck",
-    "postinstall": "pnpm --filter @liftmate/shared build",
+    "postinstall": "pnpm --filter @liftmate/shared build && pnpm --filter @liftmate/api prisma:generate",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test"
   },
