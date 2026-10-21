@@ -35,6 +35,14 @@ function resolveApiUrl(): string {
 
 export const API_URL = resolveApiUrl();
 
+export const SUPABASE_URL =
+  process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() ||
+  'https://gwyzdbqswdkmnpykxuov.supabase.co';
+
+export const SUPABASE_ANON_KEY =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3eXpkYnFzd2RrbW5weWt4dW92Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0MDg0NzEsImV4cCI6MjEwNzk4NDQ3MX0.ZkeLjZoFvPdQXxCCYDTVkYW8WnoTUG07UoHZfHh9ZLQ';
+
 /**
  * Fixture flag (LIFTMATE_AGENT_BRIEF.md §4 constraint 2).
  * Defaults to false so production screens never ship fake data.

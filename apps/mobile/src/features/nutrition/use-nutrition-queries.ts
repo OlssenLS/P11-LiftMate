@@ -11,6 +11,7 @@ import type {
   ConfirmFoodRecognitionInput,
 } from '@liftmate/shared';
 
+import { mapDbFoodToShared, supabase } from '@/lib/supabase';
 import { api } from '@/lib/api-client';
 import { enqueueOp } from '@/lib/db';
 import { getIsOffline } from '@/lib/network';
@@ -37,10 +38,16 @@ export function useFoodSearch(query: string, limit = 20) {
     queryKey: ['foods', 'search', query, limit],
     queryFn: async () => {
       const trimmed = query.trim();
-      const res = await api.get(
-        `/foods/search?q=${encodeURIComponent(trimmed)}&limit=${limit}`,
-      );
-      return res.data as Food[];
+      let dbQuery = supabase.from('foods').select('*');
+      if (trimmed) {
+        dbQuery = dbQuery.ilike('name', `%${trimmed}%`);
+      }
+      const { data, error } = await dbQuery
+        .is('deleted_at', null)
+        .order('name', { ascending: true })
+        .limit(limit);
+      if (error) throw error;
+      return (data ?? []).map(mapDbFoodToShared);
     },
     staleTime: 1000 * 60 * 5, // 5 minutes cache
   });
@@ -160,8 +167,26 @@ export function useCreateFood() {
 
   return useMutation({
     mutationFn: async (input: CreateFoodInput): Promise<Food> => {
-      const res = await api.post('/foods', input);
-      return res.data as Food;
+      const { data, error } = await supabase
+        .from('foods')
+        .insert({
+          id: input.id,
+          name: input.name.trim(),
+          serving_size: input.servingSize.trim(),
+          serving_unit: input.servingUnit,
+          serving_weight_g: input.servingWeightG ?? null,
+          calories: input.calories,
+          protein: input.protein,
+          carbs: input.carbs,
+          fat: input.fat,
+          source: input.source ?? 'custom',
+          barcode: input.barcode ?? null,
+          external_id: input.externalId ?? null,
+        })
+        .select('*')
+        .single();
+      if (error) throw error;
+      return mapDbFoodToShared(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['foods', 'search'] });

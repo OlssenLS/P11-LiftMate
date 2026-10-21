@@ -10,6 +10,7 @@ import type {
 } from '@liftmate/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { mapDbExerciseToShared, supabase } from '@/lib/supabase';
 import { api } from '@/lib/api-client';
 
 /** Search the exercise DB. Params map 1:1 to the API query schema. */
@@ -17,8 +18,26 @@ export function useExerciseSearch(params: Partial<ExerciseSearch>) {
   return useQuery<Exercise[]>({
     queryKey: ['exercises', params],
     queryFn: async () => {
-      const res = await api.get('/exercises', { params });
-      return res.data as Exercise[];
+      let query = supabase.from('exercises').select('*');
+      if (params.q?.trim()) {
+        query = query.ilike('name', `%${params.q.trim()}%`);
+      }
+      if (params.muscle) {
+        query = query.eq('primary_muscle', params.muscle);
+      }
+      if (params.equipment) {
+        query = query.eq('equipment', params.equipment);
+      }
+      if (params.difficulty) {
+        query = query.eq('difficulty', params.difficulty);
+      }
+      const limit = params.limit ?? 50;
+      const offset = params.offset ?? 0;
+      const { data, error } = await query
+        .order('name', { ascending: true })
+        .range(offset, offset + limit - 1);
+      if (error) throw error;
+      return (data ?? []).map(mapDbExerciseToShared);
     },
   });
 }
